@@ -9,6 +9,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
+
+
     :root{
       --bg:#ffffff;
       --surface:#ffffff;
@@ -240,17 +242,16 @@
 
     /* 量表 */
     .scale{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      justify-content:space-between;
-      padding: 14px;
-      background: var(--surface-2);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-    }
-    .scale-ends{
+  display:grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap:10px;
+  align-items:center;
+  padding: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.scale-ends{
       width:100%;
       display:flex;
       justify-content:space-between;
@@ -261,15 +262,14 @@
     }
 
     .opt{
-      position:relative;
-      flex: 1 1 auto;
-      min-width: 46px;
-      display:flex;
-      justify-content:center;
-    }
+  position:relative;
+  min-width: 0;
+  display:flex;
+  justify-content:center;
+}
     .opt input{ display:none; }
     .opt label{
-      width: 46px;
+      width: 100%;
       height: 42px;
       border-radius: 14px;
       border: 1px solid rgba(15,23,42,0.12);
@@ -364,14 +364,66 @@
     .color-loop{ color: var(--warning); }
     .color-grip{ color: var(--danger); }
 
-    .chart{
-      padding: 18px;
-      border-radius: var(--radius);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.92);
-      box-shadow: var(--shadow);
-      margin-top: 14px;
-    }
+    
+.chart-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.chart-title b{
+  display:block;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.chart-title span{
+  display:block;
+  font-size: 12px;
+  color: var(--muted-2);
+  line-height: 1.4;
+}
+
+[data-feature][hidden]{
+  display:none !important;
+}
+.chart canvas{ width:100%; height: 220px; }
+
+.chart {
+  padding: 20px; /* 增加一点内边距 */
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.95); /* 背景稍微调白一点 */
+  box-shadow: var(--shadow);
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 让内容居中 */
+}
+
+/* --- 新增：图表容器限制 --- */
+.chart-container {
+  position: relative;
+  width: 100%;
+  max-width: 420px; /* 电脑端最大宽度，防止拉太长 */
+  height: 320px;    /* 给定一个合适的高度 */
+  margin: 0 auto;   /* 水平居中 */
+}
+
+/* 手机端适配：稍微调小一点高度 */
+@media (max-width: 480px) {
+  .chart-container {
+    height: 280px; 
+  }
+}
+
+.chart-head {
+  width: 100%; /* 标题栏保持全宽 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
     .section{
       margin-top: 14px;
       border-radius: var(--radius);
@@ -461,7 +513,14 @@
       h1{ font-size: 24px; }
       .opt label{ width: 44px; }
     }
-  </style>
+  
+
+@media (min-width: 980px){
+  .grid{ grid-template-columns: repeat(3, 1fr); }
+}
+
+
+</style>
 </head>
 
 <body>
@@ -513,7 +572,7 @@
     <header id="header">
       <h1>MBTI 心理状态罗盘</h1>
       <p class="subtitle">
-        通过「认知成熟度 / 内耗倾向 / 压力失控」三个维度，帮助你快速了解近期状态，并给出可执行的调整建议。
+        通过「认知成熟度 / 内耗倾向 / 压力失控 / 压力负荷 / 自洽度」五个维度，帮助你快速了解近期状态，并给出可执行的调整建议。
       </p>
       <div class="hint">
         <span>量表：1（完全不符）→ 6（完全符合）</span>
@@ -526,47 +585,83 @@
       <div id="questions"></div>
       <button class="btn" type="submit">生成报告</button>
 
-      <div class="callout">
-        <b>提示：</b>如果你中途离开页面，答题记录不会自动保存。
+      <div class="callout" data-feature="persistenceHint">
+        <b>提示：</b>如果你中途离开页面，答题记录不会自动保存。后续接入 LeanCloud 后可以支持「保存进度 / 历史报告」。
       </div>
     </form>
 
     <section id="result">
-      <div class="grid">
-        <div class="stat">
-          <div class="k">认知阶层（Maturity）</div>
-          <div class="v" id="maturity-v">—</div>
-          <div class="d" id="maturity-d">—</div>
-        </div>
+  <div class="grid">
+    <div class="stat">
+      <div class="k">认知阶层（Maturity）</div>
+      <div class="v" id="maturity-v">—</div>
+      <div class="d" id="maturity-d">—</div>
+    </div>
 
-        <div class="stat">
-          <div class="k">当前状态（Energy）</div>
-          <div class="v" id="health-v">—</div>
-          <div class="d" id="health-d">—</div>
-        </div>
-      </div>
+    <div class="stat">
+      <div class="k">内耗倾向（Loop）</div>
+      <div class="v" id="loop-v">—</div>
+      <div class="d" id="loop-d">—</div>
+    </div>
 
-      <div class="chart">
-        <canvas id="radar" height="140"></canvas>
-      </div>
+    <div class="stat">
+      <div class="k">压力反应（Grip）</div>
+      <div class="v" id="grip-v">—</div>
+      <div class="d" id="grip-d">—</div>
+    </div>
 
-      <div class="section">
-        <h3>核心洞察</h3>
-        <p id="insight">—</p>
-      </div>
+    <div class="stat">
+      <div class="k">压力负荷（Load）</div>
+      <div class="v" id="load-v">—</div>
+      <div class="d" id="load-d">—</div>
+    </div>
 
-      <div class="section">
-        <h3>下一步建议</h3>
-        <p id="advice">—</p>
-      </div>
+    <div class="stat">
+      <div class="k">自洽度（Coherence）</div>
+      <div class="v" id="coh-v">—</div>
+      <div class="d" id="coh-d">—</div>
+    </div>
 
-      </div>
-    </section>
+    <div class="stat">
+      <div class="k">状态指数（Index）</div>
+      <div class="v" id="overall-v">—</div>
+      <div class="d" id="overall-d">—</div>
+    </div>
+  </div>
+
+<div class="chart">
+  <div class="chart-head">
+    <div class="chart-title">
+      <b>状态罗盘</b> <span>六维状态分布图</span>
+    </div>
+    <div class="pill" id="overall-pill">—</div>
+  </div>
+  
+  <div class="chart-container">
+    <canvas id="chart"></canvas>
+  </div>
+</div>
+
+  <div class="section">
+    <h3>核心洞察</h3>
+    <p id="insight">—</p>
+  </div>
+
+  <div class="section">
+    <h3>下一步建议</h3>
+    <p id="advice">—</p>
+  </div>
+
+  <div class="callout" data-feature="expansionHint" style="margin-top:14px;">
+    <b>扩展模块：</b>你可以在这里接入「更长的成长指南 / 复盘模板 / 付费内容」等商业化能力。建议保持克制：先把主流程体验打磨顺，再加深度内容。
+  </div>
+</section>
   </div>
 
   <div class="toast" id="toast" role="alert"></div>
 
 <script>
+
 /**
  * ===================== 题库与配置 =====================
  * 目前先使用一套通用题库（原 INTP 题库改为更泛化的表达），
@@ -619,6 +714,11 @@ const MBTI_BANK = {
 
 const SCALE_MIN = 1;
 const SCALE_MAX = 6;
+
+const FEATURES = {
+  persistenceHint: false,
+  expansionHint: false
+};
 const SCALE_POINTS = [1,2,3,4,5,6];
 
 let currentType = "INTP";
@@ -791,62 +891,248 @@ function renderResult(res){
     mD.textContent = "容易被旧模式牵引；更需要外部反馈与小步验证。";
   }
 
-  // 状态：loop / grip / stable
-  const hV = $("health-v");
-  const hD = $("health-d");
-  const insight = $("insight");
-  const advice = $("advice");
+  // 维度：loop / grip / load / coherence / overall
+const lV = $("loop-v");
+const lD = $("loop-d");
+const gV = $("grip-v");
+const gD = $("grip-d");
+const loadV = $("load-v");
+const loadD = $("load-d");
+const cohV = $("coh-v");
+const cohD = $("coh-d");
+const oV = $("overall-v");
+const oD = $("overall-d");
+const oPill = $("overall-pill");
 
-  if (res.l < 35 && res.g < 35){
-    hV.textContent = "平稳";
-    hV.className = "v color-healthy";
-    hD.textContent = "近期波动不大，恢复与输出较平衡。";
-    insight.textContent = "你的精力分配更均衡：既能思考，也能推进；既能独处，也能和外界保持连接。";
-    advice.textContent = "建议把优势用在“中长期项目”上：每周固定 1～2 次复盘（目标、进度、阻力），用小步可验证的方式推进。";
-  }else if (res.l >= res.g){
-    hV.textContent = "内耗偏高（Loop）";
-    hV.className = "v color-loop";
-    hD.textContent = "反复推演与担心增加，行动阻力更大。";
-    insight.textContent = `内耗指数较高（${res.l}/100）：你可能在反复复盘、过度比较或过度打磨细节，导致启动成本越来越高。`;
-    advice.textContent = "建议做一次“外部打断”：安排 30 分钟低门槛行动（整理、散步、写 10 行计划、发出一个消息），让身体先动起来；同时把问题拆成 3 个可验证小步骤。";
-  }else{
-    hV.textContent = "压力偏高（Grip）";
-    hV.className = "v color-grip";
-    hD.textContent = "情绪与生理信号更强，注意力更难集中。";
-    insight.textContent = `压力指数较高（${res.g}/100）：你可能处在高负荷阶段，出现疲惫、敏感、注意力涣散或“想逃离”的反应。`;
-    advice.textContent = "优先做“恢复”而不是“硬撑”：睡眠、饮食、轻运动（如 20 分钟走路）先稳定下来；把最重要的任务缩减为今天只完成 1 件可交付的小成果。必要时寻求可信的人/专业资源支持。";
-  }
+const insight = $("insight");
+const advice = $("advice");
 
-  // 雷达图（白底）
-  if (radarChart) radarChart.destroy();
-  const ctx = $("radar").getContext("2d");
-  radarChart = new Chart(ctx, {
-    type: "radar",
-    data: {
-      labels: ["认知成熟度", "思维内耗", "压力失控"],
-      datasets: [{
-        label: "当前状态",
-        data: [res.m, res.l, res.g],
-        backgroundColor: "rgba(37, 99, 235, 0.15)",
-        borderColor: "rgba(37, 99, 235, 0.85)",
-        pointBackgroundColor: "rgba(37, 99, 235, 1)",
-        borderWidth: 2
-      }]
+// Loop（风险向：越高越容易内耗）
+if (res.l < 35){
+  lV.textContent = "低";
+  lV.className = "v color-healthy";
+  lD.textContent = "反复推演较少，启动成本更低。";
+}else if (res.l < 65){
+  lV.textContent = "中";
+  lV.className = "v color-mid";
+  lD.textContent = "有一定反刍，偶尔卡在细节里。";
+}else{
+  lV.textContent = "高";
+  lV.className = "v color-loop";
+  lD.textContent = "更容易反复纠结，行动阻力增大。";
+}
+
+// Grip（风险向：越高越易失控/崩）
+if (res.g < 35){
+  gV.textContent = "低";
+  gV.className = "v color-healthy";
+  gD.textContent = "压力信号较轻，恢复更容易。";
+}else if (res.g < 65){
+  gV.textContent = "中";
+  gV.className = "v color-mid";
+  gD.textContent = "负荷期需要刻意恢复与边界。";
+}else{
+  gV.textContent = "高";
+  gV.className = "v color-grip";
+  gD.textContent = "处在高压边缘，注意力更难稳定。";
+}
+
+// Load（风险向：越高越“满”）
+if (res.load < 35){
+  loadV.textContent = "轻";
+  loadV.className = "v color-healthy";
+  loadD.textContent = "节奏较松，余量更足。";
+}else if (res.load < 65){
+  loadV.textContent = "中";
+  loadV.className = "v color-mid";
+  loadD.textContent = "强度适中，注意别长期无休。";
+}else{
+  loadV.textContent = "重";
+  loadV.className = "v color-grip";
+  loadD.textContent = "整体偏满，优先做减负与恢复。";
+}
+
+// Coherence（资源向：越高越自洽）
+if (res.coh >= 80){
+  cohV.textContent = "高";
+  cohV.className = "v color-high";
+  cohD.textContent = "作答更一致，内在标准较清晰。";
+}else if (res.coh >= 55){
+  cohV.textContent = "中";
+  cohV.className = "v color-mid";
+  cohD.textContent = "状态略有波动，但仍可自我校准。";
+}else{
+  cohV.textContent = "低";
+  cohV.className = "v color-loop";
+  cohD.textContent = "近期可能摇摆较多，建议先稳节奏。";
+}
+
+// Overall（资源向：越高越稳）
+let overallLabel = "可用";
+let overallDesc = "状态可支撑日常推进，注意节奏与边界。";
+
+if (res.o >= 75){
+  overallLabel = "充盈";
+  overallDesc = "恢复与输出相对平衡，适合做中长期推进。";
+  oV.className = "v color-high";
+  oPill.textContent = "充盈";
+}else if (res.o >= 55){
+  overallLabel = "可用";
+  overallDesc = "可稳定推进，但避免把强度拉满太久。";
+  oV.className = "v color-healthy";
+  oPill.textContent = "可用";
+}else if (res.o >= 35){
+  overallLabel = "偏疲";
+  overallDesc = "更需要恢复与拆解任务，先把可交付做小。";
+  oV.className = "v color-mid";
+  oPill.textContent = "偏疲";
+}else{
+  overallLabel = "高压";
+  overallDesc = "建议减负优先：睡眠、饮食、轻运动与求助。";
+  oV.className = "v color-grip";
+  oPill.textContent = "高压";
+}
+
+oV.textContent = `${overallLabel} · ${res.o}/100`;
+oD.textContent = overallDesc;
+
+// 核心洞察 + 建议（更像产品语气）
+if (res.l < 35 && res.g < 35 && res.load < 65){
+  insight.textContent = "你当前更像“稳态推进”：想得清楚、行动阻力不大，同时还能保留恢复空间。";
+  advice.textContent = "把优势用在“可交付的小步”上：每周固定 1 次复盘（目标/进度/阻力），并给自己留出 1～2 个无任务时段做恢复。";
+}else if (res.g >= 65 || res.load >= 75){
+  insight.textContent = `你处在“高负荷/高压”区间：压力信号更强（Grip ${res.g}/100，负荷 ${res.load}/100），注意力更难稳定。`;
+  advice.textContent = "优先做恢复与减负：把今天目标缩减为 1 件可交付小成果；睡眠与饮食先稳定，再用 20 分钟走路/拉伸做身体回正。必要时寻求可信的人/专业资源支持。";
+}else{
+  insight.textContent = `你的内耗倾向偏高（Loop ${res.l}/100）：可能在反复推演、过度打磨或过度比较，导致启动成本变高。`;
+  advice.textContent = "做一次“外部打断”：安排 30 分钟低门槛行动（整理/散步/写 10 行计划/发出一条消息），让身体先动起来；再把问题拆成 3 个可验证的小步骤。";
+}
+
+// 图表
+
+if (radarChart) radarChart.destroy();
+const ctx = $("chart").getContext("2d");
+
+// 创建一个渐变色，让图表看起来更有高级感
+const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+gradient.addColorStop(0, 'rgba(37, 99, 235, 0.5)'); // 顶部深一点
+gradient.addColorStop(1, 'rgba(37, 99, 235, 0.1)'); // 底部浅一点
+
+const labels = ["认知成熟度", "自洽度", "内耗弹性", "压力弹性", "负荷余量", "状态指数"];
+const values = [
+  res.m,
+  res.coh,
+  100 - res.l,
+  100 - res.g,
+  100 - res.load,
+  res.o
+];
+
+radarChart = new Chart(ctx, {
+  type: "radar", // 关键：改为雷达图
+  data: {
+    labels: labels,
+    datasets: [{
+      label: "当前状态",
+      data: values,
+      backgroundColor: gradient, // 使用渐变填充
+      borderColor: "#2563eb",    // 边框颜色（蓝色）
+      borderWidth: 2,
+      pointBackgroundColor: "#ffffff", // 点的中心是白色
+      pointBorderColor: "#2563eb",     // 点的边框是蓝色
+      pointBorderWidth: 2,
+      pointRadius: 4,                  // 点稍微大一点
+      pointHoverRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false, // 允许填满我们设定的容器
+    plugins: {
+      legend: { display: false }, // 隐藏图例，因为只有一个数据列
+      tooltip: {
+        backgroundColor: "rgba(15, 23, 42, 0.9)",
+        titleFont: { size: 13 },
+        bodyFont: { size: 13 },
+        padding: 10,
+        cornerRadius: 8,
+        displayColors: false,
+        callbacks: {
+          label: (context) => ` ${context.label}: ${context.raw} / 100`
+        }
+      }
     },
+    scales: {
+      r: { // 雷达图使用的是 'r' 轴 (Radial)
+        angleLines: {
+          color: "rgba(0, 0, 0, 0.05)" // 放射线颜色
+        },
+        grid: {
+          color: "rgba(0, 0, 0, 0.05)", // 蜘蛛网格颜色
+          circular: true // 【可选】设为 true 会变成圆形网格，设为 false 是多边形
+        },
+        pointLabels: { // 轴上的文字标签（认知、自洽等）
+          font: {
+            size: 12,
+            weight: "600",
+            family: '"Inter", sans-serif'
+          },
+          color: "#475569"
+        },
+        ticks: { // 刻度数字（20, 40...）
+          display: false, // 隐藏刻度数字，保持画面干净
+          backdropColor: "transparent",
+          stepSize: 20
+        },
+        min: 0,
+        max: 100, // 固定最大值为100，保证图形比例正确
+      }
+    }
+  }
+});
+},
     options: {
-      scales: {
-        r: {
-          suggestedMin: 0,
-          suggestedMax: 100,
-          angleLines: { color: "rgba(15,23,42,0.08)" },
-          grid: { color: "rgba(15,23,42,0.08)" },
-          pointLabels: { color: "rgba(15,23,42,0.65)", font: { size: 13, weight: "600" } },
-          ticks: { display: false }
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 2, right: 6, bottom: 2, left: 4 } },
+    animation: { duration: 500 },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "rgba(15,23,42,0.9)",
+        padding: 10,
+        displayColors: false,
+        callbacks: {
+          label: (ctx) => ` ${ctx.raw} / 100`
+        }
+      }
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        max: 100,
+        grid: {
+          color: "rgba(15,23,42,0.06)",
+          drawBorder: false
+        },
+        ticks: {
+          stepSize: 25,
+          color: "#64748b",
+          font: { size: 11 }
         }
       },
-      plugins: { legend: { display: false } }
+      y: {
+        grid: { display: false },
+        ticks: {
+          color: "#334155",
+          font: { size: 12, weight: "600" }
+        }
+      }
     }
-  });
+  }
+});
+
 }
 
 function showResult(){
@@ -868,6 +1154,14 @@ function resetAll(){
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  function applyFeatureFlags(){
+    document.querySelectorAll("[data-feature]").forEach(el=>{
+      const key = el.dataset.feature;
+      const on = !!FEATURES[key];
+      if (!on) el.setAttribute("hidden", "");
+    });
+  }
+  applyFeatureFlags();
   // 默认 INTP（可按你需要设定）
   const sel = $("mbti-select");
   sel.value = "INTP";
@@ -902,21 +1196,48 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 计分
     const {min, max} = computeCategoryBounds(currentQuestions);
-    const scores = { maturity: 0, loop: 0, grip: 0 };
+            const scores = { maturity: 0, loop: 0, grip: 0 };
+const rawVals = [];
 
-    currentQuestions.forEach(q=>{
-      let v = parseInt(formData.get("q"+q.id), 10);
-      if (q.reversed) v = (SCALE_MAX + SCALE_MIN) - v; // 1~6 的反向
-      scores[q.type] += v;
-    });
+currentQuestions.forEach(q=>{
+  const raw = parseInt(formData.get("q"+q.id), 10);
+  rawVals.push(raw);
 
-    const res = {
-      m: normalize(scores.maturity, min.maturity, max.maturity),
-      l: normalize(scores.loop,     min.loop,     max.loop),
-      g: normalize(scores.grip,     min.grip,     max.grip)
-    };
+  let v = raw;
+  if (q.reversed) v = (SCALE_MAX + SCALE_MIN) - v; // 1~6 的反向
+  scores[q.type] += v;
+});
 
-    // 轻量延迟
+            const res = {
+  m: normalize(scores.maturity, min.maturity, max.maturity),
+  l: normalize(scores.loop,     min.loop,     max.loop),
+  g: normalize(scores.grip,     min.grip,     max.grip)
+};
+
+// 额外维度（不新增题目：从整体作答分布“派生”两项）
+const mean = rawVals.reduce((s,x)=>s+x,0) / rawVals.length;            // 1~6
+const load = Math.round(((mean - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100); // 压力负荷：越高越满
+const variance = rawVals.reduce((s,x)=> s + Math.pow(x - mean, 2), 0) / rawVals.length;
+const std = Math.sqrt(variance);                                       // 0~2.5（理论上）
+const coh = Math.round((1 - Math.min(1, std / 2.5)) * 100);            // 自洽度：越高越一致
+
+// 状态指数：把“风险向”维度转换为“资源向”后融合
+const invLoop = 100 - res.l;
+const invGrip = 100 - res.g;
+const invLoad = 100 - load;
+const overall = Math.round(
+  0.25 * res.m +
+  0.20 * coh +
+  0.20 * invLoop +
+  0.20 * invGrip +
+  0.15 * invLoad
+);
+
+res.load = load;
+res.coh = coh;
+res.o = overall;
+
+    // 轻量延迟（避免“装神秘”的 AI 味）
     setTimeout(()=>{
       setLoading(false);
       renderResult(res);
@@ -924,6 +1245,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 650);
   });
 });
+
 </script>
 </body>
 </html>
