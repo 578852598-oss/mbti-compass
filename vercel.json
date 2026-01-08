@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/lc-api/:match*",
+      "destination": "https://ohk4ykur.api.lncldglobal.com/:match*"
+    }
+  ]
+}
