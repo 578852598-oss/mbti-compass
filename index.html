@@ -525,7 +525,7 @@
           <select id="mbti-select" aria-label="MBTI 下拉选择">
             <option>INTJ</option><option>INTP</option><option>INFJ</option><option>INFP</option>
             <option>ENFJ</option><option>ENFP</option><option>ENTJ</option><option>ENTP</option>
-            <option>ISFJ</option>
+            <option>ISFJ</option><option>ISTP</option>
             <!-- <option>ISTJ</option><option>ISFJ</option><option>ESTJ</option><option>ESFJ</option>
             <option>ISTP</option><option>ISFP</option><option>ESTP</option><option>ESFP</option> -->
           </select>
@@ -971,6 +971,54 @@ ISFJ: {
     { id: 29, text: "你会不停地向别人确认“会没事的吧？”，但别人的安慰根本无法让你心安。", type: "grip", reversed: false },
     { id: 30, text: "你觉得自己失去了对生活的控制权，像是在一艘即将沉没的船上。", type: "grip", reversed: false }
   ]
+},
+
+ISTP: {
+  questions: [
+    // --- 第一部分：阶层发展 (Maturity) ---
+    // 考察 Ti (逻辑) 与 Se (行动/适应) 的整合
+    
+    { id: 1,  text: "你不仅能发现问题的逻辑漏洞，还能立刻动手找到解决办法。", type: "maturity", reversed: false },
+    { id: 2,  text: "你经常因为嫌麻烦，而对重要的事情采取“摆烂”或拖延的态度。", type: "maturity", reversed: true  },
+    { id: 3,  text: "面对突发状况，你通常能保持冷静，并迅速做出最有利的反应。", type: "maturity", reversed: false },
+    { id: 4,  text: "你为了追求感官刺激（如飙车、极限运动），经常不顾后果地盲目冒险。", type: "maturity", reversed: true  },
+    { id: 5,  text: "你能够用简洁精准的语言阐述复杂的原理，而不是故弄玄虚。", type: "maturity", reversed: false },
+    { id: 6,  text: "你对他人的情感极其冷漠，甚至在他人的痛苦面前表现得无动于衷。", type: "maturity", reversed: true  },
+    { id: 7,  text: "你既享受独处的自由，也能在必要时融入群体，展现出幽默感。", type: "maturity", reversed: false },
+    { id: 8,  text: "你经常在这个项目中途因为失去了兴趣而半途而废，没有任何交代。", type: "maturity", reversed: true  },
+    { id: 9,  text: "你总是等到最后一刻才行动，且经常因为误判时间而搞砸事情。", type: "maturity", reversed: true  },
+    { id: 10, text: "你愿意为了掌握一项技能而进行枯燥的重复练习，追求技术上的精进。", type: "maturity", reversed: false },
+
+    // --- 第二部分：Loop 状态 (Ti-Ni Loop) ---
+    // 特征：切断 Se（行动），陷入 Ti-Ni（死脑筋+阴谋论）
+    // 表现：多疑、虚无主义、不想动、过度解读
+
+    { id: 11, text: "最近你变得非常消极，觉得做什么都没有意义，反正结果早就注定了。", type: "loop", reversed: false },
+    { id: 12, text: "你开始过度解读别人的话，总觉得他们背后有某种针对你的阴谋。", type: "loop", reversed: false },
+    { id: 13, text: "你把自己关在家里，完全切断了与物理世界的接触，陷入大脑的空转。", type: "loop", reversed: false },
+    { id: 14, text: "你对未来充满了悲观的预测，并坚信这些坏事一定会发生。", type: "loop", reversed: false },
+    { id: 15, text: "你变得愤世嫉俗，看什么都不顺眼，觉得周围的人都是傻瓜。", type: "loop", reversed: false },
+    { id: 16, text: "你试图在脑海中构建一个宏大的理论来解释一切，但完全脱离了现实证据。", type: "loop", reversed: false },
+    { id: 17, text: "你对行动失去了兴趣，宁愿躺着空想也不愿动手去验证一下。", type: "loop", reversed: false },
+    { id: 18, text: "你觉得整个社会规则都是骗局，产生了一种强烈的反叛但无力的情绪。", type: "loop", reversed: false },
+    { id: 19, text: "你误读了别人的沉默或微表情，认定他们是在嘲笑你或排挤你。", type: "loop", reversed: false },
+    { id: 20, text: "你陷入了一种精神上的麻痹状态，既不快乐，也不痛苦，只是单纯的停滞。", type: "loop", reversed: false },
+
+    // --- 第三部分：Grip 状态 (Fe Grip) ---
+    // 特征：劣势 Fe（外倾情感）爆发
+    // 表现：情绪失控、哭闹、求关注、敏感
+
+    { id: 21, text: "你突然觉得自己被所有人抛弃了，没人关心你，没人爱你。", type: "grip", reversed: false },
+    { id: 22, text: "你会因为一点小事而突然情绪大爆发，甚至摔东西或大吼大叫。", type: "grip", reversed: false },
+    { id: 23, text: "你变得对他人的评价极度敏感，别人一个眼神就能让你难受半天。", type: "grip", reversed: false },
+    { id: 24, text: "你开始甚至有点“歇斯底里”，表现出平时绝对不会有的戏剧化情感。", type: "grip", reversed: false },
+    { id: 25, text: "你感到一种难以名状的孤独感，渴望得到别人的肯定和安抚。", type: "grip", reversed: false },
+    { id: 26, text: "你会用消极攻击（冷战、阴阳怪气）的方式来表达你的不满，而不是直接解决。", type: "grip", reversed: false },
+    { id: 27, text: "你觉得自己付出了很多却没得到回报，变成了一个充满了怨气的受害者。", type: "grip", reversed: false },
+    { id: 28, text: "你发现自己控制不住地流泪或情绪低落，逻辑思维完全下线。", type: "grip", reversed: false },
+    { id: 29, text: "你为了维持某种人际关系的和谐，而做出极度违背自己意愿的妥协。", type: "grip", reversed: false },
+    { id: 30, text: "你感到自己的边界被侵犯了，但又不知道如何拒绝，最后只能情绪崩溃。", type: "grip", reversed: false }
+  ]
 }
 };
 
@@ -1326,8 +1374,22 @@ function pickNarrativeKey(res){
         insight: (res) => `当前状态：【委屈的审判官】(Loop 指数 ${res.l})。你切断了对外的温暖（Fe），把自己锁在过去的回忆里（Si）生闷气。你可能正在心里反复盘算“谁对不起我”、“凭什么我要做这么多”。你变得冷漠、记仇，甚至对亲近的人施加冷暴力。`,
         advice: "【表达需求】：你在等别人“猜”到你的委屈，但这是徒劳的。打破死循环的方法是 Fe（外倾情感）。直接告诉对方：“我现在很累，我需要你帮我洗碗。”而不是一边洗碗一边在心里骂人。说出来，那一刻你就解脱了。"
       }
-    }
+    },
 
+    ISTP: {
+      stable: {
+        insight: "当前状态：【冷静的操盘手】。你的逻辑内核（Ti）与对现实的敏锐度（Se）配合完美。你是最高效的问题解决者，话不多但招招致命。你享受当下的自由，也能处理好手头的麻烦，正处于能量利用率最高的时期。",
+        advice: "【保持流动】：你现在就像水一样灵活。继续保持你的节奏。如果感到无聊，去学习一项新的硬核技能（如编程、机械、极限运动），这能让你的多巴胺维持在健康水平。"
+      },
+      overload: { // Grip 状态 (Fe 爆发)
+        insight: (res) => `当前状态：【失控的火山】(Grip 指数 ${res.g})。这可能会让你感到羞耻，但那个“冷酷”的你不见了。劣势 Fe 让你变得异常情绪化、敏感，甚至像个孩子一样发脾气。你可能觉得自己被忽视了，或者为了别人的事感到精疲力尽。`,
+        advice: "【物理隔离】：别试图用逻辑分析情绪，也别试图找人“谈心”（你现在谈不明白）。你需要的是独处 + 发泄。去健身房举铁、去打沙袋、或者去没人的地方吼两嗓子。把那股奇怪的能量通过身体排出去，你的理智就会回来。"
+      },
+      highLoop: { // Loop 状态 (Ti-Ni 闭环)
+        insight: (res) => `当前状态：【瘫痪的阴谋论者】(Loop 指数 ${res.l})。你切断了与物理世界的连接（Se），困在大脑里空转。你开始觉得“做什么都没意义”，或者怀疑周围的一切都有阴谋。你变得愤世嫉俗，行动力归零，活在一个虚构的、灰暗的未来里。`,
+        advice: "【强制行动】：你的大脑中毒了，解药在手上。别想了，立刻动起来。哪怕是修一个坏掉的水龙头、拼一个乐高、或者出门跑五公里。只要你的手开始触碰真实的物体（Se），那个虚无的死循环就会瞬间瓦解。"
+      }
+    }
   };
 
   const DEFAULT_NARRATIVE = {
@@ -1593,5 +1655,8 @@ setTimeout(()=>{
   });
 });
 </script>
+<footer style="text-align:center; color:#94a3b8; font-size:12px; padding:20px;">
+  &copy; 2026 MBTI Compass. Original Design & Code. 未经允许禁止转载或商用.
+</footer>
 </body>
 </html>
