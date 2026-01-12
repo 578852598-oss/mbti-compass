@@ -1,6 +1,6 @@
 {
-  "name": "宝宝倒计时",
-  "short_name": "宝宝倒计时",
+  "name": "宝宝要来了",
+  "short_name": "宝宝要来了",
   "start_url": "week.html",
   "display": "standalone",
   "background_color": "#f4f7f6",
@@ -19,3 +19,4 @@
   ]
 
 }
+
