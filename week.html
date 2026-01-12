@@ -2,12 +2,19 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>孕周转换器 Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="宝宝倒计时">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <title>孕期助手 Pro+</title>
     <style>
         :root {
-            --primary-color: #8faae8; /* 更清新的蓝紫色 */
+            --primary-color: #8faae8; 
             --primary-dark: #6b8dd6;
+            --accent-color: #ff9a9e; /* 预产期倒计时的温馨粉色 */
             --bg-color: #f4f7f6;
             --card-bg: #ffffff;
             --text-main: #2c3e50;
@@ -21,10 +28,11 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 20px; /* 如果觉得在手机上全屏太满，可以保留这个padding */
             display: flex;
             justify-content: center;
             min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .container {
@@ -33,13 +41,14 @@
             display: flex;
             flex-direction: column;
             gap: 18px;
+            padding-bottom: 40px; /* 底部留白，防止被iPhone横条遮挡 */
         }
 
         h1 {
             text-align: center;
             font-size: 1.1rem;
             color: var(--text-secondary);
-            margin: 5px 0 10px 0;
+            margin: 10px 0 5px 0;
             letter-spacing: 1px;
             font-weight: 500;
         }
@@ -50,6 +59,13 @@
             padding: 24px;
             box-shadow: var(--shadow);
             border: 1px solid rgba(255,255,255,0.8);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card.highlight {
+            background: linear-gradient(135deg, #fff0f1 0%, #ffffff 100%);
+            border-color: #ffe0e0;
         }
 
         .card-title {
@@ -70,11 +86,15 @@
             border-radius: 4px;
             margin-right: 10px;
         }
+        
+        .card.highlight .card-title::before {
+            background-color: var(--accent-color);
+        }
 
         /* 核心展示区 */
         .hero-result {
             text-align: center;
-            padding: 10px 0;
+            padding: 5px 0;
         }
 
         .big-text {
@@ -88,6 +108,18 @@
         .sub-text {
             font-size: 0.9rem;
             color: var(--text-secondary);
+        }
+
+        /* 倒计时特有样式 */
+        .countdown-number {
+            font-size: 3rem;
+            color: var(--accent-color);
+            font-weight: 800;
+        }
+        .countdown-label {
+            font-size: 0.9rem;
+            color: #d68084;
+            margin-top: -5px;
         }
 
         /* 表单控件 */
@@ -136,14 +168,9 @@
             margin: 10px 0;
             position: relative;
         }
-        
         .or-divider::before, .or-divider::after {
             content: "";
-            position: absolute;
-            top: 50%;
-            width: 40%;
-            height: 1px;
-            background-color: #eee;
+            position: absolute; top: 50%; width: 40%; height: 1px; background-color: #eee;
         }
         .or-divider::before { left: 0; }
         .or-divider::after { right: 0; }
@@ -156,12 +183,6 @@
             text-align: center;
             font-weight: 600;
             margin-top: 15px;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .btn {
@@ -176,17 +197,33 @@
             cursor: pointer;
             margin-top: 5px;
             box-shadow: 0 4px 10px rgba(143, 170, 232, 0.4);
-            transition: transform 0.1s, box-shadow 0.1s;
+            transition: transform 0.1s;
         }
+        .btn:active { transform: scale(0.98); }
         
-        .btn:active {
-            transform: scale(0.98);
-            box-shadow: 0 2px 5px rgba(143, 170, 232, 0.4);
+        .progress-wrapper {
+            margin: 15px 10px 5px 10px; /* 控制上下边距 */
         }
-
-        /* 针对小屏幕优化 */
-        .flex-col-mobile {
-            display: flex;
+        .progress-bg {
+            background-color: #ffe5e7; /* 浅粉色底槽 */
+            height: 14px;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #ff9a9e, #fecfef); /* 渐变粉色进度 */
+            height: 100%;
+            width: 0%; /* JS会控制这里 */
+            border-radius: 10px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .progress-text {
+            font-size: 0.8rem;
+            color: #d68084;
+            text-align: right;
+            margin-top: 4px;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -195,11 +232,26 @@
 <div class="container">
     <h1>孕期助手</h1>
 
+    <div class="card highlight">
+        <div class="card-title">预产期倒计时</div>
+          <div class="hero-result">
+            <div class="sub-text" id="eddDateStr">预产期: 计算中...</div>
+            <div class="big-text countdown-number" id="daysLeft">--</div>
+            <div class="countdown-label" id="weeksLeftStr">正在计算...</div>
+
+            <div class="progress-wrapper">
+                <div class="progress-bg">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+                <div class="progress-text" id="progressPercent">进度: 0%</div>
+            </div>
+            </div>
+
     <div class="card">
         <div class="card-title">今日孕周</div>
         <div class="input-group">
             <label>起始日期 (末次月经)</label>
-            <input type="date" id="lmpDate" value="2025-09-11" onchange="calculateCurrent()">
+            <input type="date" id="lmpDate" value="2025-09-11" onchange="calculateAll()">
         </div>
         <div class="hero-result">
             <div class="sub-text" id="todayDateStr">--</div>
@@ -210,7 +262,6 @@
 
     <div class="card">
         <div class="card-title">推算日期 (那是几号?)</div>
-        
         <label>方式一：按孕周推算</label>
         <div class="row">
             <div class="input-group" style="flex:1">
@@ -220,14 +271,11 @@
                 <input type="number" id="targetDays" placeholder="天" min="0" max="6" oninput="clearTotalDaysInput()">
             </div>
         </div>
-
         <div class="or-divider">或者</div>
-
         <div class="input-group">
             <label>方式二：直接输入累计天数</label>
             <input type="number" id="targetTotalDays" placeholder="例如: 280" min="0" oninput="clearWeekInputs()">
         </div>
-
         <button class="btn" onclick="calculateTargetDate()">计算日期</button>
         <div class="result-box" id="targetResult" style="display:none;"></div>
     </div>
@@ -236,7 +284,7 @@
         <div class="card-title">日期间隔计算</div>
         <div class="row">
             <div class="input-group" style="flex:1">
-                <label>日期 A (默认起始日)</label>
+                <label>日期 A</label>
                 <input type="date" id="dateA">
             </div>
             <div class="input-group" style="flex:1">
@@ -251,26 +299,24 @@
 </div>
 
 <script>
-    // 默认起始日期
     const DEFAULT_START_DATE = "2025-09-11";
+    // 预产期总天数
+    const PREGNANCY_DAYS = 280; 
 
     window.onload = function() {
-        // 1. 设置今天的日期显示
+        // 设置日期显示
         const today = new Date();
         const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
         document.getElementById('todayDateStr').innerText = today.toLocaleDateString('zh-CN', options);
 
-        // 2. 初始化间隔计算器的日期
-        // 日期A 默认为 9月11日
+        // 初始化日期 A 和 B
         document.getElementById('dateA').value = DEFAULT_START_DATE;
-        // 日期B 默认为 今天
         document.getElementById('dateB').value = formatDateToISO(today);
 
-        // 3. 运行一次当前孕周计算
-        calculateCurrent();
+        // 统一计算所有数据
+        calculateAll();
     };
 
-    // 辅助工具：格式化日期为 YYYY-MM-DD
     function formatDateToISO(date) {
         const yyyy = date.getFullYear();
         const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -278,34 +324,29 @@
         return `${yyyy}-${mm}-${dd}`;
     }
 
-    // 交互逻辑：输入周数时，清空总天数
-    function clearTotalDaysInput() {
-        document.getElementById('targetTotalDays').value = '';
-    }
-    // 交互逻辑：输入总天数时，清空周数
-    function clearWeekInputs() {
-        document.getElementById('targetWeeks').value = '';
-        document.getElementById('targetDays').value = '';
-    }
+    function clearTotalDaysInput() { document.getElementById('targetTotalDays').value = ''; }
+    function clearWeekInputs() { document.getElementById('targetWeeks').value = ''; document.getElementById('targetDays').value = ''; }
 
-    // 1. 计算当前孕周
-    function calculateCurrent() {
+    // 主计算函数：更新孕周和倒计时
+    function calculateAll() {
         const lmpInput = document.getElementById('lmpDate').value;
         if (!lmpInput) return;
+        
+        // 更新日期A
+        document.getElementById('dateA').value = lmpInput;
 
         const lmp = new Date(lmpInput);
         const today = new Date();
-        
-        // 抹去时分秒，只计算日期差
         lmp.setHours(0,0,0,0);
         today.setHours(0,0,0,0);
-        
+
+        // 1. 计算当前孕周
         const diffTime = today - lmp;
         const totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
+        
         let resultText = "";
         let dayText = "";
-
+        
         if (totalDays < 0) {
             resultText = "尚未开始";
             dayText = `距离开始还有 ${Math.abs(totalDays)} 天`;
@@ -315,15 +356,48 @@
             resultText = `${weeks}周 + ${days}天`;
             dayText = `累计怀孕: ${totalDays}天`;
         }
-
         document.getElementById('currentGestational').innerText = resultText;
         document.getElementById('totalDays').innerText = dayText;
+    
+        let percent = (totalDays / 280) * 100;
+        percent = Math.min(Math.max(percent, 0), 100); // 锁死在0-100之间
         
-        // 如果用户修改了上面的起始日，同步更新下面的“日期A”默认值，方便用户
-        document.getElementById('dateA').value = lmpInput;
+        document.getElementById('progressBar').style.width = percent + "%";
+        document.getElementById('progressPercent').innerText = `孕期进度: ${percent.toFixed(1)}%`;
+
+    // ...后面是计算预产期倒计时的代码...
+        // 2. 计算预产期倒计时
+        const edd = new Date(lmp);
+        edd.setDate(lmp.getDate() + PREGNANCY_DAYS); // +280天
+
+        const eddDiffTime = edd - today;
+        const daysLeft = Math.ceil(eddDiffTime / (1000 * 60 * 60 * 24));
+
+        // 格式化预产期日期显示
+        const eddOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('eddDateStr').innerText = "预产期: " + edd.toLocaleDateString('zh-CN', eddOptions);
+
+        if (daysLeft > 0) {
+            document.getElementById('daysLeft').innerText = daysLeft + "天";
+            
+            // 算算还剩几周
+            const leftWeeks = Math.floor(daysLeft / 7);
+            const leftDays = daysLeft % 7;
+            let leftStr = `(约 ${leftWeeks}周`;
+            if(leftDays > 0) leftStr += ` ${leftDays}天`;
+            leftStr += ")";
+            
+            document.getElementById('weeksLeftStr').innerText = leftStr;
+        } else if (daysLeft === 0) {
+            document.getElementById('daysLeft').innerText = "就是今天！";
+            document.getElementById('weeksLeftStr').innerText = "祝一切顺利！";
+        } else {
+            document.getElementById('daysLeft').innerText = "已过预产期";
+            document.getElementById('weeksLeftStr').innerText = `超期 ${Math.abs(daysLeft)} 天`;
+        }
     }
 
-    // 2. 推算日期 (核心修改部分)
+    // 推算日期功能
     function calculateTargetDate() {
         const lmpStr = document.getElementById('lmpDate').value;
         if (!lmpStr) { alert("请先设置起始日期"); return; }
@@ -332,40 +406,33 @@
         let addDaysTotal = 0;
         let displayLabel = "";
 
-        // 检查用户是用哪种方式输入的
         const inTotalDays = document.getElementById('targetTotalDays').value;
         const inWeeks = document.getElementById('targetWeeks').value;
         const inDays = document.getElementById('targetDays').value;
 
         if (inTotalDays !== "") {
-            // 方式二：直接天数
             addDaysTotal = parseInt(inTotalDays);
             displayLabel = `第 ${addDaysTotal} 天`;
         } else {
-            // 方式一：周+天 (默认为0)
             const w = parseInt(inWeeks) || 0;
             const d = parseInt(inDays) || 0;
             addDaysTotal = (w * 7) + d;
             displayLabel = `孕 ${w}周 + ${d}天`;
         }
 
-        // 计算日期
         const targetDate = new Date(lmp);
         targetDate.setDate(lmp.getDate() + addDaysTotal);
-
         const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
-        const dateStr = targetDate.toLocaleDateString('zh-CN', options);
-
+        
         const resultBox = document.getElementById('targetResult');
         resultBox.style.display = 'block';
-        resultBox.innerHTML = `${displayLabel} 是：<br><span style="font-size:1.4em; color:#333;">${dateStr}</span>`;
+        resultBox.innerHTML = `${displayLabel} 是：<br><span style="font-size:1.4em; color:#333;">${targetDate.toLocaleDateString('zh-CN', options)}</span>`;
     }
 
-    // 3. 间隔计算
+    // 间隔计算功能
     function calculateInterval() {
         const d1Str = document.getElementById('dateA').value;
         const d2Str = document.getElementById('dateB').value;
-
         if (!d1Str || !d2Str) return;
 
         const d1 = new Date(d1Str); d1.setHours(0,0,0,0);
@@ -373,7 +440,6 @@
 
         const diffTime = Math.abs(d2 - d1);
         const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
         const weeks = Math.floor(totalDays / 7);
         const days = totalDays % 7;
 
