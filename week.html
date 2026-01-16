@@ -345,7 +345,7 @@
 
         // 1. 计算当前孕周
         const diffTime = today - lmp;
-        const totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
         
         let resultText = "";
         let dayText = "";
@@ -355,7 +355,7 @@
             dayText = `距离开始还有 ${Math.abs(totalDays)} 天`;
         } else {
             const weeks = Math.floor(totalDays / 7);
-            const days = totalDays % 7 + 1;
+            const days = totalDays % 7;
             resultText = `${weeks}周 + ${days}天`;
             dayText = `累计怀孕: ${totalDays}天`;
         }
@@ -455,3 +455,4 @@
 </body>
 
 </html>
+
