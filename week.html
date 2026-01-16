@@ -419,7 +419,7 @@
         } else {
             const w = parseInt(inWeeks) || 0;
             const d = parseInt(inDays) || 0;
-            addDaysTotal = (w * 7) + d;
+            addDaysTotal = (w * 7) + d - 1;
             displayLabel = `孕 ${w}周 + ${d}天`;
         }
 
@@ -442,7 +442,7 @@
         const d2 = new Date(d2Str); d2.setHours(0,0,0,0);
 
         const diffTime = Math.abs(d2 - d1);
-        const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) - 1;
         const weeks = Math.floor(totalDays / 7);
         const days = totalDays % 7;
 
@@ -455,4 +455,5 @@
 </body>
 
 </html>
+
 
