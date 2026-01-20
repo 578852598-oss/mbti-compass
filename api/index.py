@@ -8,18 +8,25 @@ POST /score
 GET  /bank/{mbti_type}  (可选：前端要拉题库时用)
 GET  /health
 """
+import os
+import json
 
 from __future__ import annotations
 
 from math import sqrt
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+
 from pydantic import BaseModel, Field, validator
 
 
 SCALE_MIN = 1
 SCALE_MAX = 6
+
+SCALE_MIN_DEFAULT = SCALE_MIN
+SCALE_MAX_DEFAULT = SCALE_MAX
 
 MbtiType = str
 
@@ -34,10 +41,7 @@ MbtiType = str
 # 题库：从你 index.html 的 const MBTI_BANK 迁移而来
 # 每题字段：id, text, type, reversed
 # -----------------------------
-def _load_bank() -> Dict[str, Any]:
-    """
-
-    {
+MBTI_BANK = {
     'INTP': {
         "scale_min": 1,
         "scale_max": 6,
@@ -328,29 +332,15 @@ def _load_bank() -> Dict[str, Any]:
     },
 }
 
-    """
 
-    here = os.path.dirname(os.path.abspath(__file__))
-    candidates = [
-        os.path.join(here, "bank.json"),
-        os.path.join(os.path.dirname(here), "bank.json"),
-    ]
-    for path in candidates:
-        if os.path.exists(path):
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
+here = os.path.dirname(os.path.abspath(__file__))
+candidates = [
+    os.path.join(here, "bank.json"),
+    os.path.join(os.path.dirname(here), "bank.json"),
+]
 
-    # 2) Try bank_data.py
-    try:
-        from bank_data import MBTI_BANK  # type: ignore
-        return MBTI_BANK  # type: ignore
-    except Exception:
-        raise RuntimeError(
-            "Question bank not found. Provide bank.json (preferred) or bank_data.py with MBTI_BANK."
-        )
+BANK: Dict[str, Any] = MBTI_BANK  # type: ignore
 
-
-BANK: Dict[str, Any] = _load_bank()
 
 
 def _get_bank_for_type(mbti_type: str) -> Dict[str, Any]:
