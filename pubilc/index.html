@@ -7,7 +7,6 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-  <script src="//code.bdstatic.com/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
 
   <style>
     :root{
@@ -44,7 +43,6 @@
       padding: 28px 18px 80px;
     }
 
-    /* 顶部栏 */
     .topbar{
       position: sticky;
       top: 0;
@@ -80,9 +78,7 @@
       color: var(--accent);
       font-weight:700;
     }
-    .brand-title{
-      line-height:1.15;
-    }
+    .brand-title{ line-height:1.15; }
     .brand-title b{
       display:block;
       font-size: 14px;
@@ -156,7 +152,6 @@
       transition: width .25s ease;
     }
 
-    /* 页面标题 */
     header{
       padding: 22px 0 10px;
       text-align:left;
@@ -189,7 +184,6 @@
       background: rgba(255,255,255,0.7);
     }
 
-    /* 卡片 */
     .card{
       background: var(--surface);
       border: 1px solid var(--line);
@@ -239,7 +233,6 @@
       margin: 6px 0 16px;
     }
 
-    /* 量表 */
     .scale{
       display:grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -290,7 +283,6 @@
       transform: translateY(-1px);
     }
 
-    /* 按钮 */
     .btn{
       width:100%;
       margin-top: 16px;
@@ -320,7 +312,6 @@
       color: var(--text);
     }
 
-    /* 结果区 */
     #result{
       display:none;
       margin-top: 16px;
@@ -359,15 +350,6 @@
       line-height:1.5;
     }
 
-    .color-high{ color:#7c3aed; }
-    .color-mid{ color: var(--accent); }
-    .color-low{ color:#64748b; }
-
-    .color-healthy{ color: var(--success); }
-    .color-loop{ color: var(--warning); }
-    .color-grip{ color: var(--danger); }
-
-    /* 图表样式更新 */
     .chart {
       padding: 20px;
       border-radius: var(--radius);
@@ -382,14 +364,12 @@
     .chart-container {
       position: relative;
       width: 100%;
-      max-width: 420px; /* 电脑端限宽 */
-      height: 320px;    /* 固定高度，适合雷达图 */
+      max-width: 420px;
+      height: 320px;
       margin: 0 auto;
     }
     @media (max-width: 480px) {
-      .chart-container {
-        height: 280px;
-      }
+      .chart-container { height: 280px; }
     }
 
     .chart-head{
@@ -412,10 +392,6 @@
       line-height: 1.4;
     }
 
-    [data-feature][hidden]{
-      display:none !important;
-    }
-
     .section{
       margin-top: 14px;
       border-radius: var(--radius);
@@ -436,18 +412,6 @@
       font-size: 14px;
     }
 
-    .callout{
-      margin-top: 14px;
-      padding: 16px;
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(37,99,235,0.06), rgba(37,99,235,0.02));
-      border: 1px solid rgba(37,99,235,0.18);
-      color: var(--muted);
-      box-shadow: var(--shadow-soft);
-    }
-    .callout b{ color: var(--text); }
-
-    /* Toast */
     .toast{
       position: fixed;
       left: 50%;
@@ -465,7 +429,6 @@
       max-width: calc(100% - 24px);
     }
 
-    /* Loading */
     .loading{
       position: fixed;
       inset: 0;
@@ -526,12 +489,10 @@
             <option>INTJ</option><option>INTP</option><option>INFJ</option><option>INFP</option>
             <option>ENFJ</option><option>ENFP</option><option>ENTJ</option><option>ENTP</option>
             <option>ISFJ</option><option>ISTP</option>
-            <!-- <option>ISTJ</option><option>ISFJ</option><option>ESTJ</option><option>ESFJ</option>
-            <option>ISTP</option><option>ISFP</option><option>ESTP</option><option>ESFP</option> -->
           </select>
         </div>
 
-        <div class="pill" id="type-pill">当前：<span id="type-text">INTP</span></div>
+        <div class="pill">当前：<span id="type-text">INTP</span></div>
 
         <div class="progress" aria-label="答题进度">
           <div id="progress-bar"></div>
@@ -553,13 +514,13 @@
   </div>
 
   <div class="container">
-    <header id="header">
+    <header>
       <h1>MBTI 心理状态罗盘</h1>
       <p class="subtitle">
-        通过「认知成熟度 / 内耗倾向 / 压力失控 / 压力负荷 / 自洽度」五个维度，帮助你快速了解近期状态，并给出可执行的调整建议。
+        前端仅展示：题库/计分/叙事/雷达数据全部来自后端，以减少算法被抄袭风险。
       </p>
       <div class="hint">
-        <span>量表：1（完全不符）→ 6（完全符合）</span>
+        <span>量表：<b id="scale-text">1 → 6</b></span>
         <span>共 <b id="q-total">30</b> 题</span>
         <span>建议：直觉作答，避免过度推演</span>
       </div>
@@ -568,57 +529,48 @@
     <form id="form">
       <div id="questions"></div>
       <button class="btn" type="submit">生成报告</button>
-
-      <div class="callout" data-feature="persistenceHint">
-        <b>提示：</b>如果你中途离开页面，答题记录不会自动保存。
-      </div>
     </form>
 
     <section id="result">
       <div class="grid">
         <div class="stat">
-          <div class="k">认知阶层（Maturity）</div>
-          <div class="v" id="maturity-v">—</div>
-          <div class="d" id="maturity-d">—</div>
+          <div class="k">认知成熟度</div>
+          <div class="v" id="m-v">—</div>
+          <div class="d" id="m-d">—</div>
         </div>
-
         <div class="stat">
-          <div class="k">内耗倾向（Loop）</div>
-          <div class="v" id="loop-v">—</div>
-          <div class="d" id="loop-d">—</div>
+          <div class="k">内耗倾向</div>
+          <div class="v" id="l-v">—</div>
+          <div class="d" id="l-d">—</div>
         </div>
-
         <div class="stat">
-          <div class="k">压力反应（Grip）</div>
-          <div class="v" id="grip-v">—</div>
-          <div class="d" id="grip-d">—</div>
+          <div class="k">压力反应</div>
+          <div class="v" id="g-v">—</div>
+          <div class="d" id="g-d">—</div>
         </div>
-
         <div class="stat">
-          <div class="k">压力负荷（Load）</div>
+          <div class="k">压力负荷</div>
           <div class="v" id="load-v">—</div>
           <div class="d" id="load-d">—</div>
         </div>
-
         <div class="stat">
-          <div class="k">自洽度（Coherence）</div>
+          <div class="k">自洽度</div>
           <div class="v" id="coh-v">—</div>
           <div class="d" id="coh-d">—</div>
         </div>
-
         <div class="stat">
-          <div class="k">状态指数（Index）</div>
-          <div class="v" id="overall-v">—</div>
-          <div class="d" id="overall-d">—</div>
+          <div class="k">状态指数</div>
+          <div class="v" id="o-v">—</div>
+          <div class="d" id="o-d">—</div>
         </div>
       </div>
 
       <div class="chart">
         <div class="chart-head">
           <div class="chart-title">
-            <b>状态罗盘</b> <span>六维状态分布图</span>
+            <b>状态罗盘</b> <span id="status-tag">—</span>
           </div>
-          <div class="pill" id="overall-pill">—</div>
+          <div class="pill" id="tag-pill">—</div>
         </div>
 
         <div class="chart-container">
@@ -635,10 +587,6 @@
         <h3>下一步建议</h3>
         <p id="advice">—</p>
       </div>
-
-      <div class="callout" data-feature="expansionHint" style="margin-top:14px;">
-        <b>扩展模块：</b>你可以在这里接入「更长的成长指南 / 复盘模板 / 付费内容」等商业化能力。
-      </div>
     </section>
   </div>
 
@@ -646,398 +594,19 @@
 
 <script>
 /**
- * ===================== 题库与配置 =====================
+ * ===================== API 配置 =====================
+ * Vercel 同域部署：API_BASE 为空即可
+ * 本地联调：例如 "http://localhost:8000"
  */
-const MBTI_BANK = {
-  INTP: {
-    questions: [
-      { id: 1,  text: "当你的推理与现实反馈不一致时，你愿意调整自己的判断。", type: "maturity", reversed: false },
-      { id: 2,  text: "你常把想法停留在脑中推演，很难进入验证或执行。", type: "maturity", reversed: true  },
-      { id: 3,  text: "你能承认情绪是信息的一种，并愿意倾听它。", type: "maturity", reversed: false },
-      { id: 4,  text: "你更愿意依赖熟悉的方法，而回避探索新路径。", type: "maturity", reversed: true  },
-      { id: 5,  text: "你经常“想得很多、动得很少”，导致计划反复推倒重来。", type: "maturity", reversed: true  },
-      { id: 6,  text: "你能把抽象想法讲清楚，让别人听得懂、接得住。", type: "maturity", reversed: false },
-      { id: 7,  text: "你很难对不同观点保持好奇，容易直接否定。", type: "maturity", reversed: true  },
-      { id: 8,  text: "你既能提出新点子，也能耐心处理落地细节。", type: "maturity", reversed: false },
-      { id: 9,  text: "你会因追求“更完美的方案”而迟迟无法启动。", type: "maturity", reversed: true  },
-      { id: 10, text: "你会主动寻找外界反馈，以发现自己的盲点。", type: "maturity", reversed: false },
-
-      { id: 11, text: "你最近会反复回想过去的失误，很难放下。", type: "loop", reversed: false },
-      { id: 12, text: "面对新机会时，你的第一反应是担心重蹈覆辙。", type: "loop", reversed: false },
-      { id: 13, text: "你会陷入长时间分析，但最后很难产出具体行动。", type: "loop", reversed: false },
-      { id: 14, text: "你更相信自己掌握的细节，而对新方向缺乏信心。", type: "loop", reversed: false },
-      { id: 15, text: "你会回避社交或新信息，因为它们让你更累。", type: "loop", reversed: false },
-      { id: 16, text: "你会为一些并不关键的小问题消耗大量精力。", type: "loop", reversed: false },
-      { id: 17, text: "你明明知道该推进，却迟迟动不起来。", type: "loop", reversed: false },
-      { id: 18, text: "你会对建议变得更防御，觉得别人不理解你的处境。", type: "loop", reversed: false },
-      { id: 19, text: "你会在脑中反复演练最坏情况，从而更难决定。", type: "loop", reversed: false },
-      { id: 20, text: "你更倾向于维持熟悉的状态，而回避改变。", type: "loop", reversed: false },
-
-      { id: 21, text: "压力大时，你会更敏感，容易误解别人的意图。", type: "grip", reversed: false },
-      { id: 22, text: "你会用吃、睡、刷短视频等方式“麻醉式”恢复。", type: "grip", reversed: false },
-      { id: 23, text: "你会因小事情绪爆发，和以往的自己不太一样。", type: "grip", reversed: false },
-      { id: 24, text: "你会强烈渴望被看见、被肯定。", type: "grip", reversed: false },
-      { id: 25, text: "你会觉得大脑很乱，难以保持清晰思考。", type: "grip", reversed: false },
-      { id: 26, text: "你会用讽刺、冷处理等方式表达不满。", type: "grip", reversed: false },
-      { id: 27, text: "你会觉得自己付出很多却得不到回报，从而更委屈。", type: "grip", reversed: false },
-      { id: 28, text: "你很难集中注意力，容易机械性地刷手机。", type: "grip", reversed: false },
-      { id: 29, text: "你会更在意他人评价，甚至做出不符合自己节奏的选择。", type: "grip", reversed: false },
-      { id: 30, text: "你会出现明显的摆烂冲动，或想把事情一把推翻。", type: "grip", reversed: false }
-    ]
-  },
-  INFJ: {
-    questions: [
-      // --- 第一部分：阶层发展 (Maturity) ---
-      // 考察 Ni (直觉) 与 Fe (情感/现实) 的整合度
-      // 正向题：高阶表现；反向题：低阶表现
-
-      { id: 1,  text: "当现实情况与你的直觉预判不符时，你能灵活调整而不固执己见。", type: "maturity", reversed: false },
-      { id: 2,  text: "你经常活在未来的愿景里，而忽略了当下的生活琐事和身体照顾。", type: "maturity", reversed: true  },
-      { id: 3,  text: "你能在坚持自我价值观的同时，用他人能接受的方式温和地表达。", type: "maturity", reversed: false },
-      { id: 4,  text: "你总觉得自己的洞察力“高人一等”，很难真正听取他人的建议。", type: "maturity", reversed: true  },
-      { id: 5,  text: "因为过度追求完美的时机或方案，你的很多理想从未开始执行。", type: "maturity", reversed: true  },
-      { id: 6,  text: "你能将复杂的抽象直觉，转化为具体可行的步骤去帮助他人。", type: "maturity", reversed: false },
-      { id: 7,  text: "一旦认定了某件事的意义，你就会忽略客观现实的阻碍强行推进。", type: "maturity", reversed: true  },
-      { id: 8,  text: "你不仅能共情他人的痛苦，还能设立健康的边界保护自己的能量。", type: "maturity", reversed: false },
-      { id: 9,  text: "你习惯甚至享受一种“曲高和寡”的孤独感，而拒绝融入群体。", type: "maturity", reversed: true  },
-      { id: 10, text: "你会主动通过实际行动来验证你的直觉，而不仅仅是在脑中推演。", type: "maturity", reversed: false },
-
-      // --- 第二部分：Loop 状态 (Ni-Ti Loop) ---
-      // 特征：切断 Fe（情感连接），陷入 Ni-Ti（内向直觉+内向思考）
-      // 表现：过度分析人性、冷漠、愤世嫉俗、自我封闭
-
-      { id: 11, text: "最近你把自己封闭起来，觉得社交纯粹是在浪费时间。", type: "loop", reversed: false },
-      { id: 12, text: "你会像手术刀一样冷酷地剖析身边人的动机，觉得他们都很虚伪。", type: "loop", reversed: false },
-      { id: 13, text: "你陷入一种逻辑死循环，试图在脑中构建一个无懈可击的真理。", type: "loop", reversed: false },
-      { id: 14, text: "你变得非常批判和挑剔，对他人的情感表达感到不耐烦。", type: "loop", reversed: false },
-      { id: 15, text: "你觉得自己彻底“看透”了某些事情的悲剧结局，因此拒绝任何尝试。", type: "loop", reversed: false },
-      { id: 16, text: "你拒绝向外求助，坚信只有自己才能解决自己的问题。", type: "loop", reversed: false },
-      { id: 17, text: "你脑中有大量的分析和批判，但在外人看来你只是在发呆或沉默。", type: "loop", reversed: false },
-      { id: 18, text: "你对外部世界感到一种虚无感，觉得一切都没有意义。", type: "loop", reversed: false },
-      { id: 19, text: "你会为了证明自己的逻辑正确，而忽略在这个过程中对他人的伤害。", type: "loop", reversed: false },
-      { id: 20, text: "你固执地坚持自己的主观判断，即使客观事实摆在眼前也不愿承认。", type: "loop", reversed: false },
-
-      // --- 第三部分：Grip 状态 (Se Grip) ---
-      // 特征：劣势 Se（外倾感觉）爆发
-      // 表现：感官放纵、暴怒、冲动消费、强迫性整理
-
-      { id: 21, text: "压力极大时，你会突然沉迷于暴饮暴食、酗酒或疯狂购物。", type: "grip", reversed: false },
-      { id: 22, text: "你会对环境中的噪音、强光或混乱感到前所未有的暴躁。", type: "grip", reversed: false },
-      { id: 23, text: "你会突然痴迷于整理房间、打扫卫生或纠结外表细节。", type: "grip", reversed: false },
-      { id: 24, text: "你会做出一些平时绝对不会做的冲动、冒险或鲁莽的行为。", type: "grip", reversed: false },
-      { id: 25, text: "你感觉身体感官被无限放大，一点点不适都会让你抓狂。", type: "grip", reversed: false },
-      { id: 26, text: "你会因为找不到某样东西或电器故障而瞬间情绪崩溃。", type: "grip", reversed: false },
-      { id: 27, text: "你会用机械性的感官刺激（如无脑刷剧、打游戏）来麻痹大脑。", type: "grip", reversed: false },
-      { id: 28, text: "你会觉得自己正在与物理世界“为敌”，觉得万物都在针对你。", type: "grip", reversed: false },
-      { id: 29, text: "你会突然过度关注当下的享乐，完全抛弃了长远的计划。", type: "grip", reversed: false },
-      { id: 30, text: "你有一种强烈的破坏欲，想要摔东西或毁掉正在做的事。", type: "grip", reversed: false }
-    ]
-  },
-INTJ: {
-  questions: [
-    // --- 第一部分：阶层发展 (Maturity) ---
-    // 考察 Ni (愿景) 与 Te (执行/客观) 的整合
-    
-    { id: 1,  text: "你不仅有宏大的愿景，还能制定出严密可行的执行步骤。", type: "maturity", reversed: false },
-    { id: 2,  text: "当客观数据与你的直觉相悖时，你会认为是数据错了，拒绝修正观点。", type: "maturity", reversed: true  },
-    { id: 3,  text: "你能够接受“足够好”的方案并推进，而不是为了追求完美而停滞不前。", type: "maturity", reversed: false },
-    { id: 4,  text: "你经常因为觉得别人的执行力太差或太蠢，而拒绝与任何人合作。", type: "maturity", reversed: true  },
-    { id: 5,  text: "你为了维护自己的理论模型，会有意无意地忽略那些反面证据。", type: "maturity", reversed: true  },
-    { id: 6,  text: "你愿意为了达成目标而妥协部分细节，注重结果的有效性。", type: "maturity", reversed: false },
-    { id: 7,  text: "你总是活在未来，导致当下的生活一团糟，甚至无法照顾好自己。", type: "maturity", reversed: true  },
-    { id: 8,  text: "你能够用客观、逻辑的语言向他人解释你的直觉，而不是让他们“只管照做”。", type: "maturity", reversed: false },
-    { id: 9,  text: "你内心深处有一种智力优越感，很难真正听取他人的建议。", type: "maturity", reversed: true  },
-    { id: 10, text: "你会主动设立一个个里程碑，通过阶段性成果来验证你的远见。", type: "maturity", reversed: false },
-
-    // --- 第二部分：Loop 状态 (Ni-Fi Loop) ---
-    // 特征：切断 Te（客观验证），陷入 Ni-Fi（主观臆想+个人感受）
-    // 表现：受害者心态、偏执、自我孤立、情感反刍
-
-    { id: 11, text: "最近你觉得周围的人都不可信，甚至觉得他们在暗中针对你。", type: "loop", reversed: false },
-    { id: 12, text: "你沉浸在一种“没有人能理解我”的悲剧英雄感中，并拒绝沟通。", type: "loop", reversed: false },
-    { id: 13, text: "你会反复咀嚼过去被背叛或被误解的经历，感到愤愤不平。", type: "loop", reversed: false },
-    { id: 14, text: "你变得非常情绪化和敏感，这与平时那个理性的你判若两人。", type: "loop", reversed: false },
-    { id: 15, text: "你仅仅依据个人的好恶（而非客观事实）就对他人的动机进行道德审判。", type: "loop", reversed: false },
-    { id: 16, text: "你完全切断了与外部世界的互动，活在自己的精神堡垒里。", type: "loop", reversed: false },
-    { id: 17, text: "你觉得自己也是为了大家好，但为什么总是被辜负？", type: "loop", reversed: false },
-    { id: 18, text: "你对未来充满了灾难化的想象，并且深信这些坏结果一定会发生。", type: "loop", reversed: false },
-    { id: 19, text: "你拒绝接受任何客观解释，固执地相信自己的主观感受才是真理。", type: "loop", reversed: false },
-    { id: 20, text: "你在没有任何证据的情况下，就已经在心里给某件事判了死刑。", type: "loop", reversed: false },
-
-    // --- 第三部分：Grip 状态 (Se Grip) ---
-    // 特征：劣势 Se（外倾感觉）爆发
-    // 表现：感官放纵、破坏欲、对物理细节的病态关注
-
-    { id: 21, text: "压力极大时，你会突然开始暴饮暴食、酗酒或沉迷于肉体享乐。", type: "grip", reversed: false },
-    { id: 22, text: "你会因为一点点噪音、强光或环境混乱而变得暴怒。", type: "grip", reversed: false },
-    { id: 23, text: "你会突然痴迷于清洁、整理或某些无关紧要的物理细节。", type: "grip", reversed: false },
-    { id: 24, text: "你会产生一种强烈的冲动，想要把眼前的东西砸烂或毁掉。", type: "grip", reversed: false },
-    { id: 25, text: "你会进行报复性的冲动消费，买一堆完全没用的东西。", type: "grip", reversed: false },
-    { id: 26, text: "你感觉大脑停止了思考，完全被当下的感官欲望所控制。", type: "grip", reversed: false },
-    { id: 27, text: "你会突然做一些高风险、鲁莽的身体活动（如飙车、极限运动）。", type: "grip", reversed: false },
-    { id: 28, text: "你对自己的外表或身体状况突然产生极度的焦虑或强迫性关注。", type: "grip", reversed: false },
-    { id: 29, text: "你觉得自己像是在和整个物理世界作战，所有东西都在和你作对。", type: "grip", reversed: false },
-    { id: 30, text: "你通过过度的机械性劳动（如一直做家务）来逃避思考。", type: "grip", reversed: false }
-  ]
-},
-
-ENTJ: {
-  questions: [
-    // --- 第一部分：阶层发展 (Maturity) ---
-    // 考察 Te (执行/效率) 与 Ni (愿景/战略) 的整合
-    
-    { id: 1,  text: "你不仅追求当下的胜利，更在意这个胜利是否符合长期的战略蓝图。", type: "maturity", reversed: false },
-    { id: 2,  text: "你经常打断别人的发言，认为他们的想法太蠢或太慢，完全不值得听。", type: "maturity", reversed: true  },
-    { id: 3,  text: "你懂得“灰度管理”，明白并非所有事情都需要通过高压手段立刻解决。", type: "maturity", reversed: false },
-    { id: 4,  text: "为了达成目标，你会毫不犹豫地牺牲团队成员的利益或情感，视人为工具。", type: "maturity", reversed: true  },
-    { id: 5,  text: "你经常因为追求速度而忽略了潜在的隐患，导致后期返工。", type: "maturity", reversed: true  },
-    { id: 6,  text: "你能够识别并培养他人的潜力，而不是仅仅把他们当作执行指令的手脚。", type: "maturity", reversed: false },
-    { id: 7,  text: "你对异己的声音零容忍，任何反对意见都会被你视为挑战权威。", type: "maturity", reversed: true  },
-    { id: 8,  text: "你在做决策时，能够平衡“理性的最优解”与“人心的接受度”。", type: "maturity", reversed: false },
-    { id: 9,  text: "你沉迷于权力和地位的象征，而忽略了创造真正的价值。", type: "maturity", reversed: true  },
-    { id: 10, text: "你会定期复盘，承认自己的决策失误并迅速调整方向。", type: "maturity", reversed: false },
-
-    // --- 第二部分：Loop 状态 (Te-Se Loop) ---
-    // 特征：切断 Ni（战略），陷入 Te-Se（盲目行动+感官刺激）
-    // 表现：停不下来、鲁莽、享乐、表面功夫、暴躁
-
-    { id: 11, text: "你感到必须每时每刻都在“做事”，一旦停下来思考就会感到极度焦虑。", type: "loop", reversed: false },
-    { id: 12, text: "你开始追求即时的满足感（如赚快钱、感官享乐），抛弃了长远计划。", type: "loop", reversed: false },
-    { id: 13, text: "你变得非常鲁莽，不做调研就直接拍板，只想立刻看到结果。", type: "loop", reversed: false },
-    { id: 14, text: "你对他人的“慢动作”完全失去耐心，经常表现出暴躁的攻击性。", type: "loop", reversed: false },
-    { id: 15, text: "你通过高强度的物质享受（名车、派对、奢侈品）来证明自己的成功。", type: "loop", reversed: false },
-    { id: 16, text: "你发现自己像个无头苍蝇一样忙碌，但其实并没有解决核心问题。", type: "loop", reversed: false },
-    { id: 17, text: "你排斥任何深度的理论探讨，觉得那些都是“浪费时间的废话”。", type: "loop", reversed: false },
-    { id: 18, text: "你试图用强硬的态度碾压一切，不管对方说得有没有道理。", type: "loop", reversed: false },
-    { id: 19, text: "你为了维持表面的“赢家形象”，不惜透支身体或财务。", type: "loop", reversed: false },
-    { id: 20, text: "你很难独处，需要不断的外界刺激（热闹、竞争）来填补空虚。", type: "loop", reversed: false },
-
-    // --- 第三部分：Grip 状态 (Fi Grip) ---
-    // 特征：劣势 Fi（内倾情感）爆发
-    // 表现：自我怜悯、情绪崩溃、觉得自己是受害者、质疑人生意义
-
-    { id: 21, text: "最近你突然觉得没人真正关心你，大家都只是在利用你。", type: "grip", reversed: false },
-    { id: 22, text: "你会因为一些微不足道的小事而感到深深的委屈，甚至想哭。", type: "grip", reversed: false },
-    { id: 23, text: "你开始质疑自己奋斗半生的意义，觉得一切都空虚无聊。", type: "grip", reversed: false },
-    { id: 24, text: "你变得对身边人的忠诚度极度敏感，总觉得有人要背叛你。", type: "grip", reversed: false },
-    { id: 25, text: "你突然变得很“甚至有些迷信”，试图从非理性的角度寻找安慰。", type: "grip", reversed: false },
-    { id: 26, text: "你感觉自己的逻辑能力突然消失了，被混乱的情绪淹没。", type: "grip", reversed: false },
-    { id: 27, text: "你会躲起来生闷气，觉得全世界都对不起你。", type: "grip", reversed: false },
-    { id: 28, text: "你对别人的评价变得异常敏感，一句批评就能击碎你的自尊。", type: "grip", reversed: false },
-    { id: 29, text: "你觉得自己一直戴着面具生活，内心深处是一个没人爱的孤儿。", type: "grip", reversed: false },
-    { id: 30, text: "你会突然爆发出强烈的情绪（愤怒或悲伤），把身边人吓一跳。", type: "grip", reversed: false }
-  ]
-},
-
-ENFJ: {
-  questions: [
-    // --- 第一部分：阶层发展 (Maturity) ---
-    // 考察 Fe (情感连接) 与 Ni (深度洞察) 的整合
-    
-    { id: 1,  text: "你不仅能让大家感到开心，更能通过深刻的洞察力指引他们成长的方向。", type: "maturity", reversed: false },
-    { id: 2,  text: "你常常为了维持表面的和谐，而不得不压抑自己真实的想法和需求。", type: "maturity", reversed: true  },
-    { id: 3,  text: "你能够一眼看穿他人行为背后的深层动机，而不仅仅停留在表面。", type: "maturity", reversed: false },
-    { id: 4,  text: "你的自我价值感几乎完全取决于他人对你的赞美和肯定。", type: "maturity", reversed: true  },
-    { id: 5,  text: "你经常打着“为你好”的旗号，强行介入他人的生活或做决定。", type: "maturity", reversed: true  },
-    { id: 6,  text: "你懂得设立健康的边界，在帮助他人的同时不会耗尽自己的能量。", type: "maturity", reversed: false },
-    { id: 7,  text: "你很难拒绝别人的请求，即使那会让你自己陷入困境。", type: "maturity", reversed: true  },
-    { id: 8,  text: "你善于挖掘每个人的潜力，并能通过愿景激励团队共同前进。", type: "maturity", reversed: false },
-    { id: 9,  text: "你经常感到自己像个“变色龙”，在不同人面前扮演不同的角色，弄丢了真实的自己。", type: "maturity", reversed: true  },
-    { id: 10, text: "当群体走向错误方向时，你敢于为了长远利益而提出反对意见，哪怕破坏暂时的气氛。", type: "maturity", reversed: false },
-
-    // --- 第二部分：Loop 状态 (Fe-Se Loop) ---
-    // 特征：切断 Ni（内省），陷入 Fe-Se（寻求关注+感官刺激）
-    // 表现：浮夸、表演欲、逃避独处、随波逐流
-
-    { id: 11, text: "你最近极度渴望热闹，一刻也闲不下来，必须通过社交来填补时间。", type: "loop", reversed: false },
-    { id: 12, text: "你变得过度在意自己的外表、形象或排场，花费大量精力在“面子工程”上。", type: "loop", reversed: false },
-    { id: 13, text: "你为了融入群体或活跃气氛，会不假思索地做出一些冲动、浮夸的行为。", type: "loop", reversed: false },
-    { id: 14, text: "你发现自己开始热衷于肤浅的八卦或是非，而不再进行有深度的对话。", type: "loop", reversed: false },
-    { id: 15, text: "你对“错过”（FOMO）感到极度焦虑，看到别人聚会没叫你就会很难受。", type: "loop", reversed: false },
-    { id: 16, text: "你根本无法独处，一旦安静下来就会感到莫名的恐慌和空虚。", type: "loop", reversed: false },
-    { id: 17, text: "你变得非常急躁，只追求当下的快乐和反馈，完全不想未来的后果。", type: "loop", reversed: false },
-    { id: 18, text: "你对他人的评价反应过度，为了博取关注而做出戏剧化的举动。", type: "loop", reversed: false },
-    { id: 19, text: "你感觉自己像是在“表演”生活，虽然周围很热闹，内心却觉得很空洞。", type: "loop", reversed: false },
-    { id: 20, text: "你会盲目追随当下的潮流或他人的意见，完全失去了自己的主见。", type: "loop", reversed: false },
-
-    // --- 第三部分：Grip 状态 (Ti Grip) ---
-    // 特征：劣势 Ti（内倾思考）爆发
-    // 表现：冷酷逻辑、批判、认为人性本恶、钻牛角尖
-
-    { id: 21, text: "最近你突然变得很冷漠，开始用批判性的眼光审视身边的人。", type: "grip", reversed: false },
-    { id: 22, text: "你会揪住别人话语中的逻辑漏洞不放，变得非常爱钻牛角尖。", type: "grip", reversed: false },
-    { id: 23, text: "你觉得周围的人都很虚伪、愚蠢，只有你一个人看透了“丑陋的真相”。", type: "grip", reversed: false },
-    { id: 24, text: "你开始自我隔离，沉迷于研究一些晦涩的理论或数据，以此逃避情感。", type: "grip", reversed: false },
-    { id: 25, text: "你对自己进行残酷的逻辑批判，列举出无数证据证明自己是无能的。", type: "grip", reversed: false },
-    { id: 26, text: "你感到情感系统完全关闭了，只剩下冷冰冰的、甚至带有攻击性的逻辑。", type: "grip", reversed: false },
-    { id: 27, text: "你会突然因为一个逻辑上的小问题，而全盘否定一段关系的价值。", type: "grip", reversed: false },
-    { id: 28, text: "你认为别人的善意背后一定有某种功利性的逻辑动机。", type: "grip", reversed: false },
-    { id: 29, text: "你试图用绝对理性的方式去解决所有情感问题，结果把事情搞得更糟。", type: "grip", reversed: false },
-    { id: 30, text: "你脑子里充满了复杂的阴谋论，觉得世界是一个巨大的、设计精密的谎言。", type: "grip", reversed: false }
-  ]
-},
-
-ENTP: {
-  questions: [
-    // --- 第一部分：阶层发展 (Maturity) ---
-    // 考察 Ne (可能性) 与 Ti (逻辑构建) 的整合
-    
-    { id: 1,  text: "你不仅擅长发现别人的逻辑漏洞，更能提出具有建设性的替代方案。", type: "maturity", reversed: false },
-    { id: 2,  text: "你经常为了享受“赢”的快感而与人争论，哪怕你其实心里并不认同那个观点。", type: "maturity", reversed: true  },
-    { id: 3,  text: "你有能力筛选那些漫无边际的想法，并用严谨的逻辑将其转化为可落地的项目。", type: "maturity", reversed: false },
-    { id: 4,  text: "你开启了无数个新计划，但真正完成的寥寥无几，留下一堆烂摊子。", type: "maturity", reversed: true  },
-    { id: 5,  text: "你经常因为觉得无聊或失去新鲜感，就随意抛弃对他人的承诺。", type: "maturity", reversed: true  },
-    { id: 6,  text: "你能够客观地分析问题，不会让个人好恶或外界评价干扰你的逻辑判断。", type: "maturity", reversed: false },
-    { id: 7,  text: "你习惯用戏谑或嘲讽的态度对待严肃问题，以此来逃避真正的责任。", type: "maturity", reversed: true  },
-    { id: 8,  text: "你不仅热衷于打破旧规则，也懂得建立更优的新规则来维持秩序。", type: "maturity", reversed: false },
-    { id: 9,  text: "你因为过度自信，经常在准备不足的情况下盲目冒险，导致失败。", type: "maturity", reversed: true  },
-    { id: 10, text: "你会主动反思自己的逻辑框架，并愿意根据新的事实进行自我修正。", type: "maturity", reversed: false },
-
-    // --- 第二部分：Loop 状态 (Ne-Fe Loop) ---
-    // 特征：切断 Ti（逻辑），陷入 Ne-Fe（寻求关注/制造混乱）
-    // 表现：讨好、哗众取宠、失去原则、焦虑外界评价
-
-    { id: 11, text: "你最近极度渴望别人的关注，甚至不惜通过制造混乱或恶作剧来博眼球。", type: "loop", reversed: false },
-    { id: 12, text: "你变得非常在意别人怎么看你，为了讨好群体而放弃了自己的逻辑原则。", type: "loop", reversed: false },
-    { id: 13, text: "你感到内心空虚，必须不断地与人互动或寻求外界刺激来填补。", type: "loop", reversed: false },
-    { id: 14, text: "你发现自己变得情绪化和甚至有些操纵性，试图通过情感影响他人。", type: "loop", reversed: false },
-    { id: 15, text: "你对“被孤立”或“不受欢迎”感到前所未有的焦虑和恐惧。", type: "loop", reversed: false },
-    { id: 16, text: "你做决定时不再依据理性分析，而是看大家喜欢什么或流行什么。", type: "loop", reversed: false },
-    { id: 17, text: "你像个停不下来的“小丑”，在人群中过度表演，回到家却觉得精疲力尽。", type: "loop", reversed: false },
-    { id: 18, text: "你变得偏执，总觉得别人在背后议论你或针对你。", type: "loop", reversed: false },
-    { id: 19, text: "你无法忍受独处和思考，一旦安静下来就会陷入恐慌。", type: "loop", reversed: false },
-    { id: 20, text: "你对批评反应过度，会为了维护面子而进行非理性的反击。", type: "loop", reversed: false },
-
-    // --- 第三部分：Grip 状态 (Si Grip) ---
-    // 特征：劣势 Si（内倾感觉）爆发
-    // 表现：疑病、强迫细节、怀旧抑郁、保守僵化
-
-    { id: 21, text: "你最近突然对身体健康产生极度焦虑，总怀疑自己得了什么大病。", type: "grip", reversed: false },
-    { id: 22, text: "你会反复咀嚼过去的一个微小失误，感到无法释怀的悔恨。", type: "grip", reversed: false },
-    { id: 23, text: "你突然变得极度保守和僵化，拒绝任何新的可能性或改变。", type: "grip", reversed: false },
-    { id: 24, text: "你开始对细节产生强迫症般的关注（如反复检查文档、整理物品）。", type: "grip", reversed: false },
-    { id: 25, text: "你感到思维枯竭，完全想不出任何新点子，大脑像生锈了一样。", type: "grip", reversed: false },
-    { id: 26, text: "你变得非常孤僻，只想缩在床上或家里，切断与外界的一切联系。", type: "grip", reversed: false },
-    { id: 27, text: "你感到身体极其沉重、疲惫，除了机械性的吃饭睡觉什么都不想做。", type: "grip", reversed: false },
-    { id: 28, text: "你觉得自己过去的所有尝试都是失败的，陷入一种深深的虚无感。", type: "grip", reversed: false },
-    { id: 29, text: "你对日程表或计划的微小变动感到异常烦躁，失去了往日的灵活。", type: "grip", reversed: false },
-    { id: 30, text: "你觉得自己正在慢慢“腐烂”，被琐碎的现实生活彻底压垮。", type: "grip", reversed: false }
-  ]
-},
-
-ISFJ: {
-  questions: [
-    // --- 第一部分：阶层发展 (Maturity) ---
-    // 考察 Si (经验/稳定) 与 Fe (关怀/边界) 的整合
-    
-    { id: 1,  text: "你能敏锐地记住他人的喜好和细节，并用实际行动让他们感到被珍视。", type: "maturity", reversed: false },
-    { id: 2,  text: "你经常因为不好意思拒绝，而承担了许多本不属于你的责任。", type: "maturity", reversed: true  },
-    { id: 3,  text: "面对变化，你第一反应通常是抗拒，觉得“按老规矩办”才是最安全的。", type: "maturity", reversed: true  },
-    { id: 4,  text: "你为了维持表面的和谐，经常把自己的真实委屈吞进肚子里。", type: "maturity", reversed: true  },
-    { id: 5,  text: "你能够在照顾家人的同时，依然保留属于自己的时间和爱好。", type: "maturity", reversed: false },
-    { id: 6,  text: "你习惯通过付出和牺牲来换取他人的认可，一旦没得到回应就倍感失落。", type: "maturity", reversed: true  },
-    { id: 7,  text: "你不仅做事细致靠谱，还能在混乱中为他人提供稳定的情绪支持。", type: "maturity", reversed: false },
-    { id: 8,  text: "你经常觉得“如果我不做，这件事就没人能做好了”，因此甚至不敢休息。", type: "maturity", reversed: true  },
-    { id: 9,  text: "你能够分清哪些是你的责任，哪些是别人该承担的课题，不过度干涉。", type: "maturity", reversed: false },
-    { id: 10, text: "你会因为过度在意别人的看法，而反复纠结自己的一言一行是否得体。", type: "maturity", reversed: true  },
-
-    // --- 第二部分：Loop 状态 (Si-Ti Loop) ---
-    // 特征：切断 Fe（温暖），陷入 Si-Ti（翻旧账/冷逻辑）
-    // 表现：记仇、冷漠、斤斤计较、自我封闭
-
-    { id: 11, text: "最近你变得不想理人，觉得与其跟人打交道，不如自己待着清净。", type: "loop", reversed: false },
-    { id: 12, text: "你会反复回想过去某个人对你的冒犯，越想越生气，觉得无法释怀。", type: "loop", reversed: false },
-    { id: 13, text: "你开始用非常挑剔的眼光审视周围，觉得每个人都有毛病，都很自私。", type: "loop", reversed: false },
-    { id: 14, text: "你陷入了一种“死板的逻辑”中，觉得必须按某个流程做，谁劝都不听。", type: "loop", reversed: false },
-    { id: 15, text: "你觉得自己过去对他人的付出都是不值得的，产生了一种愤世嫉俗的念头。", type: "loop", reversed: false },
-    { id: 16, text: "你会把过往的细节像过电影一样在脑海里播放，专门寻找别人对不起你的证据。", type: "loop", reversed: false },
-    { id: 17, text: "你对他人的情感表达感到麻木甚至厌烦，甚至会说出冷漠伤人的话。", type: "loop", reversed: false },
-    { id: 18, text: "你变得异常固执，坚持自己的经验才是对的，拒绝接受任何新的解释。", type: "loop", reversed: false },
-    { id: 19, text: "你试图通过疯狂地整理、归纳或纠结细节来逃避人际关系中的问题。", type: "loop", reversed: false },
-    { id: 20, text: "你内心积压了很多不满，但你选择不说，而是用冷暴力或消极抵抗来应对。", type: "loop", reversed: false },
-
-    // --- 第三部分：Grip 状态 (Ne Grip) ---
-    // 特征：劣势 Ne（外倾直觉）爆发
-    // 表现：灾难化想象、胡思乱想、甚至冲动反常
-
-    { id: 21, text: "最近你脑子里总是冒出“万一出事了怎么办”的念头，对未来充满恐惧。", type: "grip", reversed: false },
-    { id: 22, text: "你会突然觉得现有的生活摇摇欲坠，仿佛一切都要崩塌了。", type: "grip", reversed: false },
-    { id: 23, text: "你会因为未知和不确定性而感到极度焦虑，严重影响睡眠。", type: "grip", reversed: false },
-    { id: 24, text: "你可能会突然想要打破常规，做一些极其冲动、反常、不计后果的决定。", type: "grip", reversed: false },
-    { id: 25, text: "你觉得眼前充满了无数种糟糕的可能性，让你完全不知道该怎么迈出下一步。", type: "grip", reversed: false },
-    { id: 26, text: "你会把一些毫不相关的小事联系起来，得出一个可怕的负面结论。", type: "grip", reversed: false },
-    { id: 27, text: "你感到思维混乱，平日里井井有条的你突然变得丢三落四、不知所措。", type: "grip", reversed: false },
-    { id: 28, text: "你对任何变化都表现出过激的恐慌反应，觉得那是危险的信号。", type: "grip", reversed: false },
-    { id: 29, text: "你会不停地向别人确认“会没事的吧？”，但别人的安慰根本无法让你心安。", type: "grip", reversed: false },
-    { id: 30, text: "你觉得自己失去了对生活的控制权，像是在一艘即将沉没的船上。", type: "grip", reversed: false }
-  ]
-},
-
-ISTP: {
-  questions: [
-    // --- 第一部分：阶层发展 (Maturity) ---
-    // 考察 Ti (逻辑) 与 Se (行动/适应) 的整合
-    
-    { id: 1,  text: "你不仅能发现问题的逻辑漏洞，还能立刻动手找到解决办法。", type: "maturity", reversed: false },
-    { id: 2,  text: "你经常因为嫌麻烦，而对重要的事情采取“摆烂”或拖延的态度。", type: "maturity", reversed: true  },
-    { id: 3,  text: "面对突发状况，你通常能保持冷静，并迅速做出最有利的反应。", type: "maturity", reversed: false },
-    { id: 4,  text: "你为了追求感官刺激（如飙车、极限运动），经常不顾后果地盲目冒险。", type: "maturity", reversed: true  },
-    { id: 5,  text: "你能够用简洁精准的语言阐述复杂的原理，而不是故弄玄虚。", type: "maturity", reversed: false },
-    { id: 6,  text: "你对他人的情感极其冷漠，甚至在他人的痛苦面前表现得无动于衷。", type: "maturity", reversed: true  },
-    { id: 7,  text: "你既享受独处的自由，也能在必要时融入群体，展现出幽默感。", type: "maturity", reversed: false },
-    { id: 8,  text: "你经常在这个项目中途因为失去了兴趣而半途而废，没有任何交代。", type: "maturity", reversed: true  },
-    { id: 9,  text: "你总是等到最后一刻才行动，且经常因为误判时间而搞砸事情。", type: "maturity", reversed: true  },
-    { id: 10, text: "你愿意为了掌握一项技能而进行枯燥的重复练习，追求技术上的精进。", type: "maturity", reversed: false },
-
-    // --- 第二部分：Loop 状态 (Ti-Ni Loop) ---
-    // 特征：切断 Se（行动），陷入 Ti-Ni（死脑筋+阴谋论）
-    // 表现：多疑、虚无主义、不想动、过度解读
-
-    { id: 11, text: "最近你变得非常消极，觉得做什么都没有意义，反正结果早就注定了。", type: "loop", reversed: false },
-    { id: 12, text: "你开始过度解读别人的话，总觉得他们背后有某种针对你的阴谋。", type: "loop", reversed: false },
-    { id: 13, text: "你把自己关在家里，完全切断了与物理世界的接触，陷入大脑的空转。", type: "loop", reversed: false },
-    { id: 14, text: "你对未来充满了悲观的预测，并坚信这些坏事一定会发生。", type: "loop", reversed: false },
-    { id: 15, text: "你变得愤世嫉俗，看什么都不顺眼，觉得周围的人都是傻瓜。", type: "loop", reversed: false },
-    { id: 16, text: "你试图在脑海中构建一个宏大的理论来解释一切，但完全脱离了现实证据。", type: "loop", reversed: false },
-    { id: 17, text: "你对行动失去了兴趣，宁愿躺着空想也不愿动手去验证一下。", type: "loop", reversed: false },
-    { id: 18, text: "你觉得整个社会规则都是骗局，产生了一种强烈的反叛但无力的情绪。", type: "loop", reversed: false },
-    { id: 19, text: "你误读了别人的沉默或微表情，认定他们是在嘲笑你或排挤你。", type: "loop", reversed: false },
-    { id: 20, text: "你陷入了一种精神上的麻痹状态，既不快乐，也不痛苦，只是单纯的停滞。", type: "loop", reversed: false },
-
-    // --- 第三部分：Grip 状态 (Fe Grip) ---
-    // 特征：劣势 Fe（外倾情感）爆发
-    // 表现：情绪失控、哭闹、求关注、敏感
-
-    { id: 21, text: "你突然觉得自己被所有人抛弃了，没人关心你，没人爱你。", type: "grip", reversed: false },
-    { id: 22, text: "你会因为一点小事而突然情绪大爆发，甚至摔东西或大吼大叫。", type: "grip", reversed: false },
-    { id: 23, text: "你变得对他人的评价极度敏感，别人一个眼神就能让你难受半天。", type: "grip", reversed: false },
-    { id: 24, text: "你开始甚至有点“歇斯底里”，表现出平时绝对不会有的戏剧化情感。", type: "grip", reversed: false },
-    { id: 25, text: "你感到一种难以名状的孤独感，渴望得到别人的肯定和安抚。", type: "grip", reversed: false },
-    { id: 26, text: "你会用消极攻击（冷战、阴阳怪气）的方式来表达你的不满，而不是直接解决。", type: "grip", reversed: false },
-    { id: 27, text: "你觉得自己付出了很多却没得到回报，变成了一个充满了怨气的受害者。", type: "grip", reversed: false },
-    { id: 28, text: "你发现自己控制不住地流泪或情绪低落，逻辑思维完全下线。", type: "grip", reversed: false },
-    { id: 29, text: "你为了维持某种人际关系的和谐，而做出极度违背自己意愿的妥协。", type: "grip", reversed: false },
-    { id: 30, text: "你感到自己的边界被侵犯了，但又不知道如何拒绝，最后只能情绪崩溃。", type: "grip", reversed: false }
-  ]
-}
-};
-
-const SCALE_MIN = 1;
-const SCALE_MAX = 6;
-const FEATURES = { persistenceHint: false, expansionHint: false };
-const SCALE_POINTS = [1,2,3,4,5,6];
+const API_BASE = "";
+const API_BANK  = (type) => `${API_BASE}/api/bank?type=${encodeURIComponent(type)}`;
+const API_REPORT = `${API_BASE}/api/report`;
 
 let currentType = "INTP";
 let currentQuestions = [];
+let scaleMin = 1;
+let scaleMax = 6;
 let radarChart = null;
-
-function shuffle(arr){
-  for (let i = arr.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
 
 function $(id){ return document.getElementById(id); }
 
@@ -1049,80 +618,21 @@ function toast(msg){
   toast._timer = setTimeout(()=> t.style.display = "none", 2600);
 }
 
+function setLoading(on){
+  $("loading").style.display = on ? "flex" : "none";
+}
+
+function shuffle(arr){
+  for (let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function setProgress(answered, total){
   const pct = total === 0 ? 0 : Math.round((answered / total) * 100);
   $("progress-bar").style.width = pct + "%";
-}
-
-function computeCategoryBounds(questions){
-  const counts = {maturity:0, loop:0, grip:0};
-  questions.forEach(q => counts[q.type]++);
-  const min = {};
-  const max = {};
-  Object.keys(counts).forEach(k=>{
-    min[k] = counts[k] * SCALE_MIN;
-    max[k] = counts[k] * SCALE_MAX;
-  });
-  return {counts, min, max};
-}
-
-function normalize(score, min, max){
-  if (max === min) return 0;
-  const v = (score - min) / (max - min);
-  return Math.round(Math.min(1, Math.max(0, v)) * 100);
-}
-
-function renderQuestions(){
-  window.testStartTime = Date.now();
-  const bank = MBTI_BANK[currentType];
-if (!bank || !Array.isArray(bank.questions) || bank.questions.length !== 30){
-  toast("题库缺失或不是 30 题：" + currentType);
-  return;
-}
-currentQuestions = shuffle([...bank.questions]);
-  currentQuestions = shuffle([...bank.questions]);
-  $("type-text").textContent = currentType;
-  $("q-total").textContent = currentQuestions.length;
-  const wrap = $("questions");
-  wrap.innerHTML = "";
-
-  currentQuestions.forEach((q, idx) => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.dataset.qid = q.id;
-
-    const qmeta = document.createElement("div");
-    qmeta.className = "qmeta";
-    qmeta.innerHTML = `<b>问题 ${idx + 1} / ${currentQuestions.length}</b>
-      <span class="qstatus" id="st-${q.id}"><span class="dot"></span><span>未作答</span></span>`;
-    card.appendChild(qmeta);
-
-    const qtext = document.createElement("div");
-    qtext.className = "qtext";
-    qtext.textContent = q.text;
-    card.appendChild(qtext);
-
-    const scale = document.createElement("div");
-    scale.className = "scale";
-    SCALE_POINTS.forEach(v=>{
-      const opt = document.createElement("div");
-      opt.className = "opt";
-      opt.innerHTML = `
-        <input type="radio" id="q${q.id}_${v}" name="q${q.id}" value="${v}" />
-        <label for="q${q.id}_${v}">${v}</label>
-      `;
-      scale.appendChild(opt);
-    });
-
-    const ends = document.createElement("div");
-    ends.className = "scale-ends";
-    ends.innerHTML = `<span>完全不符</span><span>完全符合</span>`;
-    card.appendChild(scale);
-    card.appendChild(ends);
-    wrap.appendChild(card);
-  });
-  setProgress(0, currentQuestions.length);
-  $("form").addEventListener("change", onAnswerChange);
 }
 
 function onAnswerChange(e){
@@ -1136,6 +646,7 @@ function onAnswerChange(e){
   }
   const card = document.querySelector(`.card[data-qid="${qid}"]`);
   if (card) card.classList.remove("card--error");
+
   const formData = new FormData($("form"));
   let answered = 0;
   currentQuestions.forEach(q=>{ if (formData.get("q"+q.id)) answered++; });
@@ -1156,289 +667,100 @@ function scrollToQuestion(qid){
   card.scrollIntoView({behavior:"smooth", block:"center"});
 }
 
-function setLoading(on){
-  $("loading").style.display = on ? "flex" : "none";
+async function fetchJson(url, opt){
+  const resp = await fetch(url, opt);
+  const text = await resp.text().catch(()=> "");
+  if (!resp.ok){
+    throw new Error(`HTTP ${resp.status}：${text || "请求失败"}`);
+  }
+  try{ return JSON.parse(text); } catch(e){
+    throw new Error("返回不是合法 JSON：" + text.slice(0, 200));
+  }
 }
 
-function renderResult(res){
-  const mV = $("maturity-v");
-  const mD = $("maturity-d");
-  if (res.m >= 67){
-    mV.textContent = "高阶 · 整合者"; mV.className = "v color-high";
-    mD.textContent = "能把想法、情绪与现实反馈合在一起，行动更稳定。";
-  }else if (res.m >= 34){
-    mV.textContent = "中阶 · 探索者"; mV.className = "v color-mid";
-    mD.textContent = "思路与自我认知在成形，持续迭代会越来越顺。";
-  }else{
-    mV.textContent = "低阶 · 固守者"; mV.className = "v color-low";
-    mD.textContent = "容易被旧模式牵引；更需要外部反馈与小步验证。";
-  }
+async function loadBank(type){
+  const bank = await fetchJson(API_BANK(type), { method: "GET" });
+  if (!bank || !Array.isArray(bank.questions)) throw new Error("题库格式错误");
+  currentQuestions = shuffle([...bank.questions]); // 前端只负责展示顺序
+  scaleMin = Number(bank.scale_min ?? 1);
+  scaleMax = Number(bank.scale_max ?? 6);
 
-  const lV = $("loop-v"); const lD = $("loop-d");
-  const gV = $("grip-v"); const gD = $("grip-d");
-  const loadV = $("load-v"); const loadD = $("load-d");
-  const cohV = $("coh-v"); const cohD = $("coh-d");
-  const oV = $("overall-v"); const oD = $("overall-d");
-  const oPill = $("overall-pill");
-  const insight = $("insight");
-  const advice = $("advice");
+  $("type-text").textContent = type;
+  $("q-total").textContent = currentQuestions.length;
+  $("scale-text").textContent = `${scaleMin} → ${scaleMax}`;
 
-  if (res.l < 35){
-    lV.textContent = "低"; lV.className = "v color-healthy"; lD.textContent = "反复推演较少，启动成本更低。";
-  }else if (res.l < 65){
-    lV.textContent = "中"; lV.className = "v color-mid"; lD.textContent = "有一定反刍，偶尔卡在细节里。";
-  }else{
-    lV.textContent = "高"; lV.className = "v color-loop"; lD.textContent = "更容易反复纠结，行动阻力增大。";
-  }
-
-  if (res.g < 35){
-    gV.textContent = "低"; gV.className = "v color-healthy"; gD.textContent = "压力信号较轻，恢复更容易。";
-  }else if (res.g < 65){
-    gV.textContent = "中"; gV.className = "v color-mid"; gD.textContent = "负荷期需要刻意恢复与边界。";
-  }else{
-    gV.textContent = "高"; gV.className = "v color-grip"; gD.textContent = "处在高压边缘，注意力更难稳定。";
-  }
-
-  if (res.load < 35){
-    loadV.textContent = "轻"; loadV.className = "v color-healthy"; loadD.textContent = "节奏较松，余量更足。";
-  }else if (res.load < 65){
-    loadV.textContent = "中"; loadV.className = "v color-mid"; loadD.textContent = "强度适中，注意别长期无休。";
-  }else{
-    loadV.textContent = "重"; loadV.className = "v color-grip"; loadD.textContent = "整体偏满，优先做减负与恢复。";
-  }
-
-  if (res.coh >= 70){
-    cohV.textContent = "高"; cohV.className = "v color-high"; cohD.textContent = "作答更一致，内在标准较清晰。";
-  }else if (res.coh >= 55){
-    cohV.textContent = "中"; cohV.className = "v color-mid"; cohD.textContent = "状态略有波动，但仍可自我校准。";
-  }else{
-    cohV.textContent = "低"; cohV.className = "v color-loop"; cohD.textContent = "近期可能摇摆较多，建议先稳节奏。";
-  }
-
-  let overallLabel = "可用";
-  let overallDesc = "状态可支撑日常推进，注意节奏与边界。";
-  if (res.o >= 75){
-    overallLabel = "充盈"; overallDesc = "恢复与输出相对平衡，适合做中长期推进。"; oV.className = "v color-high"; oPill.textContent = "充盈";
-  }else if (res.o >= 55){
-    overallLabel = "可用"; overallDesc = "可稳定推进，但避免把强度拉满太久。"; oV.className = "v color-healthy"; oPill.textContent = "可用";
-  }else if (res.o >= 35){
-    overallLabel = "偏疲"; overallDesc = "更需要恢复与拆解任务，先把可交付做小。"; oV.className = "v color-mid"; oPill.textContent = "偏疲";
-  }else{
-    overallLabel = "高压"; overallDesc = "建议减负优先：睡眠、饮食、轻运动与求助。"; oV.className = "v color-grip"; oPill.textContent = "高压";
-  }
-  oV.textContent = `${overallLabel} · ${res.o}/100`;
-  oD.textContent = overallDesc;
-
-  // ===================== MBTI 分流：洞察/建议 =====================
-  // 三种情境键：stable / overload / highLoop（复用你原来的判断条件）
-function pickNarrativeKey(res){
-  if (res.g >= 65 || res.load >= 75) return "overload";
-  if (res.l >= 65) return "highLoop";
-  if (res.l < 35 && res.g < 35 && res.load < 65) return "stable";
-  return "mixed";
+  renderQuestions();
+  setProgress(0, currentQuestions.length);
 }
 
-  const MBTI_NARRATIVE = {
-    // 你可以继续往这里补 16 型；没写到的会走 DEFAULT 兜底
-    INTP: {
-      stable: {
-        insight: "当前状态：【落地的智者】。你的逻辑体系（Ti）正在开放地接纳新信息（Ne）。你既有深度的思考，又对未知保持好奇，这是创造力爆发的最佳状态。",
-        advice: "【微小输出】：利用现在的状态，尝试将你的一个概念“实体化”（写下来、做个Demo），别让它只停留在脑海里。"
-      },
-      overload: { // Grip 状态 (Fe 爆发)
-        insight: (res) => `当前状态：【情绪溃堤】(Grip 指数 ${res.g})。平时冷静的逻辑防线已崩塌，你现在可能感到前所未有的委屈、敏感，觉得“没人喜欢我”或渴望被照顾。`,
-        advice: "【情绪急救】：承认自己“系统过热”。现在的你没法讲道理。请立刻停止工作，吃点好吃的（安抚 Si/Se），承认自己也是有血有肉的人，这不丢人。"
-      },
-      highLoop: { // Loop 状态 (Ti-Si 闭环)
-        insight: (res) => `当前状态：【僵化的硬盘】(Loop 指数 ${res.l})。你困在了过去的数据里（Si），反复分析“哪里出错了”，却拒绝摄入新信息。这让你变得固执且行动瘫痪。`,
-        advice: "【引入变量】：你的大脑缺氧了。哪怕是去一条陌生的街道散步（激活 Ne），或者看一部没看过的烂片，只要是“新的输入”，就能打破这个死循环。"
-      }
-    },
+function renderQuestions(){
+  const wrap = $("questions");
+  wrap.innerHTML = "";
 
-    INFJ: {
-      stable: {
-        insight: "当前状态：【温和的平衡者】。直觉（Ni）为你指引方向，情感（Fe）助你连接他人。你既没有沉溺于空想，也没有被外界的情绪洪流淹没。",
-        advice: "【能量护城河】：保持这种节奏。但请记住，你的共情力是有限资源。每周预留一个“绝对静音时段”，不处理任何人的情绪垃圾。"
-      },
-      overload: { // Grip 状态 (Se 爆发)
-        insight: (res) => `当前状态：【感官过载/失控】(Grip 指数 ${res.g})。你可能正处于“由于长期无法对外说不”而导致的报复性反弹中，表现为暴饮暴食、对环境噪音极度敏感或冲动消费。`,
-        advice: "【物理阻断】：现在的你不需要“意义”，只需要“五感安抚”。立刻切断社交网络，去洗个热水澡、或是睡个长觉。允许自己像个孩子一样任性一回。"
-      },
-      highLoop: { // Loop 状态 (Ni-Ti 闭环)
-        insight: (res) => `当前状态：【自我隔离的审判者】(Loop 指数 ${res.l})。你切断了与人的连接，陷入了冷漠的逻辑分析中，甚至觉得“没有人值得我救赎”，这是一种防御性的傲慢。`,
-        advice: "【强制外化】：打破死循环的唯一方法是 Fe（外倾情感）。不需要解决大问题，找一个信任的朋友，仅仅是把你的想法“说出来”，而不是在脑子里“盘明白”。"
-      }
-    },
-    
+  const points = [];
+  for (let v = scaleMin; v <= scaleMax; v++) points.push(v);
 
-    INTJ: {
-      stable: {
-        insight: "当前状态：【远见执行者】。你的愿景（Ni）与执行力（Te）完美咬合。你不仅看得到未来，还在一步步将现实推向那个未来。",
-        advice: "【现实校准】：在推进宏大计划时，偶尔停下来确认一下身边人的状态。有时候，稍微慢一点，是为了走得更远。"
-      },
-      overload: { // Grip 状态 (Se 爆发)
-        insight: (res) => `当前状态：【破坏性放纵】(Grip 指数 ${res.g})。长期的精神紧绷导致了“断崖式下跌”。你可能正在沉迷于暴食、酗酒、疯狂购物或无意义的感官刺激中，甚至有毁灭一切的冲动。`,
-        advice: "【感官着陆】：不要自我批判。你的身体在替你的大脑抗议。去进行高强度的运动（如拳击、跑步），把体内的攻击性安全地释放出去。"
-      },
-      highLoop: { // Loop 状态 (Ni-Fi 闭环)
-        insight: (res) => `当前状态：【偏执的孤岛】(Loop 指数 ${res.l})。你过度信任自己的主观感受（Fi），认为全世界都在针对你，或陷入“没人能理解我”的悲剧英雄叙事中，脱离了客观现实。`,
-        advice: "【事实核查】：启动你的 Te（外倾思考）。把你的担忧列成清单，逐一问自己：“有客观数据支持这个结论吗？”让外部事实来击穿你的主观幻觉。"
-      }
-    },
+  currentQuestions.forEach((q, idx) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.qid = q.id;
 
-    INFP: {
-      stable: {
-        insight: "当前状态：【真实的疗愈者】。你的内心价值（Fi）与外界探索（Ne）正向循环。你不仅对自己诚实，也充满了对可能性的想象，整个人散发着治愈的光芒。",
-        advice: "【创作表达】：现在的灵感稍纵即逝，请务必通过某种形式（文字、绘画、音乐）记录下来，这是你对抗世界平庸的武器。"
-      },
-      overload: { // Grip 状态 (Te 爆发)
-          insight: (res) => `当前状态：【失控的暴君】(Grip 指数 ${res.g})。平时温和的你，现在可能正被“劣势 Te”接管。你变得挑剔、暴躁、只讲效率不讲人情，试图强行控制周围的一切，内心却感到深深的空虚和自我厌恶。`,
-          advice: "【暂停批判】：请注意，你现在的“高效率”和“逻辑批判”是虚假的，那只是你逃避内心痛苦的面具。停下来，深呼吸。承认自己受伤了，而不是指责世界太蠢。哪怕什么都不做，那个不完美的你依然值得被爱。"
-        },
-      highLoop: { // Loop 状态 (Fi-Si 闭环)
-        insight: (res) => `当前状态：【旧伤口的守望者】(Loop 指数 ${res.l})。你把自己锁在房间里，反复咀嚼过去的失败或尴尬瞬间。你拒绝看到新的希望，沉浸在一种舒适的忧郁中。`,
-        advice: "【微小尝试】：打破“舒适圈”太难了，先打破“舒适点”。去做一件从未做过的小事（比如换个发型、去家新店），用 Ne（直觉）的新鲜感冲淡旧记忆的腐味。"
-      }
-    },
+    const qmeta = document.createElement("div");
+    qmeta.className = "qmeta";
+    qmeta.innerHTML = `<b>问题 ${idx + 1} / ${currentQuestions.length}</b>
+      <span class="qstatus" id="st-${q.id}"><span class="dot"></span><span>未作答</span></span>`;
+    card.appendChild(qmeta);
 
-    ENTJ: {
-    stable: {
-      insight: "当前状态：【真正的指挥官】。你的执行力（Te）由深远的洞察力（Ni）指引。你不再是单纯为了赢而战，而是在构建一个可持续的生态系统。你既有雷霆手段，也开始懂得菩萨心肠（或至少是战略性的耐心）。",
-      advice: "【柔性领导力】：你现在很强大。利用这个时期，去倾听那些平时你觉得“声音太小”的人的意见。往往盲点就藏在那些被你忽略的细节里。"
-    },
-    overload: { // Grip 状态 (Fi 爆发)
-      insight: (res) => `当前状态：【落难的国王】(Grip 指数 ${res.g})。这是一种极其罕见且痛苦的状态。你那无坚不摧的逻辑盔甲碎裂了，露出了最脆弱的内核（劣势 Fi）。你感到被全世界孤立、误解，陷入深深的自我怀疑和受害者心态中。`,
-      advice: "【情感接纳】：不要试图用逻辑去分析这些情绪，也不要强行镇压。现在的你不需要“解决问题”，你需要“被看见”。找一个非利益相关的朋友，承认你的疲惫和软弱。示弱不是失败，是人性的回归。"
-    },
-    highLoop: { // Loop 状态 (Te-Se 闭环)
-      insight: (res) => `当前状态：【失控的推土机】(Loop 指数 ${res.l})。你切断了战略思考（Ni），陷入了盲目的忙碌中。你可能正在通过无休止的工作、聚会或物质消费（Se）来麻痹自己。你看起来在这个世界上横冲直撞，但其实你不知道自己要去哪。`,
-      advice: "【强制暂停】：你的油门踩死了，但方向盘丢了。必须强制自己独处（Isolation）。切断外界的噪音和刺激，强迫自己进入“无聊”的状态。只有静下来，你的 Ni（直觉）才能重新上线，告诉你真正的方向。"
-    }
-  },
+    const qtext = document.createElement("div");
+    qtext.className = "qtext";
+    qtext.textContent = q.text;
+    card.appendChild(qtext);
 
-    ENFJ: {
-      stable: {
-        insight: "当前状态：【启迪心灵的导师】。你的共情能力（Fe）被深远的洞察力（Ni）所锚定。你不再是那个只会讨好所有人的“滥好人”，而是一位真正能引领他人成长的领袖。你温暖而有力量，既能照亮别人，也能守护自己。",
-        advice: "【向内关照】：你习惯了向外输出能量。请记得，哪怕是太阳也需要通过夜晚来蓄能。每周给自己一段“不为任何人负责”的时间，只做让自己快乐的事，不需要有意义，也不需要照顾谁的情绪。"
-      },
-      overload: { // Grip 状态 (Ti 爆发)
-        insight: (res) => `当前状态：【冷酷的检察官】(Grip 指数 ${res.g})。这是一种让身边人感到害怕的状态。温暖的你突然消失了，取而代之的是一个愤世嫉俗、吹毛求疵的逻辑机器。你正在用劣势 Ti 攻击一切，觉得所有人都是虚伪的，甚至在脑中无情地审判自己。`,
-        advice: "【停止分析】：你现在的逻辑是“有毒”的，它不是真理，而是痛苦的变形。请立刻停止思考“为什么”。去和那些无条件爱你、且不需要你照顾的人（比如家人或宠物）待在一起。你需要被温暖的情感重新“融化”，而不是去寻找所谓的逻辑真相。"
-      },
-      highLoop: { // Loop 状态 (Fe-Se 闭环)
-        insight: (res) => `当前状态：【焦虑的表演者】(Loop 指数 ${res.l})。你切断了深度思考（Ni），迷失在外界的喧嚣中。你可能正忙于一场又一场的聚会，或者极度在意自己在社交网络上的形象。你看起来光鲜亮丽，但内心可能充满了“一旦停下来就会被遗忘”的恐慌。`,
-        advice: "【深度独处】：你现在是一只停不下来的陀螺。必须强制减速。关掉手机，去读一本深奥的书，或者写日记。强迫自己面对孤独。只有在安静中，你的 Ni（直觉）才会浮现，告诉你什么才是真正重要的，而不是别人觉得重要的。"
-      }
-    },
+    const scale = document.createElement("div");
+    scale.className = "scale";
 
-    ENTP: {
-      stable: {
-        insight: "当前状态：【落地的发明家】。你的脑洞（Ne）被逻辑（Ti）精准地捕捉和构建。你不再是为了辩论而辩论，而是在用你的智慧拆解旧世界的谬误，构建新世界的蓝图。你既有趣又可靠，这是最具魅力的时刻。",
-        advice: "【完成闭环】：你现在状态很好，但要注意“收尾”。选择一个你最看好的项目，强迫自己把它推进到 100% 完成，而不是停在 90%。成品的快感会比“可能性的快感”更持久。"
-      },
-      overload: { // Grip 状态 (Si 爆发)
-        insight: (res) => `当前状态：【神经质的隐士】(Grip 指数 ${res.g})。这是一种极度反常的状态。那个天马行空的你消失了，取而代之的是一个对身体健康过度焦虑、对细节吹毛求疵、甚至陷入抑郁和自闭的人。你被劣势 Si 绑架，感觉被困在过去和琐碎的现实中无法动弹。`,
-        advice: "【身体复苏】：别想了，你的大脑现在是死机的。不要试图用逻辑分析你的抑郁。你需要的是“感官安抚”。去吃顿好的、去按摩、去大自然里躺着。照顾好你的身体，你的灵感自然会回来。现在的任务是：活着，吃饭，睡觉。"
-      },
-      highLoop: { // Loop 状态 (Ne-Fe 闭环)
-        insight: (res) => `当前状态：【焦虑的小丑】(Loop 指数 ${res.l})。你切断了内部逻辑（Ti），迷失在外界的反馈中。你可能正在通过哗众取宠、制造混乱或过度迎合他人来刷存在感。你看起来很热闹，其实内心毫无原则，充满了对“不受欢迎”的恐惧。`,
-        advice: "【逻辑隔离】：你现在太“吵”了。你需要切断 Fe（外界反馈）。关掉社交媒体，停止与人争论。把自己关进小黑屋，拿起纸笔，问自己：“不管别人怎么看，这件事在逻辑上成立吗？”找回你那个冷酷但清醒的 Ti 核心。"
-      }
-    },
+    points.forEach(v=>{
+      const opt = document.createElement("div");
+      opt.className = "opt";
+      opt.innerHTML = `
+        <input type="radio" id="q${q.id}_${v}" name="q${q.id}" value="${v}" />
+        <label for="q${q.id}_${v}">${v}</label>
+      `;
+      scale.appendChild(opt);
+    });
 
-    ENFP: {
-      stable: {
-        insight: "当前状态：【闪光的启发者】。你的 Ne（探索）与 Fi（真诚）正处于美妙的共振中。你不仅是人群中的开心果，更是灵魂的摆渡人。你对自己诚实，对他人温暖，既有仰望星空的理想，又有脚踏实地的行动。",
-        advice: "【守护边界】：你的能量太珍贵了，不要随意挥霍。请记住，对别人说“不”，就是对自己说“是”。继续保持你的热情，但要把最核心的能量留给那些真正懂你、珍惜你的人。"
-      },
-      overload: { // Grip 状态 (Si 爆发)
-        insight: (res) => `当前状态：【褪色的气球】(Grip 指数 ${res.g})。这是一种让 ENFP 极度窒息的状态。那个充满灵气的你不见了，取而代之的是一个抑郁、疑病、对细节吹毛求疵的“小老头/老太太”。你被劣势 Si 拖进了过去的泥潭，觉得身体出了问题，或者未来一片黑暗。`,
-        advice: "【感官疗愈】：不要逼自己去社交，也不要逼自己“振作起来”。你的灵魂感冒了。现在的解药是“熟悉的安稳”：吃童年喜欢的食物、看一部看过十遍的老电影、裹在柔软的被子里。允许自己做一个无聊的普通人，直到能量回归。"
-      },
-      highLoop: { // Loop 状态 (Ne-Te 闭环)
-        insight: (res) => `当前状态：【失速的列车】(Loop 指数 ${res.l})。你切断了内心的感受（Fi），试图用疯狂的忙碌来证明自己。你可能看起来效率很高、很强势，甚至有点咄咄逼人，但你的内心是麻木的。你在逃避某个让你痛苦的情绪。`,
-        advice: "【回归内心】：停下你手里的工作。立刻。找一个安静的地方，问自己：“我现在的感觉是什么？”不是你在想什么，而是你的感受。悲伤？愤怒？失望？把那个被你关在门外的 Fi（小孩子）接回来，抱抱它，听它哭一会。"
-      }
-    },
+    const ends = document.createElement("div");
+    ends.className = "scale-ends";
+    ends.innerHTML = `<span>完全不符</span><span>完全符合</span>`;
 
-    ISFJ: {
-      stable: {
-        insight: "当前状态：【温柔的守护者】。你的经验（Si）与爱心（Fe）正完美结合。你是那个让家和团队运转如常的隐形支柱。你不仅细致入微，更难得的是，你开始懂得“爱自己是爱别人的前提”，在付出中找到了平衡。",
-        advice: "【自我奖赏】：亲爱的，你做得已经够多了。请不要把“空闲时间”视作一种罪恶。每周专门留出半天时间，不做任何“有用”的事，只是喝茶、看书或发呆。这是你维持光芒的燃料。"
-      },
-      overload: { // Grip 状态 (Ne 爆发)
-        insight: (res) => `当前状态：【惊慌的迷路者】(Grip 指数 ${res.g})。这是一种让 ISFJ 极度无助的状态。劣势 Ne 正在你的大脑里制造“灾难片”。你可能被“未知的恐惧”淹没，觉得无论怎么做未来都会出大问题，甚至开始胡思乱想、甚至想冲动逃离。`,
-        advice: "【回到当下】：停止思考未来！那些可怕的画面 99% 都不会发生。你现在需要的是“确定性”。去做一件极其具体的小事：比如整理衣柜、手洗几件衣服、或者抄写一段文字。用指尖的触感（Si）把自己拉回安全的现实中。"
-      },
-      highLoop: { // Loop 状态 (Si-Ti 闭环)
-        insight: (res) => `当前状态：【委屈的审判官】(Loop 指数 ${res.l})。你切断了对外的温暖（Fe），把自己锁在过去的回忆里（Si）生闷气。你可能正在心里反复盘算“谁对不起我”、“凭什么我要做这么多”。你变得冷漠、记仇，甚至对亲近的人施加冷暴力。`,
-        advice: "【表达需求】：你在等别人“猜”到你的委屈，但这是徒劳的。打破死循环的方法是 Fe（外倾情感）。直接告诉对方：“我现在很累，我需要你帮我洗碗。”而不是一边洗碗一边在心里骂人。说出来，那一刻你就解脱了。"
-      }
-    },
+    card.appendChild(scale);
+    card.appendChild(ends);
+    wrap.appendChild(card);
+  });
 
-    ISTP: {
-      stable: {
-        insight: "当前状态：【冷静的操盘手】。你的逻辑内核（Ti）与对现实的敏锐度（Se）配合完美。你是最高效的问题解决者，话不多但招招致命。你享受当下的自由，也能处理好手头的麻烦，正处于能量利用率最高的时期。",
-        advice: "【保持流动】：你现在就像水一样灵活。继续保持你的节奏。如果感到无聊，去学习一项新的硬核技能（如编程、机械、极限运动），这能让你的多巴胺维持在健康水平。"
-      },
-      overload: { // Grip 状态 (Fe 爆发)
-        insight: (res) => `当前状态：【失控的火山】(Grip 指数 ${res.g})。这可能会让你感到羞耻，但那个“冷酷”的你不见了。劣势 Fe 让你变得异常情绪化、敏感，甚至像个孩子一样发脾气。你可能觉得自己被忽视了，或者为了别人的事感到精疲力尽。`,
-        advice: "【物理隔离】：别试图用逻辑分析情绪，也别试图找人“谈心”（你现在谈不明白）。你需要的是独处 + 发泄。去健身房举铁、去打沙袋、或者去没人的地方吼两嗓子。把那股奇怪的能量通过身体排出去，你的理智就会回来。"
-      },
-      highLoop: { // Loop 状态 (Ti-Ni 闭环)
-        insight: (res) => `当前状态：【瘫痪的阴谋论者】(Loop 指数 ${res.l})。你切断了与物理世界的连接（Se），困在大脑里空转。你开始觉得“做什么都没意义”，或者怀疑周围的一切都有阴谋。你变得愤世嫉俗，行动力归零，活在一个虚构的、灰暗的未来里。`,
-        advice: "【强制行动】：你的大脑中毒了，解药在手上。别想了，立刻动起来。哪怕是修一个坏掉的水龙头、拼一个乐高、或者出门跑五公里。只要你的手开始触碰真实的物体（Se），那个虚无的死循环就会瞬间瓦解。"
-      }
-    }
-  };
+  $("form").addEventListener("change", onAnswerChange);
+}
 
-  const DEFAULT_NARRATIVE = {
-    stable: {
-      insight: "你当前更像“稳态推进”：想得清楚、行动阻力不大，同时还能保留恢复空间。",
-      advice:  "把优势用在“可交付的小步”上：每周固定 1 次复盘，并留出 1～2 个无任务时段做恢复。"
-    },
-    overload: {
-      insight: (res)=>`你处在“高负荷/高压”区间：压力信号更强（Grip ${res.g}/100，负荷 ${res.load}/100），注意力更难稳定。`,
-      advice:  "优先做恢复与减负：把今天目标缩减为 1 件可交付小成果；睡眠与饮食先稳定，再做身体回正。"
-    },
-    highLoop: {
-      insight: (res)=>`你的内耗倾向偏高（Loop ${res.l}/100）：可能在反复推演、过度打磨或过度比较，导致启动成本变高。`,
-      advice:  "做一次“外部打断”：安排 30 分钟低门槛行动（整理/散步/写 10 行计划），让身体先动起来。"
-    },
-    mixed: {
-     insight: (res)=>`当前状态：【可推进但不算满稳】（Loop ${res.l} / Grip ${res.g} / Load ${res.load}）。你不在内耗高区，但负荷或压力有一定存在感。`,
-     advice:  "【稳住节奏】：今天用“最小交付 + 明确休息”推进：只保留 1 个最小成果，同时给自己留出恢复窗口。"
-    }
-  };
+function destroyChart(){
+  if (radarChart){ radarChart.destroy(); radarChart = null; }
+}
 
-  const key = pickNarrativeKey(res);
-  const pack = MBTI_NARRATIVE[currentType] || DEFAULT_NARRATIVE;
-  const node = pack[key] || DEFAULT_NARRATIVE[key];
+function renderChart(radar){
+  destroyChart();
+  if (!radar || !Array.isArray(radar.labels) || !Array.isArray(radar.values)) return;
 
-  const insightText = (typeof node.insight === "function") ? node.insight(res) : node.insight;
-  const adviceText  = (typeof node.advice  === "function") ? node.advice(res)  : node.advice;
-
-  insight.textContent = insightText;
-  advice.textContent  = adviceText;
-
-  // --- 雷达图绘制逻辑 ---
-  if (radarChart) radarChart.destroy();
   const ctx = $("chart").getContext("2d");
   const gradient = ctx.createLinearGradient(0, 0, 0, 400);
   gradient.addColorStop(0, 'rgba(37, 99, 235, 0.5)');
   gradient.addColorStop(1, 'rgba(37, 99, 235, 0.1)');
 
-  const labels = ["认知成熟度", "自洽度", "内耗弹性", "压力弹性", "负荷余量", "状态指数"];
-  // 数值处理：反向指标用 100 减去，使其变正向（图形越大越好）
-  const values = [ res.m, res.coh, 100 - res.l, 100 - res.g, 100 - res.load, res.o ];
-
   radarChart = new Chart(ctx, {
     type: "radar",
     data: {
-      labels: labels,
+      labels: radar.labels,
       datasets: [{
         label: "当前状态",
-        data: values,
+        data: radar.values,
         backgroundColor: gradient,
         borderColor: "#2563eb",
         borderWidth: 2,
@@ -1475,59 +797,107 @@ function pickNarrativeKey(res){
   });
 }
 
-function showResult(){
+/**
+ * 完全展示层：所有“分数解释/标签/洞察/建议/雷达值”由后端返回
+ * 前端只把值塞进 DOM
+ */
+function renderReport(report){
+  const s = report.scores || {};
+  $("m-v").textContent = s.m ?? "—";
+  $("l-v").textContent = s.l ?? "—";
+  $("g-v").textContent = s.g ?? "—";
+  $("load-v").textContent = s.load ?? "—";
+  $("coh-v").textContent = s.coh ?? "—";
+  $("o-v").textContent = s.o ?? "—";
+
+  // 可选：后端返回每项解释文案（推荐你这么做，彻底前端“无脑”）
+  // e.g. report.descriptions = { m:"...", l:"...", ... }
+  const d = report.descriptions || {};
+  $("m-d").textContent = d.m || "—";
+  $("l-d").textContent = d.l || "—";
+  $("g-d").textContent = d.g || "—";
+  $("load-d").textContent = d.load || "—";
+  $("coh-d").textContent = d.coh || "—";
+  $("o-d").textContent = d.o || "—";
+
+  $("insight").textContent = report.insight || "—";
+  $("advice").textContent  = report.advice  || "—";
+
+  const tag = report.status_tag || report.narrative_key || "—";
+  $("status-tag").textContent = tag;
+  $("tag-pill").textContent = tag;
+
+  renderChart(report.radar);
+
   $("form").style.display = "none";
   $("result").style.display = "block";
   $("reset-btn").style.display = "inline-flex";
   window.scrollTo({top: 0, behavior: "smooth"});
 }
 
-
-function computeCoherenceFromValues(values){
-  if (!values || values.length === 0) return 0;
-
-  const mean = values.reduce((s,x)=>s+x,0) / values.length;
-  const variance = values.reduce((s,x)=> s + Math.pow(x - mean, 2), 0) / values.length;
-  const std = Math.sqrt(variance);
-
-  // 2.5 是 1–6 量表下的经验上限
-  return Math.round((1 - Math.min(1, std / 2.5)) * 100);
-}
-
-
 function resetAll(){
+  destroyChart();
   $("result").style.display = "none";
   $("form").reset();
   $("form").style.display = "block";
   $("reset-btn").style.display = "none";
-  if (radarChart) { radarChart.destroy(); radarChart = null; }
-  renderQuestions();
+  loadBank(currentType).catch(e=>toast(e.message || "加载失败"));
   window.scrollTo({top: 0, behavior: "smooth"});
 }
 
-// ==================== 数据库配置开始 ====================
-// ⚠️ 把这里的字符串换成你刚才复制的 ID 和 Key
-const APP_ID = 'oHk4yKURFUq90Z2v66jCONZF-MdYXbMMI';
-const APP_KEY = 'sxruA5kvqDApvWG5FRslFJId';
-// 国际版通常不需要填 serverURL，如果报错再说
-AV.init({
-  appId: APP_ID,
-  appKey: APP_KEY,
-  serverURL: "/lc-api" // 如果后台没有ServerURL，这行可以删掉
-});
-// ==================== 数据库配置结束 ====================
+async function submitReport(){
+  const formData = new FormData($("form"));
+  const missing = findFirstUnanswered(formData);
+  if (missing){
+    toast("还有未完成的题目，已定位。");
+    scrollToQuestion(missing.id);
+    return;
+  }
 
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll("[data-feature]").forEach(el=>{
-    if (!FEATURES[el.dataset.feature]) el.setAttribute("hidden", "");
+  const answers = {};
+  currentQuestions.forEach(q => {
+    answers[String(q.id)] = parseInt(formData.get("q"+q.id), 10);
   });
 
+  // 仅提交：前端不计算任何东西
+  const payload = {
+    type: currentType,
+    answers: answers,
+    meta: {
+      // 你可以带上时间/ua等，后端按需存储
+      ts: Date.now()
+    }
+  };
+
+  setLoading(true);
+  try{
+    const report = await fetchJson(API_REPORT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    renderReport(report);
+  }finally{
+    setLoading(false);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
   const sel = $("mbti-select");
   sel.value = "INTP";
   currentType = sel.value;
-  renderQuestions();
+  $("type-text").textContent = currentType;
 
-  sel.addEventListener("change", () => {
+  setLoading(true);
+  try{
+    await loadBank(currentType);
+  }catch(e){
+    toast(e.message || "题库加载失败");
+  }finally{
+    setLoading(false);
+  }
+
+  sel.addEventListener("change", async () => {
     currentType = sel.value;
     $("type-text").textContent = currentType;
     resetAll();
@@ -1536,127 +906,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   $("reset-btn").addEventListener("click", resetAll);
 
-  $("form").addEventListener("submit", (e) => {
+  $("form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const formData = new FormData($("form"));
-    const firstMissing = findFirstUnanswered(formData);
-    if (firstMissing){
-      toast("还有未完成的题目，已定位。");
-      scrollToQuestion(firstMissing.id);
-      return;
+    try{
+      await submitReport();
+    }catch(err){
+      console.error(err);
+      toast(err.message || "生成报告失败");
     }
-
-    setLoading(true);
-    const {min, max} = computeCategoryBounds(currentQuestions);
-    const scores = { maturity: 0, loop: 0, grip: 0 };
-    const rawVals = [];
-
-    currentQuestions.forEach(q=>{
-      const raw = parseInt(formData.get("q"+q.id), 10);
-      rawVals.push(raw);
-      let v = raw;
-      if (q.reversed) v = (SCALE_MAX + SCALE_MIN) - v;
-      scores[q.type] += v;
-    });
-
-    const res = {
-      m: normalize(scores.maturity, min.maturity, max.maturity),
-      l: normalize(scores.loop,     min.loop,     max.loop),
-      g: normalize(scores.grip,     min.grip,     max.grip)
-    };
-
-  // 按维度收集原始作答（注意：用反转后的 v，而不是 raw）
-    const valsByType = {
-      maturity: [],
-      loop: [],
-      grip: []
-    };
-
-    currentQuestions.forEach(q=>{
-      const raw = parseInt(formData.get("q"+q.id), 10);
-      let v = raw;
-      if (q.reversed) v = (SCALE_MAX + SCALE_MIN) - v;
-      valsByType[q.type].push(v);
-    });
-
-    // 分别计算各维度的自洽度
-    const coh_m = computeCoherenceFromValues(valsByType.maturity);
-    const coh_l = computeCoherenceFromValues(valsByType.loop);
-    const coh_g = computeCoherenceFromValues(valsByType.grip);
-
-    // 最终自洽度 = 三个维度的平均
-    const coh = Math.round((coh_m + coh_l + coh_g) / 3);
-    const mean = rawVals.reduce((s,x)=>s+x,0) / rawVals.length;
-    const load = Math.round(((mean - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)) * 100);
-
-
-    const invLoop = 100 - res.l;
-    const invGrip = 100 - res.g;
-    const invLoad = 100 - load;
-    const overall = Math.round(0.25 * res.m + 0.20 * coh + 0.20 * invLoop + 0.20 * invGrip + 0.15 * invLoad);
-
-    res.load = load; res.coh = coh; res.o = overall;
-
-setTimeout(()=>{
-      setLoading(false);
-      
-      // 1. 先把结果显示在网页上
-      renderResult(res); 
-      try {
-        const TestRecord = AV.Object.extend('TestRecord');
-        const record = new TestRecord();
-        
-        // 1. 计算答题耗时（秒）
-        const endTime = Date.now();
-        // 如果没有开始时间（防止异常），就默认 0
-        const startTime = window.testStartTime || endTime; 
-        const duration = Math.round((endTime - startTime) / 1000);
-
-        // 2. 基础信息
-        record.set('mbti_type', currentType); // 字段：mbti_type
-        record.set('device', navigator.userAgent); // 字段：device
-        record.set('duration_seconds', duration); // 【新增】字段：duration_seconds
-
-        // 3. 【关键】把 6 个维度拆成独立字段，方便 SQL 分析
-        // 这样你以后可以直接 select * from table where score_coherence < 50
-        record.set('score_maturity', res.m);
-        record.set('score_loop', res.l);
-        record.set('score_grip', res.g);
-        record.set('score_load', res.load);
-        record.set('score_coherence', res.coh); // 【新增】字段：自洽度
-        record.set('score_overall', res.o);
-
-        // 4. 文本结论（用于快速查看）
-        // 获取“状态标签”（如：高压、充盈）
-        const pillText = document.getElementById("overall-pill").textContent;
-        record.set('status_tag', pillText); 
-        // 获取“完整状态描述”（如：充盈 · 85/100）
-        const overallText = document.getElementById("overall-v").textContent;
-        record.set('result_text', overallText);
-
-        // 5. 详细选项（保留 JSON 格式，万一以后要查细颗粒度）
-        const answerDetails = {};
-        currentQuestions.forEach(q => {
-          answerDetails['Q' + q.id] = parseInt(formData.get("q" + q.id));
-        });
-        record.set('user_choices', answerDetails);
-
-        // 发送！
-        record.save().then((saved) => {
-          console.log('数据已保存，耗时(秒):', duration, 'ID:', saved.id);
-        });
-      } catch (error) {
-        console.error('数据库保存出错:', error);
-      }
-
-      showResult();
-    }, 650);
-
   });
 });
 </script>
-<footer style="text-align:center; color:#94a3b8; font-size:12px; padding:20px;">
-  &copy; 2026 MBTI Compass. Original Design & Code. 未经允许禁止转载或商用.
-</footer>
 </body>
 </html>
