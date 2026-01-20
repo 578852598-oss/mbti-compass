@@ -1,8 +1,13 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
       "source": "/lc-api/:match*",
       "destination": "https://ohk4ykur.api.lncldglobal.com/:match*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.py"
     }
   ]
 }
