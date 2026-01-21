@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>MBTI 心理状态罗盘</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
@@ -10,393 +10,959 @@
 
   <style>
     :root{
-      --bg:#ffffff; --surface:#ffffff; --surface-2:#f8fafc; --line:#e5e7eb;
-      --text:#0f172a; --muted:#475569; --muted-2:#64748b;
-      --accent:#2563eb; --accent-2:#1d4ed8; 
-      --success:#16a34a; --warning:#d97706; --danger:#dc2626; --purple:#7c3aed;
-      --radius:18px; --shadow:0 12px 30px rgba(15, 23, 42, 0.08);
+      --bg:#ffffff; --surface:#ffffff; --surface-2:#f8fafc; --line:#e2e8f0;
+      --text:#0f172a; --muted:#64748b; --muted-light:#94a3b8;
+      
+      /* 品牌色 */
+      --brand:#2563eb; 
+      
+      /* 四大类型色系 (参考主流配色) */
+      --color-nt: #8b5cf6; --bg-nt: #f5f3ff; /* 紫色 - 分析家 */
+      --color-nf: #10b981; --bg-nf: #ecfdf5; /* 绿色 - 外交家 */
+      --color-sj: #3b82f6; --bg-sj: #eff6ff; /* 蓝色 - 守护者 */
+      --color-sp: #f59e0b; --bg-sp: #fffbeb; /* 黄色 - 探险家 */
+
+      --radius:20px; 
+      --shadow:0 10px 40px -10px rgba(0,0,0,0.05);
+      --shadow-hover:0 20px 40px -10px rgba(0,0,0,0.1);
     }
-    *{ box-sizing:border-box; }
-    body{ margin:0; font-family: Inter, system-ui, sans-serif; color:var(--text); background: linear-gradient(180deg, #ffffff 0%, #f6f8ff 100%); }
-    .container{ max-width: 860px; margin: 0 auto; padding: 28px 18px 80px; }
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    body{ margin:0; font-family: Inter, system-ui, -apple-system, sans-serif; color:var(--text); background: var(--surface-2); padding-bottom: 40px;}
+    
+    .container{ max-width: 720px; margin: 0 auto; padding: 20px 16px; }
     
     /* Topbar */
-    .topbar{ position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px); background: rgba(255,255,255,0.78); border-bottom: 1px solid rgba(229,231,235,0.9); }
-    .topbar-inner{ max-width: 860px; margin: 0 auto; padding: 14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    .brand{ display:flex; align-items:center; gap:10px; }
-    .logo{ width:36px; height:36px; border-radius: 12px; background: rgba(37,99,235,0.1); border: 1px solid rgba(37,99,235,0.18); display:flex; align-items:center; justify-content:center; color: var(--accent); font-weight:700; }
+    .topbar{ position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); transition: transform 0.3s; }
+    .topbar-inner{ max-width: 720px; margin: 0 auto; padding: 12px 16px; display:flex; align-items:center; justify-content:space-between; height: 60px; }
     
-    .controls{ display:flex; align-items:center; gap:10px; justify-content:flex-end; }
-    .field{ display:flex; align-items:center; gap:8px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
-    select{ border:none; outline:none; background: transparent; font-size: 14px; font-weight: 600; cursor: pointer; }
-    
-    .progress{ width: 80px; height: 6px; border-radius: 999px; background: #eef2ff; border: 1px solid rgba(37,99,235,0.12); overflow:hidden; }
-    .progress > div{ height:100%; width:0%; background: var(--accent); transition: width .3s ease; }
+    .brand{ display:flex; align-items:center; gap:10px; cursor: pointer; }
+    .logo{ width:32px; height:32px; border-radius: 10px; background: var(--brand); color: #fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size: 14px; }
+    .brand-text{ font-weight: 700; font-size: 15px; letter-spacing: -0.5px; }
 
-    h1{ font-family: "Noto Serif SC", serif; margin: 20px 0 8px; font-size: 28px; }
-    .subtitle{ color: var(--muted); margin:0; font-size: 14px; line-height: 1.6; }
-
-    /* Card & Form */
-    .card{ background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin-top: 14px; box-shadow: var(--shadow); }
-    .card--error{ border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
-    .qmeta{ display:flex; justify-content:space-between; margin-bottom: 10px; font-size: 12px; color: var(--muted-2); }
-    .qtext{ font-size: 16px; font-weight: 600; margin-bottom: 16px; line-height: 1.6; }
+    .controls{ display:flex; align-items:center; gap:12px; }
     
-    .scale{ display:grid; grid-template-columns: repeat(6, 1fr); gap:6px; background: var(--surface-2); padding: 10px; border-radius: 14px; }
-    .opt label{ display:flex; align-items:center; justify-content:center; height: 40px; border-radius: 8px; background: #fff; border: 1px solid rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s; font-weight: 700; color: var(--muted); }
+    /* 当前状态胶囊 */
+    .status-capsule{ display:none; align-items:center; gap:8px; padding: 4px 4px 4px 12px; background: #fff; border:1px solid var(--line); border-radius: 99px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    .status-capsule span{ color: var(--brand); }
+    .btn-change{ background: var(--surface-2); border:none; padding: 6px 12px; border-radius: 99px; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-change:hover{ background: #e2e8f0; color: var(--text); }
+
+    /* =========================================
+       新入口：类型选择器 (Landing Page)
+       ========================================= */
+    #landing-page{ display: block; animation: fadeIn 0.5s ease; }
+    .hero{ text-align: center; padding: 40px 0 30px; }
+    .hero h1{ font-family: "Noto Serif SC", serif; font-size: 32px; margin: 0 0 12px; color: var(--text); letter-spacing: -1px; }
+    .hero p{ font-size: 15px; color: var(--muted); line-height: 1.6; max-width: 480px; margin: 0 auto; }
+
+    .group-title{ font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 10px; color: var(--muted-light); display:flex; align-items:center; gap:8px; }
+    .group-title::after{ content:''; flex:1; height:1px; background: var(--line); }
+    
+    .type-grid{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    
+    /* 移动端改为2列 */
+    @media(max-width: 640px){ .type-grid{ grid-template-columns: repeat(2, 1fr); } }
+
+    .type-card{ 
+      position: relative; border: none; border-radius: 16px; padding: 16px; 
+      text-align: left; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; flex-direction: column; justify-content: space-between; height: 90px;
+      overflow: hidden;
+    }
+    .type-card:hover{ transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+    .type-card:active{ transform: scale(0.98); }
+
+    .type-card strong{ font-size: 20px; font-weight: 800; display: block; font-family: 'Inter', sans-serif; letter-spacing: -0.5px; }
+    .type-card span{ font-size: 12px; font-weight: 600; opacity: 0.8; margin-top: 4px; display: block; }
+    
+    /* 装饰性背景图标 */
+    .type-card::after{ 
+      content: attr(data-type); 
+      position: absolute; right: -10px; bottom: -15px; 
+      font-size: 60px; font-weight: 900; opacity: 0.06; 
+      font-family: sans-serif; pointer-events: none;
+    }
+
+    /* 新增：筹备中标签样式 */
+    .badge-soon {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255,255,255,0.7); /* 半透明白底 */
+      backdrop-filter: blur(4px);        /* 毛玻璃效果 */
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #64748b;                    /* 灰色文字 */
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      z-index: 2;
+    }
+
+    /* 新增：S人卡片的特殊状态（稍微变淡，更有“未解锁”的感觉） */
+    .card-locked {
+      opacity: 0.75; 
+      filter: grayscale(0.2); /* 稍微去色 */
+    }
+    .card-locked:hover {
+      transform: none;      /* 禁用上浮动画 */
+      box-shadow: none;     /* 禁用阴影 */
+      opacity: 0.9;         /* hover时稍微亮一点，提示可点击 */
+      cursor: not-allowed;  /* 鼠标变成禁止手势（或者保留 pointer 配合弹窗） */
+    }
+
+    /* 颜色配置 */
+    .nt-card{ background: var(--bg-nt); color: var(--color-nt); border: 1px solid rgba(139, 92, 246, 0.1); }
+    .nt-card:hover{ background: #ede9fe; border-color: var(--color-nt); }
+    
+    .nf-card{ background: var(--bg-nf); color: var(--color-nf); border: 1px solid rgba(16, 185, 129, 0.1); }
+    .nf-card:hover{ background: #d1fae5; border-color: var(--color-nf); }
+    
+    .sj-card{ background: var(--bg-sj); color: var(--color-sj); border: 1px solid rgba(59, 130, 246, 0.1); }
+    .sj-card:hover{ background: #dbeafe; border-color: var(--color-sj); }
+    
+    .sp-card{ background: var(--bg-sp); color: var(--color-sp); border: 1px solid rgba(245, 158, 11, 0.1); }
+    .sp-card:hover{ background: #fef3c7; border-color: var(--color-sp); }
+
+
+    /* =========================================
+       答题页 & 结果页 (默认隐藏)
+       ========================================= */
+    #quiz-interface{ display: none; animation: slideUp 0.4s ease; }
+    
+    .q-progress-box{ margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .progress-track{ flex:1; height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .progress-fill{ height: 100%; background: var(--brand); width: 0%; transition: width 0.3s ease; border-radius: 99px; }
+    .progress-text{ font-size: 12px; font-weight: 600; color: var(--muted); width: 40px; text-align: right; }
+
+    .card{ background: #fff; border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid #fff; }
+    .qtext{ font-size: 17px; font-weight: 600; line-height: 1.6; margin: 10px 0 24px; color: var(--text); }
+    .qmeta{ font-size: 12px; font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: 1px; background: rgba(37,99,235,0.08); display: inline-block; padding: 4px 8px; border-radius: 6px; }
+
+    /* 选项样式优化
+    .scale{ display:grid; grid-template-columns: repeat(6, 1fr); gap:6px; background: var(--surface-2); padding: 6px; border-radius: 16px; border: 1px solid var(--line); }
+    .opt label{ display:flex; align-items:center; justify-content:center; height: 44px; border-radius: 12px; background: transparent; cursor: pointer; transition: all 0.2s; font-weight: 600; color: var(--muted); font-size: 14px; }
+    .opt label:hover{ background: rgba(255,255,255,0.5); }
     .opt input{ display:none; }
-    .opt input:checked + label{ background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 4px 10px rgba(37,99,235,0.3); transform: translateY(-1px); }
-    .scale-ends{ display:flex; justify-content:space-between; font-size: 12px; color: var(--muted-2); margin-top: 6px; padding: 0 4px; }
-
-    .btn{ width:100%; margin-top: 20px; padding: 14px; border-radius: 16px; background: var(--accent); color: #fff; border:none; font-weight: 700; font-size: 15px; cursor: pointer; box-shadow: 0 10px 25px rgba(37,99,235,0.25); }
-    .btn:hover{ background: var(--accent-2); transform: translateY(-1px); }
-    .btn-ghost{ background: #fff; border: 1px solid var(--line); padding: 6px 12px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 12px; }
-
-    /* Result Styling - 关键修复部分 */
-    #result{ display:none; margin-top: 20px; padding-bottom: 60px; }
-    .grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    @media(min-width: 768px){ .grid{ grid-template-columns: repeat(3, 1fr); } }
     
-    .stat{ padding: 18px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); display:flex; flex-direction:column; }
-    .stat .k{ font-size: 12px; color: var(--muted-2); margin-bottom: 8px; letter-spacing: 0.5px; }
-    /* 数值的大字号显示 */
-    .stat .v{ font-family: "Noto Serif SC", serif; font-size: 22px; font-weight: 700; margin-bottom: 6px; line-height: 1.2; }
-    .stat .d{ font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: auto; }
+    /* 选中态 */
+    /* .opt input:checked + label{ background: #fff; color: var(--brand); box-shadow: 0 4px 12px rgba(0,0,0,0.08); font-weight: 800; transform: scale(1.05); } */
 
-    /* 颜色类 */
-    .color-high{ color: var(--purple); }
-    .color-mid{ color: var(--accent); }
-    .color-low{ color: var(--muted-2); }
-    .color-healthy{ color: var(--success); }
-    .color-warn{ color: var(--warning); }
-    .color-bad{ color: var(--danger); }
+    .scale-ends{ display:flex; justify-content:space-between; font-size: 12px; color: var(--muted-light); margin-top: 8px; padding: 0 4px; font-weight: 500; }
 
-    .chart-box{ margin-top: 14px; padding: 20px; background: #fff; border-radius: var(--radius); border: 1px solid var(--line); display:flex; flex-direction:column; align-items:center; }
-    .chart-container{ position: relative; width: 100%; max-width: 400px; height: 320px; }
-    .pill{ padding: 4px 10px; border-radius: 99px; background: #f1f5f9; color: var(--text); font-size: 12px; font-weight: 600; }
+    .btn{ width:100%; padding: 16px; border-radius: 16px; background: var(--brand); color: #fff; border:none; font-weight: 700; font-size: 16px; cursor: pointer; box-shadow: 0 10px 20px rgba(37,99,235,0.2); transition: all 0.2s; }
+    .btn:active{ transform: scale(0.98); } 
+
+    /* =========================================
+       16P 风格打分条样式 (UI 修复版)
+       ========================================= */
+    .scale-wrapper {
+      width: 100%;
+      padding: 20px 0;
+      /* 防止在窄屏下出现滚动条 */
+      overflow-x: visible; 
+    }
+
+    /* 核心容器：强制一行排列，垂直居中 */
+    .scale-container {
+      display: flex;
+      align-items: center;
+      justify-content: center; /* 整体居中 */
+      gap: 30px;               /* 文字和圆圈组的距离 */
+      margin: 0 auto;
+      max-width: 750px;        /* 限制最大宽度，防止太散 */
+    }
+
+    /* 文字标签样式 */
+    .label-text {
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap; /* 禁止文字换行 */
+      flex-shrink: 0;      /* 禁止文字被压缩 */
+    }
+    .label-agree { color: #33c6a9; }
+    .label-disagree { color: #88619a; }
+
+    /* 中间圆圈的容器 */
+    .scale-options {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px; /* 圆圈之间的间距 */
+    }
+
+    /* 隐藏原生 Radio */
+    .opt-radio input { display: none; }
+
+    /* 圆圈基础样式 */
+    .opt-radio label {
+      display: block;
+      border-radius: 50%;
+      border: 2px solid; 
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      box-sizing: border-box; /* 确保边框算在大小内 */
+    }
+
+    /* 选中时的对勾图标 */
+    .opt-radio label::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      width: 50%; height: 50%;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+      background-size: contain;
+      background-repeat: no-repeat;
+      transition: transform 0.2s ease;
+    }
+    /* 选中状态：显示对勾 */
+    .opt-radio input:checked + label::after {
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+
+    .size-lg label { width: 50px; height: 50px; }
+    .size-md label { width: 40px; height: 40px; }
+    .size-sm label { width: 30px; height: 30px; }
+
+    /* ------- 颜色定义 ------- */
+    /* 同意系 (绿色) */
+    .color-agree label { border-color: #33c6a9; color: #33c6a9; }
+    .color-agree input:checked + label {
+      background-color: #33c6a9;
+      box-shadow: 0 0 0 4px rgba(51, 198, 169, 0.2);
+    }
     
-    .section{ margin-top: 14px; padding: 20px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
-    .section h3{ margin: 0 0 10px; font-size: 15px; }
-    .section p{ margin: 0; font-size: 14px; line-height: 1.7; color: var(--muted); }
+    /* 反对系 (紫色) */
+    .color-disagree label { border-color: #88619a; color: #88619a; }
+    .color-disagree input:checked + label {
+      background-color: #88619a;
+      box-shadow: 0 0 0 4px rgba(136, 97, 154, 0.2);
+    }
 
-    .loading{ position: fixed; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); z-index: 50; display:none; align-items:center; justify-content:center; }
-    .spinner{ width: 30px; height: 30px; border: 3px solid rgba(37,99,235,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    /* Hover 效果 */
+    .opt-radio label:hover { border-width: 3px; transform: scale(1.05); }
+
+    /* ============================
+       移动端适配 (重点修复)
+       ============================ */
+    @media(max-width: 480px) {
+      .scale-container {
+        gap: 8px; /* 缩小文字和圆圈的距离 */
+        width: 100%;
+        padding: 0 4px;
+      }
+      .scale-options {
+        gap: 6px; /* 缩小圆圈间距 */
+      }
+      .label-text { font-size: 12px; }
+
+      /* 整体缩小圆圈尺寸，防止换行 */
+      .size-lg label { width: 34px; height: 34px; }
+      .size-md label { width: 26px; height: 26px; }
+      .size-sm label { width: 20px; height: 20px; }
+    }
+
+
+    /* 结果页网格 */
+    #result{ display: none; padding-bottom: 60px; }
+    .grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 20px; }
+    @media(min-width: 640px){ .grid{ grid-template-columns: repeat(3, 1fr); } }
+    
+    .stat{ background: #fff; padding: 20px; border-radius: 18px; box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.5); display:flex; flex-direction:column; align-items: center; text-align: center; }
+    .stat .k{ font-size: 12px; font-weight: 700; color: var(--muted-light); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat .v{ font-family: "Noto Serif SC", serif; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .stat .d{ font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+    .color-high{ color: #7c3aed; }
+    .color-mid{ color: #2563eb; }
+    .color-low{ color: #64748b; }
+    .color-healthy{ color: #16a34a; }
+    .color-warn{ color: #d97706; }
+    .color-bad{ color: #dc2626; }
+
+    /* 图表和建议 */
+    .chart-box, .section{ background: #fff; padding: 24px; border-radius: 20px; margin-top: 16px; box-shadow: var(--shadow); }
+    .section h3{ margin: 0 0 12px; font-size: 16px; font-weight: 700; display:flex; align-items:center; gap:8px; }
+    .section h3::before{ content:''; width: 4px; height: 16px; background: var(--brand); border-radius: 4px; }
+    .section p{ margin: 0; font-size: 15px; line-height: 1.7; color: var(--muted); text-align: justify; }
+
+    /* Loading & Toast */
+    .loading-overlay{ position: fixed; inset: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(5px); z-index: 100; display:none; flex-direction: column; align-items:center; justify-content:center; }
+    .spinner{ width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--brand); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+    .toast{ position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 99px; font-size: 14px; font-weight: 500; z-index: 200; display:none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+
     @keyframes spin{ to{ transform: rotate(360deg); } }
+    @keyframes fadeIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
+    @keyframes slideUp{ from{ opacity:0; transform:translateY(20px); } to{ opacity:1; transform:translateY(0); } }
+    /* 新增：空状态/建设中样式 */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      animation: fadeIn 0.5s;
+    }
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+      opacity: 0.5;
+    }
+    .empty-text {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .empty-sub {
+      font-size: 13px;
+      opacity: 0.8;
+    }
+    .guide-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 0; /* 内部布局自己控制 */
+      margin-top: 24px;
+      box-shadow: 0 10px 30px -10px rgba(37, 99, 235, 0.15); /* 蓝色系投影 */
+      border: 1px solid #eff6ff;
+      overflow: hidden;
+    }
 
-    .toast{ position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 10px 20px; border-radius: 99px; font-size: 13px; z-index: 100; display:none; }
+    /* 顶部标题栏 */
+    .guide-header {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      padding: 20px 24px;
+      border-bottom: 1px solid #bfdbfe;
+    }
+    
+    .guide-tag {
+      display: inline-block;
+      background: #2563eb;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .guide-title {
+      font-size: 20px; /* 大标题 */
+      font-weight: 800;
+      color: #1e3a8a;  /* 深蓝 */
+      margin: 0;
+      line-height: 1.4;
+      font-family: "Noto Serif SC", serif; /* 衬线体更有质感 */
+    }
+
+    /* 内容区域 */
+    .guide-body {
+      padding: 24px;
+    }
+
+    /* 自动生成的段落块 */
+    .guide-block {
+      margin-bottom: 20px;
+    }
+    .guide-block:last-child { margin-bottom: 0; }
+
+    /* 小标题 (即【XXX】的内容) */
+    .guide-sub-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #2563eb;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    /* 给小标题加个装饰性竖线 */
+    .guide-sub-title::before {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 14px;
+      background: #2563eb;
+      border-radius: 2px;
+    }
+
+    /* 正文文字 */
+    .guide-text {
+      font-size: 14px;
+      line-height: 1.8; /* 增加行高，阅读不累 */
+      color: #475569;
+      text-align: justify; /* 两端对齐 */
+    }
+    
+    /* 特殊处理：高亮原本的 1. 2. 3. */
+    .guide-text b {
+      color: #0f172a;
+      font-weight: 700;
+      background: #f1f5f9;
+      padding: 0 4px;
+      border-radius: 4px;
+      margin-right: 4px;
+    }
+    .guide-block {
+      margin-bottom: 16px; /* 稍微调小一点 */
+    }
+    
+    /* 解决空行导致的额外高度 */
+    .guide-text {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #475569;
+      text-align: justify;
+    }
+    
+
+    /* 每一个【标题+正文】都是一个 guide-block */
+    .guide-block {
+      /* 块内部不用设太大，主要靠 margin-top 推开上面的块 */
+      margin-bottom: 0; 
+    }
+
+    /* 【核心修复】 */
+    /* 只要一个 block 前面还有另一个 block，就给它顶部加 32px 的距离 */
+    /* 这会让 "未来30天怎么过" 离上面那段话远远的 */
+    .guide-block + .guide-block {
+      margin-top: 32px; 
+      padding-top: 16px; /* 额外加一点内边距作为缓冲 */
+      border-top: 1px dashed #e2e8f0; /* (可选) 加一条虚线分割线，视觉更清晰 */
+    }
+
+    /* 小标题样式 */
+    .guide-sub-title {
+      font-size: 16px; /* 稍微加大一点 */
+      font-weight: 800;
+      color: #1e40af;  /* 深一点的蓝 */
+      margin-bottom: 12px; /* 让标题离下面的正文远一点 */
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    /* 标题前的装饰竖线 */
+    .guide-sub-title::before {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 16px;
+      background: #3b82f6;
+      border-radius: 4px;
+    }
+
+    /* 正文样式 */
+    .guide-text {
+      font-size: 14px;
+      line-height: 1.8; /* 行高加大，阅读更舒服 */
+      color: #334155;
+      text-align: justify;
+    }
   </style>
 </head>
 
 <body>
   <div class="topbar">
     <div class="topbar-inner">
-      <div class="brand">
-        <div class="logo">MB</div>
-        <div style="line-height:1.2">
-          <b style="font-size:14px; display:block;">心理状态罗盘</b>
-        </div>
+      <div class="brand" onclick="location.reload()">
+        <div class="logo">M</div>
+        <div class="brand-text">心理状态罗盘</div>
       </div>
-      <div class="controls">
-        <div class="field">
-          <label for="mbti-select" style="font-size:12px; color:var(--muted)">类型</label>
-          <select id="mbti-select">
-            <option>INTJ</option><option>INTP</option><option>INFJ</option><option>INFP</option>
-            <option>ENFJ</option><option>ENFP</option><option>ENTJ</option><option>ENTP</option>
-            <option>ISFJ</option><option>ISTP</option>
-          </select>
-        </div>
-        <div class="progress"><div id="progress-bar"></div></div>
-        <button id="reset-btn" class="btn-ghost" style="display:none;">重测</button>
+      
+      <div class="status-capsule" id="status-bar">
+        正在分析 <span id="current-type-label">INTP</span>
+        <button class="btn-change" onclick="resetApp()">切换</button>
       </div>
     </div>
   </div>
 
-  <div id="loading" class="loading">
-    <div style="text-align:center">
-      <div class="spinner" style="margin:0 auto 10px;"></div>
-      <div style="font-size:14px; font-weight:600; color:var(--muted)">AI 正在分析...</div>
-    </div>
+  <div id="loading" class="loading-overlay">
+    <div class="spinner"></div>
+    <div style="font-size:14px; font-weight:600; color:#64748b; letter-spacing: 1px;">正在连接罗盘...</div>
   </div>
 
   <div class="container">
-    <header id="header">
-      <h1>MBTI 心理状态罗盘</h1>
-      <p class="subtitle">通过后端 API 实时计算你的「认知成熟度 / 内耗倾向 / 压力失控」等多维状态。</p>
-    </header>
-
-    <form id="quiz-form">
-      <div id="questions-container"></div>
-      <button type="submit" class="btn" id="submit-btn">生成报告</button>
-    </form>
-
-    <div id="result">
-      <div class="grid">
-        <!-- 动态生成的卡片将放在这里，现在使用 JS 控制内容 -->
-        <div class="stat" id="card-maturity">
-          <div class="k">认知阶层 (Maturity)</div>
-          <div class="v" id="v-maturity">—</div>
-          <div class="d" id="d-maturity">—</div>
-        </div>
-        
-        <div class="stat" id="card-loop">
-          <div class="k">内耗倾向 (Loop)</div>
-          <div class="v" id="v-loop">—</div>
-          <div class="d" id="d-loop">—</div>
-        </div>
-
-        <div class="stat" id="card-grip">
-          <div class="k">压力反应 (Grip)</div>
-          <div class="v" id="v-grip">—</div>
-          <div class="d" id="d-grip">—</div>
-        </div>
-
-        <div class="stat" id="card-load">
-          <div class="k">压力负荷 (Load)</div>
-          <div class="v" id="v-load">—</div>
-          <div class="d" id="d-load">—</div>
-        </div>
-
-        <div class="stat" id="card-coherence">
-          <div class="k">自洽度 (Coherence)</div>
-          <div class="v" id="v-coherence">—</div>
-          <div class="d" id="d-coherence">—</div>
-        </div>
-
-        <div class="stat" id="card-overall">
-          <div class="k">状态指数 (Index)</div>
-          <div class="v" id="v-overall">—</div>
-          <div class="d" id="d-overall">—</div>
-        </div>
+    
+    <div id="landing-page">
+      <div class="hero">
+        <h1>你的能量，处于什么相位？</h1>
+        <p>基于荣格八维认知功能模型，精准探测你当下的内耗程度、压力反应与心理效能。</p>
       </div>
 
-      <div class="chart-box">
-        <div style="width:100%; display:flex; justify-content:space-between; margin-bottom:10px;">
-          <b style="font-size:14px;">六维状态分布</b>
-          <span class="pill" id="chart-pill">--</span>
-        </div>
-        <div class="chart-container">
-          <canvas id="radarChart"></canvas>
-        </div>
+      <div class="group-title" style="color:#8b5cf6">🟣 Analysts 分析家</div>
+      <div class="type-grid">
+        <button class="type-card nt-card" data-type="INTJ" onclick="selectType('INTJ')">
+          <strong>INTJ</strong><span>建筑师</span>
+        </button>
+        <button class="type-card nt-card" data-type="INTP" onclick="selectType('INTP')">
+          <strong>INTP</strong><span>逻辑学家</span>
+        </button>
+        <button class="type-card nt-card" data-type="ENTJ" onclick="selectType('ENTJ')">
+          <strong>ENTJ</strong><span>指挥官</span>
+        </button>
+        <button class="type-card nt-card" data-type="ENTP" onclick="selectType('ENTP')">
+          <strong>ENTP</strong><span>辩论家</span>
+        </button>
       </div>
 
-      <div class="section">
-        <h3>核心洞察</h3>
-        <p id="res-insight">...</p>
+      <div class="group-title" style="color:#10b981">🟢 Diplomats 外交家</div>
+      <div class="type-grid">
+        <button class="type-card nf-card" data-type="INFJ" onclick="selectType('INFJ')">
+          <strong>INFJ</strong><span>提倡者</span>
+        </button>
+        <button class="type-card nf-card" data-type="INFP" onclick="selectType('INFP')">
+          <strong>INFP</strong><span>调停者</span>
+        </button>
+        <button class="type-card nf-card" data-type="ENFJ" onclick="selectType('ENFJ')">
+          <strong>ENFJ</strong><span>主人公</span>
+        </button>
+        <button class="type-card nf-card" data-type="ENFP" onclick="selectType('ENFP')">
+          <strong>ENFP</strong><span>竞选者</span>
+        </button>
       </div>
 
-      <div class="section">
-        <h3>调整建议</h3>
-        <p id="res-advice">...</p>
+      <div class="group-title" style="color:#3b82f6">🔵 Sentinels 守护者</div>
+      <div class="type-grid">
+        <button class="type-card sj-card" data-type="ISTJ" onclick="selectType('ISTJ')">
+          <strong>ISTJ</strong><span>物流师</span>
+        </button>
+        <button class="type-card sj-card" data-type="ISFJ" onclick="selectType('ISFJ')">
+          <strong>ISFJ</strong><span>守卫者</span>
+        </button>
+        <button class="type-card sj-card" data-type="ESTJ" onclick="selectType('ESTJ')">
+          <strong>ESTJ</strong><span>总经理</span>
+        </button>
+        <button class="type-card sj-card" data-type="ESFJ" onclick="selectType('ESFJ')">
+          <strong>ESFJ</strong><span>执政官</span>
+        </button>
+      </div>
+
+      <div class="group-title" style="color:#f59e0b">🟡 Explorers 探险家</div>
+      <div class="type-grid">
+        <button class="type-card sp-card" data-type="ISTP" onclick="selectType('ISTP')">
+          <strong>ISTP</strong><span>鉴赏家</span>
+        </button>
+        <button class="type-card sp-card" data-type="ISFP" onclick="selectType('ISFP')">
+          <strong>ISFP</strong><span>探险家</span>
+        </button>
+        <button class="type-card sp-card" data-type="ESTP" onclick="selectType('ESTP')">
+          <strong>ESTP</strong><span>企业家</span>
+        </button>
+        <button class="type-card sp-card" data-type="ESFP" onclick="selectType('ESFP')">
+          <strong>ESFP</strong><span>表演者</span>
+        </button>
+      </div>
+      
+      
+      <div style="margin-top:40px; text-align:center; color:var(--muted); font-size:12px; opacity:0.6;">
+        MBTI State Compass v2.0
       </div>
     </div>
+
+    <div id="quiz-interface">
+      <div class="q-progress-box" id="q-progress-box">
+        <div class="progress-text" id="progress-text">0/0</div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-bar"></div>
+        </div>
+      </div>
+
+      <form id="quiz-form">
+        <div id="questions-container"></div>
+        <button type="submit" class="btn" id="submit-btn" style="margin-top:20px;">生成深度报告</button>
+      </form>
+
+      <div id="result">
+        <div class="grid">
+          <div class="stat"><div class="k">认知成熟度</div><div class="v" id="v-maturity">-</div><div class="d" id="d-maturity">-</div></div>
+          <div class="stat"><div class="k">内耗倾向 Loop</div><div class="v" id="v-loop">-</div><div class="d" id="d-loop">-</div></div>
+          <div class="stat"><div class="k">压力反应 Grip</div><div class="v" id="v-grip">-</div><div class="d" id="d-grip">-</div></div>
+          <div class="stat"><div class="k">压力负荷 Load</div><div class="v" id="v-load">-</div><div class="d" id="d-load">-</div></div>
+          <div class="stat"><div class="k">自洽度</div><div class="v" id="v-coherence">-</div><div class="d" id="d-coherence">-</div></div>
+          <div class="stat"><div class="k">状态指数</div><div class="v" id="v-overall">-</div><div class="d" id="d-overall">-</div></div>
+        </div>
+        
+        <div class="chart-box">
+          <div style="width:100%; height:320px; position:relative;">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+
+        <div class="section"><h3>核心洞察</h3><p id="res-insight">...</p></div>
+        <div class="section"><h3>调整建议</h3><p id="res-advice">...</p></div>
+        <div class="section month-card">
+        <div class="guide-card" id="guide-card-container" style="display:none">
+          <div class="guide-header">
+            <div class="guide-tag">📅 未来30天指南</div>
+            <h3 class="guide-title" id="res-month-title">正在生成方案...</h3>
+          </div>
+          <div class="guide-body" id="res-month-body">
+            </div>
+        </div>
+
+        <button class="btn btn-ghost" onclick="resetApp()" style="margin-top:30px; background:#f1f5f9; color:#475569;">重新测试</button>
+      </div>
+    </div>
+
   </div>
 
   <div id="toast" class="toast"></div>
 
   <script>
     let currentQuestions = [];
-    let currentType = "INTP";
+    let currentType = "";
     let myChart = null;
 
+    // 配置：本地调试 vs 线上
+    const IS_LOCAL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+    const API_BASE = IS_LOCAL ? 'http://127.0.0.1:8000' : '';
+    
     const $ = (id) => document.getElementById(id);
     const setLoading = (show) => { $('loading').style.display = show ? 'flex' : 'none'; };
     const toast = (msg) => {
-      const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+      const t = $('toast'); t.textContent = msg; t.style.display = 'block'; t.style.animation = 'fadeIn 0.3s';
       setTimeout(() => t.style.display = 'none', 3000);
     };
+
+    // 选择类型入口
+// ==========================================
+
+    function selectType(type) {
+      currentType = type;
+      $('current-type-label').textContent = type;
+      
+      // UI 切换
+      $('landing-page').style.display = 'none';
+      $('quiz-interface').style.display = 'block';
+      $('status-bar').style.display = 'flex';
+      
+      fetchQuestions(type);
+    }
+
+    // ==========================================
+    // 修改 3: 升级 fetchQuestions 函数 (处理空题库)
+    // ==========================================
+    async function fetchQuestions(type) {
+      setLoading(true);
+      const container = $('questions-container'); // 获取容器
+      $('submit-btn').style.display = 'none'; // 先隐藏提交按钮，有题目再显示
+      
+      try {
+        const res = await fetch(`${API_BASE}/api/questions/${type}`);
+        
+        // 如果后端报错，或者返回不是 200
+        if (!res.ok) throw new Error("API Error");
+        
+        currentQuestions = await res.json();
+
+        // 【关键逻辑】检查题目数量
+        if (!currentQuestions || currentQuestions.length === 0) {
+          renderEmptyState(type); // 渲染“建设中”界面
+        } else {
+          renderQuestions();      // 正常渲染题目
+          $('submit-btn').style.display = 'block'; // 显示提交按钮
+        }
+
+      } catch (err) {
+        console.error(err);
+        // 如果是网络错误，也显示一个友好的重试界面，而不是单纯 Toast
+        container.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-icon">📡</span>
+            <div class="empty-text">连接信号微弱</div>
+            <div class="empty-sub">无法获取题目数据，请检查网络或后端服务</div>
+            <button class="btn btn-ghost" onclick="fetchQuestions('${type}')" style="margin-top:20px; width:auto;">点击重试</button>
+          </div>
+        `;
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ==========================================
+    // 新增: 渲染“题库设计中”界面的函数
+    // ==========================================
+    function renderEmptyState(type) {
+      const container = $('questions-container');
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-icon">☕️</span>
+          <div class="empty-text">${type} 深度题库设计中</div>
+          <div class="empty-sub">
+            我们的心理学专家正在梳理 ${type} 的认知功能模型。<br>
+            为了保证测试精度，请再给我们一点时间。
+          </div>
+          <button class="btn btn-ghost" onclick="resetApp()" style="margin-top:24px; width:auto;">返回选择其他类型</button>
+        </div>
+      `;
+    }
+
+    // 重置回首页
+    function resetApp() {
+      $('quiz-interface').style.display = 'none';
+      $('landing-page').style.display = 'block';
+      $('landing-page').style.animation = 'fadeIn 0.5s ease';
+      $('status-bar').style.display = 'none';
+      $('result').style.display = 'none';
+      $('quiz-form').style.display = 'block';
+      currentQuestions = [];
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     async function fetchQuestions(type) {
       setLoading(true);
       try {
-        const res = await fetch(`/api/questions/${type}`);
-        if (!res.ok) throw new Error("Connection Error");
+        const res = await fetch(`${API_BASE}/api/questions/${type}`);
+        if (!res.ok) throw new Error("API Error");
         currentQuestions = await res.json();
         renderQuestions();
       } catch (err) {
         console.error(err);
-        toast("连接服务器失败，请检查网络");
+        toast("连接服务器失败，请稍后重试");
+        setTimeout(resetApp, 2000); // 失败后返回首页
       } finally {
         setLoading(false);
       }
     }
 
-    async function submitAnswers(answersMap) {
-      setLoading(true);
-      try {
-        const res = await fetch('/api/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mbti: currentType, answers: answersMap })
-        });
-        if (!res.ok) throw new Error("Error");
-        const result = await res.json();
-        renderResult(result);
-      } catch (err) {
-        toast("分析失败，请稍后重试");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    function renderQuestions() {
+function renderQuestions() {
       const container = $('questions-container');
       container.innerHTML = "";
-      $('result').style.display = 'none';
-      $('quiz-form').style.display = 'block';
-      $('reset-btn').style.display = 'none';
       updateProgress();
 
       currentQuestions.forEach((q, idx) => {
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.qid = q.id;
-        let html = `
-          <div class="qmeta"><b>Q${idx + 1}</b><span id="status-${q.id}">未作答</span></div>
-          <div class="qtext">${q.text}</div>
-          <div class="scale">`;
-        for(let i=1; i<=6; i++){
-          html += `<div class="opt">
-            <input type="radio" name="q${q.id}" id="q${q.id}_${i}" value="${i}">
-            <label for="q${q.id}_${i}">${i}</label>
-          </div>`;
+        
+        // 定义每个分数的样式配置
+        // 6分=最左边(大绿), 1分=最右边(大紫)
+        const styles = {
+          6: { size: 'size-lg', color: 'color-agree' },
+          5: { size: 'size-md', color: 'color-agree' },
+          4: { size: 'size-sm', color: 'color-agree' },
+          3: { size: 'size-sm', color: 'color-disagree' },
+          2: { size: 'size-md', color: 'color-disagree' },
+          1: { size: 'size-lg', color: 'color-disagree' }
+        };
+
+        // 生成中间圆圈 HTML
+        let circlesHtml = '';
+        for (let i = 6; i >= 1; i--) {
+          const s = styles[i];
+          circlesHtml += `
+            <div class="opt-radio ${s.size} ${s.color}">
+              <input type="radio" name="q${q.id}" id="q${q.id}_${i}" value="${i}">
+              <label for="q${q.id}_${i}"></label>
+            </div>
+          `;
         }
-        html += `</div><div class="scale-ends"><span>完全不符</span><span>完全符合</span></div>`;
-        card.innerHTML = html;
+
+        // 组装 HTML
+        card.innerHTML = `
+          <div class="qmeta">Q${idx + 1}</div>
+          <div class="qtext">${q.text}</div>
+          
+          <div class="scale-wrapper">
+            <div class="scale-container">
+              <span class="label-text label-agree">同意</span>
+              <div class="scale-options">
+                ${circlesHtml}
+              </div>
+              <span class="label-text label-disagree">反对</span>
+            </div>
+          </div>
+        `;
+        
         container.appendChild(card);
       });
 
-      $('quiz-form').addEventListener('change', (e) => {
-        if(e.target.name.startsWith('q')) {
-          const qid = e.target.name.substring(1);
-          $(`status-${qid}`).textContent = "已选";
-          $(`status-${qid}`).style.color = "var(--success)";
-          const card = document.querySelector(`.card[data-qid="${qid}"]`);
-          if(card) card.classList.remove('card--error');
-          updateProgress();
-        }
-      });
+      // 重新绑定事件监听
+      $('quiz-form').addEventListener('change', updateProgress);
     }
 
     function updateProgress() {
       const data = new FormData($('quiz-form'));
       let count = 0; for(let pair of data.entries()) count++;
       const total = currentQuestions.length;
-      $('progress-bar').style.width = total === 0 ? '0%' : `${(count / total) * 100}%`;
+      
+      const percent = total === 0 ? 0 : (count / total) * 100;
+      $('progress-bar').style.width = `${percent}%`;
+      $('progress-text').textContent = `${count}/${total}`;
     }
 
-    // ==========================================
-    // 关键修复：把数字转换回文字显示
-    // ==========================================
-    function renderResult(data) {
+    async function submitAnswers(answersMap) {
+          setLoading(true);
+          let resultData = null;
+
+          // 第一步：只负责拿数据（网络层）
+          try {
+            const res = await fetch(`${API_BASE}/api/submit`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ mbti: currentType, answers: answersMap })
+            });
+            
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            
+            resultData = await res.json();
+            
+          } catch (err) {
+            console.error("网络请求失败:", err);
+            toast("网络请求失败，请检查后端");
+            setLoading(false);
+            return; // 网络错了就停在这里
+          }
+
+          // 第二步：拿到数据后，负责画界面（渲染层）
+          // 这部分如果有错，会在控制台直接红字报错，而不会报“超时”
+          try {
+            console.log("后端返回的数据:", resultData); // 打印数据确认
+            renderResult(resultData);
+          } catch (err) {
+            console.error("界面渲染失败:", err);
+            alert("界面显示出错了！请看控制台报错信息。\n错误原因: " + err.message);
+          } finally {
+            setLoading(false);
+          }
+        }
+
+function renderResult(data) {
+      // 1. 切换界面显示
       $('quiz-form').style.display = 'none';
+      if($('q-progress-box')) $('q-progress-box').style.display = 'none'; // 安全隐藏进度条
       $('result').style.display = 'block';
-      $('reset-btn').style.display = 'block';
+      $('result').style.animation = 'fadeIn 0.5s ease';
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      // 1. 认知成熟度 (越高越好)
-      const elM = $('v-maturity'); const descM = $('d-maturity');
-      if (data.maturity >= 67) {
-        elM.innerHTML = "高阶 · 整合者"; elM.className = "v color-high";
-        descM.textContent = "思维与现实整合度高，行动稳定。";
-      } else if (data.maturity >= 34) {
-        elM.innerHTML = "中阶 · 探索者"; elM.className = "v color-mid";
-        descM.textContent = "思路在成形，需持续迭代验证。";
-      } else {
-        elM.innerHTML = "低阶 · 固守者"; elM.className = "v color-low";
-        descM.textContent = "易被旧模式牵引，需引入外部反馈。";
-      }
+      // 2. 填充基础数据的辅助函数
+      const fill = (id, val, desc, className) => {
+        const el = $(id);
+        if(el) {
+            el.innerHTML = val;
+            el.className = `v ${className}`;
+            const descEl = $(`d-${id.split('-')[1]}`);
+            if(descEl) descEl.textContent = desc;
+        }
+      };
 
-      // 2. 内耗倾向 (越低越好) -> 后端返回的 data.loop 也是越高越严重
-      const elL = $('v-loop'); const descL = $('d-loop');
-      if (data.loop < 35) {
-        elL.innerHTML = "低"; elL.className = "v color-healthy";
-        descL.textContent = "启动成本低，很少反复纠结。";
-      } else if (data.loop < 65) {
-        elL.innerHTML = "中"; elL.className = "v color-warn";
-        descL.textContent = "有一定精神反刍，偶尔卡在细节。";
-      } else {
-        elL.innerHTML = "高"; elL.className = "v color-bad";
-        descL.textContent = "更容易自我攻击，行动阻力大。";
-      }
-
-      // 3. 压力反应 Grip (越低越好)
-      const elG = $('v-grip'); const descG = $('d-grip');
-      if (data.grip < 35) {
-        elG.innerHTML = "低"; elG.className = "v color-healthy";
-        descG.textContent = "情绪稳定，压力信号较少。";
-      } else if (data.grip < 65) {
-        elG.innerHTML = "中"; elG.className = "v color-warn";
-        descG.textContent = "压力下偶尔出现反常或爆发。";
-      } else {
-        elG.innerHTML = "高"; elG.className = "v color-bad";
-        descG.textContent = "处在高压边缘，注意力难集中。";
-      }
-
-      // 4. 压力负荷 Load (越低越好)
-      const elLoad = $('v-load'); const descLoad = $('d-load');
-      if (data.load < 35) {
-        elLoad.innerHTML = "轻"; elLoad.className = "v color-healthy";
-        descLoad.textContent = "余量充足，节奏较松。";
-      } else if (data.load < 65) {
-        elLoad.innerHTML = "中"; elLoad.className = "v color-warn";
-        descLoad.textContent = "强度适中，注意别长期无休。";
-      } else {
-        elLoad.innerHTML = "重"; elLoad.className = "v color-bad";
-        descLoad.textContent = "整体偏满，优先做减负恢复。";
-      }
-
-      // 5. 自洽度 Coherence (越高越好)
-      const elC = $('v-coherence'); const descC = $('d-coherence');
-      if (data.coherence >= 70) {
-        elC.innerHTML = "高"; elC.className = "v color-high";
-        descC.textContent = "作答一致，内在逻辑清晰。";
-      } else if (data.coherence >= 55) {
-        elC.innerHTML = "中"; elC.className = "v color-mid";
-        descC.textContent = "略有波动，但仍可自我校准。";
-      } else {
-        elC.innerHTML = "低"; elC.className = "v color-warn";
-        descC.textContent = "近期摇摆较多，建议先稳节奏。";
-      }
-
-      // 6. 状态指数 Overall (越高越好)
-      const elO = $('v-overall'); const descO = $('d-overall');
-      const pillText = data.pill_text; // 后端算好的 "充盈/可用/高压"
+      // --- 填充六维数据 ---
       
-      let oClass = "color-mid";
-      if (data.overall >= 75) oClass = "color-high";
-      else if (data.overall >= 55) oClass = "color-healthy";
-      else if (data.overall >= 35) oClass = "color-warn";
-      else oClass = "color-bad";
-      
-      elO.innerHTML = `${pillText} · <span style="font-size:0.8em">${data.overall}/100</span>`;
-      elO.className = "v " + oClass;
-      descO.textContent = "综合各项指标的整体效能。";
-      
-      $('chart-pill').textContent = pillText;
-      $('chart-pill').style.color = "var(--text)";
+      // 1. 认知成熟度
+      let mClass = data.maturity >= 67 ? "color-high" : (data.maturity >= 34 ? "color-mid" : "color-low");
+      let mTxt = data.maturity >= 67 ? "高阶 · 整合者" : (data.maturity >= 34 ? "中阶 · 探索者" : "低阶 · 固守者");
+      let mDesc = data.maturity >= 67 ? "思维与现实整合度高" : (data.maturity >= 34 ? "思路成形，持续迭代" : "易被旧模式牵引");
+      fill('v-maturity', mTxt, mDesc, mClass);
 
+      // 2. Loop
+      let lClass = data.loop < 35 ? "color-healthy" : (data.loop < 65 ? "color-warn" : "color-bad");
+      let lTxt = data.loop < 35 ? "低" : (data.loop < 65 ? "中" : "高");
+      let lDesc = data.loop < 35 ? "启动成本低" : (data.loop < 65 ? "偶有精神反刍" : "自我攻击严重");
+      fill('v-loop', lTxt, lDesc, lClass);
+
+      // 3. Grip
+      let gClass = data.grip < 35 ? "color-healthy" : (data.grip < 65 ? "color-warn" : "color-bad");
+      let gTxt = data.grip < 35 ? "低" : (data.grip < 65 ? "中" : "高");
+      let gDesc = data.grip < 35 ? "情绪稳定" : (data.grip < 65 ? "压力下偶有爆发" : "处在高压边缘");
+      fill('v-grip', gTxt, gDesc, gClass);
+
+      // 4. Load
+      let ldClass = data.load < 35 ? "color-healthy" : (data.load < 65 ? "color-warn" : "color-bad");
+      let ldTxt = data.load < 35 ? "轻" : (data.load < 65 ? "中" : "重");
+      let ldDesc = data.load < 35 ? "余量充足" : (data.load < 65 ? "强度适中" : "急需减负恢复");
+      fill('v-load', ldTxt, ldDesc, ldClass);
+
+      // 5. 自洽度
+      let cClass = data.coherence >= 70 ? "color-high" : (data.coherence >= 55 ? "color-mid" : "color-warn");
+      let cTxt = data.coherence >= 70 ? "高" : (data.coherence >= 55 ? "中" : "低");
+      let cDesc = data.coherence >= 70 ? "内在逻辑清晰" : (data.coherence >= 55 ? "可自我校准" : "近期摇摆较多");
+      fill('v-coherence', cTxt, cDesc, cClass);
+
+      // 6. 总分
+      let oClass = data.overall >= 75 ? "color-high" : (data.overall >= 55 ? "color-healthy" : (data.overall >= 35 ? "color-warn" : "color-bad"));
+      fill('v-overall', `${data.pill_text} <span style="font-size:14px">${data.overall}</span>`, "综合心理效能", oClass);
+
+      // --- 填充核心洞察与建议 ---
       $('res-insight').textContent = data.insight;
       $('res-advice').textContent = data.advice;
 
-      renderChart(data.chart_data);
-    }
 
-    function renderChart(dataArray) {
+      // --- 【重点】处理未来30天指南 (美化排版逻辑) ---
+      
+      // 1. 确保 HTML 里有这个容器，防止报错
+      const guideContainer = $('guide-card-container');
+      
+      if (guideContainer && data.month_text) {
+          guideContainer.style.display = 'block'; // 显示卡片
+          
+          // 填充标题
+          if($('res-month-title')) $('res-month-title').textContent = data.month_title;
+
+
+          let rawText = data.month_text || "";
+          rawText = rawText.trim();
+          
+          // 1. 强力去除标题前后的干扰换行
+          rawText = rawText.replace(/\n\s*【/g, '【').replace(/】\s*\n/g, '】');
+
+          let formattedHtml = rawText;
+
+          // 2. 【关键修改】生成 HTML 结构
+          // 注意这里：用了两个 </div></div> 
+          // 第一个关掉 guide-text，第二个关掉 guide-block，确保大家是平级的兄弟关系
+          formattedHtml = formattedHtml.replace(/【(.*?)】/g, (match, title) => {
+            return `</div></div><div class="guide-block"><div class="guide-sub-title">${title}</div><div class="guide-text">`;
+          });
+
+          // 3. 清理开头多余的闭合标签
+          // 因为第一段前面没有盒子需要关闭，所以正则替换掉开头的 </div>
+          formattedHtml = formattedHtml.replace(/^(<\/div>)+/, '');
+
+          // 4. 补上最后的闭合标签
+          formattedHtml += '</div></div>';
+
+          // 5. 处理列表项 (1. 2. 3.)
+          formattedHtml = formattedHtml.replace(/(?:^|<br>|\n|\s)(\d+\.)/g, '<br><span class="guide-num">$1</span>');
+          
+          // 6. 处理剩余换行
+          formattedHtml = formattedHtml.replace(/\n/g, '<br>');
+          if (formattedHtml.startsWith('<br>')) formattedHtml = formattedHtml.substring(4);
+
+          // 填充进 HTML
+          if($('res-month-body')) $('res-month-body').innerHTML = formattedHtml;
+
+
+
+      }
+
+
+      // --- 绘制雷达图 ---
       const ctx = $('radarChart').getContext('2d');
       if(myChart) myChart.destroy();
+      
+      // 动态获取CSS变量颜色
+      const style = getComputedStyle(document.body);
+      const brandColor = style.getPropertyValue('--brand').trim() || '#2563eb'; // 给个默认值防止获取失败
+
       myChart = new Chart(ctx, {
         type: 'radar',
         data: {
           labels: ['认知成熟度', '自洽度', '内耗弹性', '压力弹性', '负荷余量', '状态指数'],
           datasets: [{
             label: '当前状态',
-            data: dataArray,
-            backgroundColor: 'rgba(37, 99, 235, 0.25)',
-            borderColor: '#2563eb',
+            data: data.chart_data,
+            backgroundColor: 'rgba(37, 99, 235, 0.2)',
+            borderColor: brandColor,
             borderWidth: 2,
             pointBackgroundColor: '#fff',
-            pointBorderColor: '#2563eb',
-            pointRadius: 4
+            pointBorderColor: brandColor,
           }]
         },
         options: {
@@ -405,9 +971,8 @@
           scales: {
             r: {
               min: 0, max: 100,
-              ticks: { display: false, stepSize: 20 },
-              grid: { color: 'rgba(0,0,0,0.06)' },
-              angleLines: { color: 'rgba(0,0,0,0.06)' },
+              ticks: { display: false },
+              grid: { color: '#f1f5f9', circular: true },
               pointLabels: { font: { size: 12, family:'Inter' }, color: '#64748b' }
             }
           },
@@ -416,26 +981,31 @@
       });
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      fetchQuestions(currentType);
-      $('mbti-select').addEventListener('change', (e) => { currentType = e.target.value; fetchQuestions(currentType); });
-      $('reset-btn').addEventListener('click', () => { fetchQuestions(currentType); });
-      $('quiz-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const data = new FormData(e.target);
-        const answers = {};
-        for(let q of currentQuestions) {
-          const val = data.get(`q${q.id}`);
-          if(!val) {
-            toast(`Q${currentQuestions.indexOf(q)+1} 未完成`);
-            const card = document.querySelector(`.card[data-qid="${q.id}"]`);
-            card.classList.add('card--error'); card.scrollIntoView({block:'center',behavior:'smooth'});
-            return;
-          }
+    // 绑定提交事件
+    $('quiz-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const data = new FormData(e.target);
+      const answers = {};
+      let firstUnanswered = null;
+
+      for(let q of currentQuestions) {
+        const val = data.get(`q${q.id}`);
+        if(!val) {
+          if(!firstUnanswered) firstUnanswered = q.id;
+        } else {
           answers[q.id] = parseInt(val);
         }
-        submitAnswers(answers);
-      });
+      }
+
+      if(firstUnanswered) {
+        toast("请完成所有题目");
+        const card = document.querySelector(`.card[data-qid="${firstUnanswered}"]`);
+        card.scrollIntoView({block:'center',behavior:'smooth'});
+        // 简单的震动反馈
+        if(navigator.vibrate) navigator.vibrate(50);
+        return;
+      }
+      submitAnswers(answers);
     });
   </script>
 </body>
