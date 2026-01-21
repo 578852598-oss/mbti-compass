@@ -104,7 +104,7 @@
           </select>
         </div>
         <div class="progress"><div id="progress-bar"></div></div>
-        <button id="reset-btn" class="btn-ghost" style="display:none; padding: 6px 12px; font-size:12px;">重测</button>
+        <button id="reset-btn" class="btn-ghost" style="display:none;">重测</button>
       </div>
     </div>
   </div>
@@ -112,37 +112,65 @@
   <div id="loading" class="loading">
     <div style="text-align:center">
       <div class="spinner" style="margin:0 auto 10px;"></div>
-      <div style="font-size:14px; font-weight:600; color:var(--muted)">正在通信中...</div>
+      <div style="font-size:14px; font-weight:600; color:var(--muted)">AI 正在分析...</div>
     </div>
   </div>
 
   <div class="container">
     <header id="header">
       <h1>MBTI 心理状态罗盘</h1>
-      <p class="subtitle">通过「认知成熟度 / 内耗倾向 / 压力失控 / 压力负荷 / 自洽度」五个维度，帮助你快速了解近期状态，并给出可执行的调整建议。</p>
+      <p class="subtitle">通过后端 API 实时计算你的「认知成熟度 / 内耗倾向 / 压力失控」等多维状态。</p>
     </header>
 
     <form id="quiz-form">
-      <div id="questions-container">
-        <!-- 题目将通过 JS 插入这里 -->
-      </div>
+      <div id="questions-container"></div>
       <button type="submit" class="btn" id="submit-btn">生成报告</button>
     </form>
 
     <div id="result">
       <div class="grid">
-        <div class="stat"><div class="k">认知成熟度</div><div class="v" id="res-maturity">—</div><div class="d">思维与现实的整合程度</div></div>
-        <div class="stat"><div class="k">自洽度</div><div class="v" id="res-coherence">—</div><div class="d">内在逻辑的一致性</div></div>
-        <div class="stat"><div class="k">内耗倾向</div><div class="v" id="res-loop">—</div><div class="d">思维反刍与行动阻力</div></div>
-        <div class="stat"><div class="k">压力失控 (Grip)</div><div class="v" id="res-grip">—</div><div class="d">情绪爆发与反常行为</div></div>
-        <div class="stat"><div class="k">压力负荷</div><div class="v" id="res-load">—</div><div class="d">当前的心理承重</div></div>
-        <div class="stat"><div class="k">状态指数</div><div class="v" id="res-overall">—</div><div class="d" id="res-pill">—</div></div>
+        <!-- 动态生成的卡片将放在这里，现在使用 JS 控制内容 -->
+        <div class="stat" id="card-maturity">
+          <div class="k">认知阶层 (Maturity)</div>
+          <div class="v" id="v-maturity">—</div>
+          <div class="d" id="d-maturity">—</div>
+        </div>
+        
+        <div class="stat" id="card-loop">
+          <div class="k">内耗倾向 (Loop)</div>
+          <div class="v" id="v-loop">—</div>
+          <div class="d" id="d-loop">—</div>
+        </div>
+
+        <div class="stat" id="card-grip">
+          <div class="k">压力反应 (Grip)</div>
+          <div class="v" id="v-grip">—</div>
+          <div class="d" id="d-grip">—</div>
+        </div>
+
+        <div class="stat" id="card-load">
+          <div class="k">压力负荷 (Load)</div>
+          <div class="v" id="v-load">—</div>
+          <div class="d" id="d-load">—</div>
+        </div>
+
+        <div class="stat" id="card-coherence">
+          <div class="k">自洽度 (Coherence)</div>
+          <div class="v" id="v-coherence">—</div>
+          <div class="d" id="d-coherence">—</div>
+        </div>
+
+        <div class="stat" id="card-overall">
+          <div class="k">状态指数 (Index)</div>
+          <div class="v" id="v-overall">—</div>
+          <div class="d" id="d-overall">—</div>
+        </div>
       </div>
 
       <div class="chart-box">
         <div style="width:100%; display:flex; justify-content:space-between; margin-bottom:10px;">
           <b style="font-size:14px;">六维状态分布</b>
-          <span class="pill" id="chart-pill">分析完成</span>
+          <span class="pill" id="chart-pill">--</span>
         </div>
         <div class="chart-container">
           <canvas id="radarChart"></canvas>
@@ -164,14 +192,10 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    // ===========================================
-    // 配置与状态
-    // ===========================================
     let currentQuestions = [];
     let currentType = "INTP";
     let myChart = null;
 
-    // 常用 DOM
     const $ = (id) => document.getElementById(id);
     const setLoading = (show) => { $('loading').style.display = show ? 'flex' : 'none'; };
     const toast = (msg) => {
@@ -179,58 +203,38 @@
       setTimeout(() => t.style.display = 'none', 3000);
     };
 
-    // ===========================================
-    // API 交互逻辑
-    // ===========================================
-    
-    // 1. 获取题目
     async function fetchQuestions(type) {
       setLoading(true);
       try {
         const res = await fetch(`/api/questions/${type}`);
-        if (!res.ok) throw new Error("获取题目失败");
-        const data = await res.json();
-        currentQuestions = data; // 后端返回的是 [{id:1, text:"..."}, ...]
+        if (!res.ok) throw new Error("Connection Error");
+        currentQuestions = await res.json();
         renderQuestions();
       } catch (err) {
         console.error(err);
-        toast("无法连接到后端服务器，请检查网络");
+        toast("连接服务器失败，请检查网络");
       } finally {
         setLoading(false);
       }
     }
 
-    // 2. 提交答案
     async function submitAnswers(answersMap) {
       setLoading(true);
       try {
-        const payload = {
-          mbti: currentType,
-          answers: answersMap // { "1": 5, "2": 3 ... }
-        };
-        
         const res = await fetch('/api/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ mbti: currentType, answers: answersMap })
         });
-
-        if (!res.ok) throw new Error("提交失败");
+        if (!res.ok) throw new Error("Error");
         const result = await res.json();
-        
         renderResult(result);
-
       } catch (err) {
-        console.error(err);
-        toast("生成报告失败，请稍后重试");
+        toast("分析失败，请稍后重试");
       } finally {
         setLoading(false);
       }
     }
-
-    // ===========================================
-    // 渲染逻辑
-    // ===========================================
 
     function renderQuestions() {
       const container = $('questions-container');
@@ -244,43 +248,26 @@
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.qid = q.id;
-        
         let html = `
-          <div class="qmeta">
-            <b>Q${idx + 1}</b>
-            <span id="status-${q.id}">未作答</span>
-          </div>
+          <div class="qmeta"><b>Q${idx + 1}</b><span id="status-${q.id}">未作答</span></div>
           <div class="qtext">${q.text}</div>
-          <div class="scale">
-        `;
-        
-        // 生成 1-6 选项
+          <div class="scale">`;
         for(let i=1; i<=6; i++){
-          html += `
-            <div class="opt">
-              <input type="radio" name="q${q.id}" id="q${q.id}_${i}" value="${i}">
-              <label for="q${q.id}_${i}">${i}</label>
-            </div>
-          `;
+          html += `<div class="opt">
+            <input type="radio" name="q${q.id}" id="q${q.id}_${i}" value="${i}">
+            <label for="q${q.id}_${i}">${i}</label>
+          </div>`;
         }
-
-        html += `</div>
-          <div class="scale-ends">
-            <span>完全不符</span>
-            <span>完全符合</span>
-          </div>
-        `;
+        html += `</div><div class="scale-ends"><span>完全不符</span><span>完全符合</span></div>`;
         card.innerHTML = html;
         container.appendChild(card);
       });
 
-      // 绑定变更事件监听进度
       $('quiz-form').addEventListener('change', (e) => {
         if(e.target.name.startsWith('q')) {
           const qid = e.target.name.substring(1);
           $(`status-${qid}`).textContent = "已选";
           $(`status-${qid}`).style.color = "var(--success)";
-          // 移除错误样式
           const card = document.querySelector(`.card[data-qid="${qid}"]`);
           if(card) card.classList.remove('card--error');
           updateProgress();
@@ -290,64 +277,124 @@
 
     function updateProgress() {
       const data = new FormData($('quiz-form'));
-      let count = 0;
-      for(let pair of data.entries()) count++;
+      let count = 0; for(let pair of data.entries()) count++;
       const total = currentQuestions.length;
-      const pct = total === 0 ? 0 : (count / total) * 100;
-      $('progress-bar').style.width = `${pct}%`;
+      $('progress-bar').style.width = total === 0 ? '0%' : `${(count / total) * 100}%`;
     }
 
+    // ==========================================
+    // 关键修复：把数字转换回文字显示
+    // ==========================================
     function renderResult(data) {
-      // 1. 隐藏表单，显示结果
       $('quiz-form').style.display = 'none';
       $('result').style.display = 'block';
       $('reset-btn').style.display = 'block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      // 2. 填充数据
-      const setVal = (id, val, suffix="") => {
-        const el = $(id);
-        el.textContent = val + suffix;
-        // 简单着色逻辑
-        el.className = "v";
-        if(val >= 75) el.classList.add("c-high");
-        else if(val >= 60) el.classList.add("c-good");
-        else if(val <= 35) el.classList.add("c-good"); // Loop/Grip 低是好事，但这里通用处理
-      };
+      // 1. 认知成熟度 (越高越好)
+      const elM = $('v-maturity'); const descM = $('d-maturity');
+      if (data.maturity >= 67) {
+        elM.innerHTML = "高阶 · 整合者"; elM.className = "v color-high";
+        descM.textContent = "思维与现实整合度高，行动稳定。";
+      } else if (data.maturity >= 34) {
+        elM.innerHTML = "中阶 · 探索者"; elM.className = "v color-mid";
+        descM.textContent = "思路在成形，需持续迭代验证。";
+      } else {
+        elM.innerHTML = "低阶 · 固守者"; elM.className = "v color-low";
+        descM.textContent = "易被旧模式牵引，需引入外部反馈。";
+      }
 
-      setVal('res-maturity', data.maturity);
-      setVal('res-coherence', data.coherence);
-      setVal('res-loop', data.loop); // 后端已归一化，高分代表高Loop
-      setVal('res-grip', data.grip);
-      setVal('res-load', data.load);
-      setVal('res-overall', data.overall);
+      // 2. 内耗倾向 (越低越好) -> 后端返回的 data.loop 也是越高越严重
+      const elL = $('v-loop'); const descL = $('d-loop');
+      if (data.loop < 35) {
+        elL.innerHTML = "低"; elL.className = "v color-healthy";
+        descL.textContent = "启动成本低，很少反复纠结。";
+      } else if (data.loop < 65) {
+        elL.innerHTML = "中"; elL.className = "v color-warn";
+        descL.textContent = "有一定精神反刍，偶尔卡在细节。";
+      } else {
+        elL.innerHTML = "高"; elL.className = "v color-bad";
+        descL.textContent = "更容易自我攻击，行动阻力大。";
+      }
+
+      // 3. 压力反应 Grip (越低越好)
+      const elG = $('v-grip'); const descG = $('d-grip');
+      if (data.grip < 35) {
+        elG.innerHTML = "低"; elG.className = "v color-healthy";
+        descG.textContent = "情绪稳定，压力信号较少。";
+      } else if (data.grip < 65) {
+        elG.innerHTML = "中"; elG.className = "v color-warn";
+        descG.textContent = "压力下偶尔出现反常或爆发。";
+      } else {
+        elG.innerHTML = "高"; elG.className = "v color-bad";
+        descG.textContent = "处在高压边缘，注意力难集中。";
+      }
+
+      // 4. 压力负荷 Load (越低越好)
+      const elLoad = $('v-load'); const descLoad = $('d-load');
+      if (data.load < 35) {
+        elLoad.innerHTML = "轻"; elLoad.className = "v color-healthy";
+        descLoad.textContent = "余量充足，节奏较松。";
+      } else if (data.load < 65) {
+        elLoad.innerHTML = "中"; elLoad.className = "v color-warn";
+        descLoad.textContent = "强度适中，注意别长期无休。";
+      } else {
+        elLoad.innerHTML = "重"; elLoad.className = "v color-bad";
+        descLoad.textContent = "整体偏满，优先做减负恢复。";
+      }
+
+      // 5. 自洽度 Coherence (越高越好)
+      const elC = $('v-coherence'); const descC = $('d-coherence');
+      if (data.coherence >= 70) {
+        elC.innerHTML = "高"; elC.className = "v color-high";
+        descC.textContent = "作答一致，内在逻辑清晰。";
+      } else if (data.coherence >= 55) {
+        elC.innerHTML = "中"; elC.className = "v color-mid";
+        descC.textContent = "略有波动，但仍可自我校准。";
+      } else {
+        elC.innerHTML = "低"; elC.className = "v color-warn";
+        descC.textContent = "近期摇摆较多，建议先稳节奏。";
+      }
+
+      // 6. 状态指数 Overall (越高越好)
+      const elO = $('v-overall'); const descO = $('d-overall');
+      const pillText = data.pill_text; // 后端算好的 "充盈/可用/高压"
       
-      $('res-pill').textContent = data.pill_text;
-      $('chart-pill').textContent = data.pill_text;
+      let oClass = "color-mid";
+      if (data.overall >= 75) oClass = "color-high";
+      else if (data.overall >= 55) oClass = "color-healthy";
+      else if (data.overall >= 35) oClass = "color-warn";
+      else oClass = "color-bad";
+      
+      elO.innerHTML = `${pillText} · <span style="font-size:0.8em">${data.overall}/100</span>`;
+      elO.className = "v " + oClass;
+      descO.textContent = "综合各项指标的整体效能。";
+      
+      $('chart-pill').textContent = pillText;
+      $('chart-pill').style.color = "var(--text)";
 
       $('res-insight').textContent = data.insight;
       $('res-advice').textContent = data.advice;
 
-      // 3. 渲染图表
       renderChart(data.chart_data);
     }
 
     function renderChart(dataArray) {
       const ctx = $('radarChart').getContext('2d');
       if(myChart) myChart.destroy();
-
       myChart = new Chart(ctx, {
         type: 'radar',
         data: {
           labels: ['认知成熟度', '自洽度', '内耗弹性', '压力弹性', '负荷余量', '状态指数'],
           datasets: [{
             label: '当前状态',
-            data: dataArray, // 后端已经处理好了数据的反转逻辑，直接由外向内渲染
-            backgroundColor: 'rgba(37, 99, 235, 0.2)',
+            data: dataArray,
+            backgroundColor: 'rgba(37, 99, 235, 0.25)',
             borderColor: '#2563eb',
             borderWidth: 2,
             pointBackgroundColor: '#fff',
-            pointBorderColor: '#2563eb'
+            pointBorderColor: '#2563eb',
+            pointRadius: 4
           }]
         },
         options: {
@@ -357,8 +404,9 @@
             r: {
               min: 0, max: 100,
               ticks: { display: false, stepSize: 20 },
-              grid: { color: 'rgba(0,0,0,0.05)' },
-              pointLabels: { font: { size: 12, weight:'600' }, color: '#64748b' }
+              grid: { color: 'rgba(0,0,0,0.06)' },
+              angleLines: { color: 'rgba(0,0,0,0.06)' },
+              pointLabels: { font: { size: 12, family:'Inter' }, color: '#64748b' }
             }
           },
           plugins: { legend: { display: false } }
@@ -366,48 +414,27 @@
       });
     }
 
-    // ===========================================
-    // 初始化与事件
-    // ===========================================
-
     document.addEventListener("DOMContentLoaded", () => {
-      // 初始加载
       fetchQuestions(currentType);
-
-      // 切换类型
-      $('mbti-select').addEventListener('change', (e) => {
-        currentType = e.target.value;
-        fetchQuestions(currentType);
-      });
-
-      // 重置
-      $('reset-btn').addEventListener('click', () => {
-        fetchQuestions(currentType); // 重新获取打乱的题目
-      });
-
-      // 提交表单
+      $('mbti-select').addEventListener('change', (e) => { currentType = e.target.value; fetchQuestions(currentType); });
+      $('reset-btn').addEventListener('click', () => { fetchQuestions(currentType); });
       $('quiz-form').addEventListener('submit', (e) => {
         e.preventDefault();
-        const formData = new FormData(e.target);
+        const data = new FormData(e.target);
         const answers = {};
-        
-        // 检查是否有漏答
         for(let q of currentQuestions) {
-          const val = formData.get(`q${q.id}`);
+          const val = data.get(`q${q.id}`);
           if(!val) {
-            toast(`第 ${currentQuestions.indexOf(q)+1} 题未完成`);
+            toast(`Q${currentQuestions.indexOf(q)+1} 未完成`);
             const card = document.querySelector(`.card[data-qid="${q.id}"]`);
-            card.classList.add('card--error');
-            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.classList.add('card--error'); card.scrollIntoView({block:'center',behavior:'smooth'});
             return;
           }
           answers[q.id] = parseInt(val);
         }
-
         submitAnswers(answers);
       });
     });
-
   </script>
 </body>
 </html>
