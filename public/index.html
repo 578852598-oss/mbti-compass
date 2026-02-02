@@ -732,7 +732,7 @@
   const getApiUrl = () => {
       const hostname = window.location.hostname;
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
-          return 'http://localhost:8000/api/analyze';
+          return 'http://localhost:8000/api/submit';
       } else {
           // === 线上环境 (Vercel) ===
           // 方案 A (推荐): 使用相对路径。
@@ -741,7 +741,7 @@
           // return '/api/analyze'; 
           
           // 方案 B (备选): 如果方案 A 不行，就强制写死线上域名
-          return 'https://mbti-compass.vercel.app/api/analyze';
+          return 'https://mbti-compass.vercel.app/api/submit';
       }
   };
 
