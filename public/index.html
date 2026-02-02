@@ -1143,99 +1143,90 @@ $('quiz-form').addEventListener('submit', (e) => {
 
     // 2. 【关键】请求 Python 后端获取结果 (定义 res)
     // 假设你的 Python 接口地址是 /api/analyze，如果不同请修改
-fetch(API_URL, {  // <--- 这里改成变量 API_URL
+fetch(API_URL, { 
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(answers)
     })
     .then(response => response.json())
     .then(res => { 
-        // 这里的 res 就是 Python 返回的结果！
-        // 只有在这里面，res 才是“defined”的
-        
-        console.log("Python 返回结果:", res); 
+        // 🔍 第一步：先打印出来看看，到底是啥
+        console.log("🔥 Python 原始返回数据:", res);
 
-const finalRes = {
-            // 维度分数转换
-            m: res.maturity,        // 对应 Python 的 maturity
-            l: res.loop,            // 对应 Python 的 loop
-            g: res.grip,            // 对应 Python 的 grip
-            load: res.load,         // 这个名字一样，不用变
-            o: res.overall,         // 对应 Python 的 overall
-            coh: res.coherence,     // 对应 Python 的 coherence
-            
-            // 其他展示字段 (直接拷贝)
-            chart_data: res.chart_data,
-            status: res.status,     // 状态词 (如：充盈)
-            summary: res.summary,
-            advice_title: res.advice_title,
-            advice_content: res.advice_content,
-            cp_title: res.cp_title,
-            rel_type: res.rel_type,
-            rel_desc: res.rel_desc,
-            
-            // 保留一下 mbti 类型，以防万一
-            mbti_type: res.mbti_type || (typeof currentType !== 'undefined' ? currentType : '') 
+        // === 1. 优先恢复页面显示 (直接用 res) ===
+        // 如果之前能跑通，说明 res 本身就是对的，不要瞎改它
+        if(typeof renderResult === 'function') {
+             renderResult(res); 
+        }
+
+        // === 2. 这里的“双重保险”是为了 LeanCloud 存数据库 ===
+        // 自动判断：如果 res.maturity 有值就用它，否则用 res.m，再没有就填 0
+        const getScore = (longName, shortName) => {
+            if (res[longName] !== undefined) return res[longName];
+            if (res[shortName] !== undefined) return res[shortName];
+            return 0; // 保底
         };
 
-        console.log("转换后的数据 (用于渲染):", finalRes);
-
-        // 3. 执行渲染和保存
+        // 准备好要存的数据
+        const score_m = getScore('maturity', 'm');
+        const score_l = getScore('loop', 'l');
+        const score_g = getScore('grip', 'g');
+        const score_o = getScore('overall', 'o');
+        const score_coh = getScore('coherence', 'coh');
+        const score_load = res.load !== undefined ? res.load : 0;
+        
+        // 即使 UI 已经显示了，我们稍等一下再存数据库，避免卡顿
         setTimeout(() => {
             if(typeof setLoading === 'function') setLoading(false);
 
-            // A. 【渲染】用转换后的 finalRes 传给前端渲染函数
-            // 这样 renderResult 就能读到它想要的 .m, .l, .g 了
-            if(typeof renderResult === 'function') {
-                renderResult(finalRes);
-            } else {
-                console.error("找不到 renderResult 函数，无法显示结果");
-            }
-
-            // B. 【LeanCloud 保存】(继续用 finalRes)
             try {
+                console.log("准备保存到 LeanCloud...");
                 const TestRecord = AV.Object.extend('TestRecord');
                 const record = new TestRecord();
 
+                // 记录时间
                 const endTime = Date.now();
                 const startTime = window.testStartTime || endTime;
                 const duration = Math.round((endTime - startTime) / 1000);
 
-                record.set('mbti_type', finalRes.mbti_type);
+                // 存入字段
+                record.set('mbti_type', res.mbti_type || currentType || 'UNKNOWN');
                 record.set('device', navigator.userAgent);
                 record.set('duration_seconds', duration);
                 
-                // 保存分数
-                record.set('score_maturity', finalRes.m); 
-                record.set('score_loop', finalRes.l);
-                record.set('score_grip', finalRes.g);
-                record.set('score_load', finalRes.load);
-                record.set('score_overall', finalRes.o);
-                record.set('score_coherence', finalRes.coh);
+                // 存入分数 (使用刚才取出的双重保险值)
+                record.set('score_maturity', score_m); 
+                record.set('score_loop', score_l);
+                record.set('score_grip', score_g);
+                record.set('score_load', score_load);
+                record.set('score_overall', score_o);
+                record.set('score_coherence', score_coh);
 
-                // 保存文本
-                record.set('status_tag', finalRes.status);
-                record.set('result_text', finalRes.summary);
+                // 存入文本 (直接从页面元素上抓，这样最准)
+                const pillEl = document.getElementById("overall-pill");
+                if (pillEl) record.set('status_tag', pillEl.textContent);
+                
+                const overallEl = document.getElementById("overall-v");
+                if (overallEl) record.set('result_text', overallEl.textContent);
 
+                // 执行保存
                 record.save().then((saved) => {
-                    console.log('LeanCloud 保存成功 ID:', saved.id);
+                    console.log('✅ 数据库保存成功! ID:', saved.id);
                 });
 
             } catch (error) {
-                console.error('LeanCloud 保存出错:', error);
+                console.error('❌ 数据库保存出错:', error);
             }
 
-            // C. 切换页面到结果页
+            // 切换到结果页
             if(typeof showResult === 'function') showResult();
             
         }, 650);
     })
     .catch(error => {
-        console.error('请求后端出错:', error);
+        console.error('❌ 请求出错:', error);
         if(typeof setLoading === 'function') setLoading(false);
-        alert("计算结果出错，请检查后端服务是否启动 (index.py)");
+        alert("系统繁忙，请稍后再试");
     });
 });
   </script>
