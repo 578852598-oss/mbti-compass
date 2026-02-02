@@ -963,15 +963,25 @@ function renderResult(data) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       // 2. 填充基础数据的辅助函数
-      const fill = (id, val, desc, className) => {
-        const el = $(id);
-        if(el) {
-            el.innerHTML = val;
-            el.className = `v ${className}`;
-            const descEl = $(`d-${id.split('-')[1]}`);
-            if(descEl) descEl.textContent = desc;
-        }
-      };
+      const pill = document.getElementById('overall-pill');
+          if (pill) {
+              pill.textContent = res.status; 
+              
+              // (可选) 根据状态切换颜色 class
+              pill.className = 'overall-pill ' + (
+                  res.o >= 75 ? 'pill-good' : 
+                  res.o >= 55 ? 'pill-ok' : 
+                  res.o >= 35 ? 'pill-warn' : 'pill-danger'
+              );
+          }
+
+          // 2. 设置主标题文本 (Result Text) -> 存入 result_text
+          // 目标效果："高压 · 26/100"
+          const valEl = document.getElementById('overall-v');
+          if (valEl) {
+              // 这里就是你要的格式：状态 + 点 + 分数 + /100
+              valEl.textContent = `${res.status} · ${res.o}/100`;
+          }
 
       // --- 填充六维数据 ---
       
