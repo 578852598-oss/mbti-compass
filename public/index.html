@@ -1085,94 +1085,108 @@ function renderResult(data) {
     }
 
     // 绑定提交事件
-    $('quiz-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const data = new FormData(e.target);
-      const answers = {};
-      let firstUnanswered = null;
+// === 找到你的 form 提交监听部分，用这段完全替换 ===
 
-      for(let q of currentQuestions) {
-        const val = data.get(`q${q.id}`);
-        if(!val) {
-          if(!firstUnanswered) firstUnanswered = q.id;
-        } else {
-          answers[q.id] = parseInt(val);
+$('quiz-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const answers = {};
+    let firstUnanswered = null;
+
+    // 1. 收集答案
+    // 注意：这里假设 currentQuestions 是你题目的数组变量
+    if (typeof currentQuestions !== 'undefined') {
+        for (let q of currentQuestions) {
+            const val = formData.get(`q${q.id}`);
+            if (!val) {
+                if (!firstUnanswered) firstUnanswered = q.id;
+            } else {
+                answers[q.id] = parseInt(val);
+            }
         }
-      }
-
-      if(firstUnanswered) {
-        toast("请完成所有题目");
-        const card = document.querySelector(`.card[data-qid="${firstUnanswered}"]`);
-        card.scrollIntoView({block:'center',behavior:'smooth'});
-        // 简单的震动反馈
-        if(navigator.vibrate) navigator.vibrate(50);
-        return;
-      }
-      submitAnswers(answers);
-    })
-    
-    setTimeout(() => {
-    setLoading(false); 
-
-    renderResult(res); 
-
-    try {
-        console.log("准备发送数据到 LeanCloud..."); // 调试日志
-        const TestRecord = AV.Object.extend('TestRecord');
-        const record = new TestRecord();
-
-        // 1. 计算耗时
-        const endTime = Date.now();
-        const startTime = window.testStartTime || endTime;
-        const duration = Math.round((endTime - startTime) / 1000);
-
-        // 2. 基础信息
-        record.set('mbti_type', currentType); 
-        record.set('device', navigator.userAgent);
-        record.set('duration_seconds', duration);
-
-        // 3. 维度分数
-        record.set('score_maturity', res.m);
-        record.set('score_loop', res.l);
-        record.set('score_grip', res.g);
-        record.set('score_load', res.load);
-        record.set('score_coherence', res.coh); // 确保 res.coh 存在，如果你的算法没算这个，要检查一下
-        record.set('score_overall', res.o);
-
-        const pillEl = document.getElementById("overall-pill");
-        if (pillEl) record.set('status_tag', pillEl.textContent);
-
-        const overallEl = document.getElementById("overall-v");
-        if (overallEl) record.set('result_text', overallEl.textContent);
-
-        const answerDetails = {};
-        // ⚠️ 确保 currentQuestions 和 formData 在这里可用
-        // 如果 formData 不可用，你可能需要重新获取一下
-        if (typeof currentQuestions !== 'undefined') {
-            currentQuestions.forEach(q => {
-                 // 尝试从 input 获取，或者从你保存的 answers 对象获取
-                 const el = document.querySelector(`input[name="q${q.id}"]:checked`);
-                 if(el) answerDetails['Q' + q.id] = parseInt(el.value);
-            });
-        }
-        record.set('user_choices', answerDetails);
-
-        // 发送
-        record.save().then((saved) => {
-            console.log('✅ LeanCloud 保存成功! ID:', saved.id);
-        }).catch((err) => {
-            console.error('❌ LeanCloud 保存失败:', err);
-        });
-
-    } catch (error) {
-        console.error('❌ 代码执行出错:', error);
     }
-    
-    // 原有的切换界面逻辑
-    // showResult(); 
 
-}, 650
-    );
+    // 校验是否填完
+    if (firstUnanswered) {
+        // 假设你有一个 toast 函数提示错误
+        if(typeof toast === 'function') toast("请完成所有题目");
+        else alert("请完成所有题目");
+        
+        const card = document.querySelector(`.card[data-qid="${firstUnanswered}"]`);
+        if(card) card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        return;
+    }
+
+    // 显示加载中
+    if(typeof setLoading === 'function') setLoading(true);
+
+    // 2. 【关键】请求 Python 后端获取结果 (定义 res)
+    // 假设你的 Python 接口地址是 /api/analyze，如果不同请修改
+    fetch('http://localhost:8000/api/analyze', { 
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(answers) // 把答案发给 Python
+    })
+    .then(response => response.json())
+    .then(res => { 
+        // 这里的 res 就是 Python 返回的结果！
+        // 只有在这里面，res 才是“defined”的
+        
+        console.log("Python 返回结果:", res); 
+
+        // 3. 执行渲染和 LeanCloud 保存
+        setTimeout(() => {
+            if(typeof setLoading === 'function') setLoading(false);
+
+            // A. 渲染结果到页面
+            if(typeof renderResult === 'function') renderResult(res);
+
+            // B. LeanCloud 保存逻辑 (你刚才的那段代码)
+            try {
+                const TestRecord = AV.Object.extend('TestRecord');
+                const record = new TestRecord();
+
+                const endTime = Date.now();
+                const startTime = window.testStartTime || endTime;
+                const duration = Math.round((endTime - startTime) / 1000);
+
+                // 尝试获取 mbti_type，如果 res 里没有，就尝试从全局取
+                const mbtiType = res.mbti_type || (typeof currentType !== 'undefined' ? currentType : 'UNKNOWN');
+
+                record.set('mbti_type', mbtiType);
+                record.set('device', navigator.userAgent);
+                record.set('duration_seconds', duration);
+                
+                // 确保 res 中的字段名和你 Python 返回的一致
+                // Python index.py 返回的通常是 maturity, loop, grip 等
+                record.set('score_maturity', res.maturity || res.m); 
+                record.set('score_loop', res.loop || res.l);
+                record.set('score_grip', res.grip || res.g);
+                record.set('score_load', res.load);
+                record.set('score_overall', res.overall || res.o);
+
+                // 保存
+                record.save().then((saved) => {
+                    console.log('LeanCloud 保存成功 ID:', saved.id);
+                });
+
+            } catch (error) {
+                console.error('LeanCloud 保存出错:', error);
+            }
+
+            // C. 切换页面
+            if(typeof showResult === 'function') showResult();
+            
+        }, 650);
+    })
+    .catch(error => {
+        console.error('请求后端出错:', error);
+        if(typeof setLoading === 'function') setLoading(false);
+        alert("计算结果出错，请检查后端服务是否启动 (index.py)");
+    });
+});
   </script>
 </body>
 </html>
