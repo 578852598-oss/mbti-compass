@@ -1928,6 +1928,462 @@ Se 让你敏锐地感知世界，Fi 让你真诚待人，Te 帮你把聚会安�
 
 }
 
+
+# ==========================================
+# 5. 社交关系库 (新增)
+# ==========================================
+# 逻辑：根据当前状态 (growth/loop/grip/crisis) 推荐 CP 和 天敌
+# 这是一个示例结构，你需要填入具体的文案
+
+RELATIONSHIP_DATA = {
+    "INTP": {
+        "growth": {
+            "cp_name": "ENTJ / ESTJ",
+            "cp_desc": "你的逻辑架构需要他们的强力执行（Te），把想法变成现实，这是强强联合。",
+            "enemy_name": "ESFJ",
+            "enemy_desc": "过度关注琐碎的人情世故（Fe），会打断你思考时的思维和心流。"
+        },
+        "loop": {
+            "cp_name": "ENTP / ENFP",
+            "cp_desc": "你需要 Ne 的脑洞冲击。只有他们能把你从“越想越钻牛角尖”的死胡同里硬拉出来。",
+            "enemy_name": "ISTJ",
+            "enemy_desc": "他比你还讲规矩和过去（Si），跟他在一起你会彻底困死在旧逻辑里。"
+        },
+        "grip": {
+            "cp_name": "INFJ / ENFJ",
+            "cp_desc": "你情绪爆发时像个孩子，只有高阶 Fe 能温柔地接住你那些没逻辑的委屈。",
+            "enemy_name": "ESTJ",
+            "enemy_desc": "在你最脆弱的时候跟你讲效率和KPI（Te），简直是火上浇油。"
+        },
+        "crisis": {
+            "cp_name": "ISFJ",
+            "cp_desc": "你需要无微不至的物理照顾（投喂、强制休息），别说话，照顾就好。",
+            "enemy_name": "ENTJ",
+            "enemy_desc": "这时候的强势压迫会让你彻底断电（Te），甚至对人类产生敌意。"
+        }
+    },
+
+    "INTJ": {
+        "growth": {
+            "cp_name": "ENTJ",
+            "cp_desc": "你们是最佳搞钱拍档。你的远见（Ni）加上他的手段（Te），效率高到吓人。",
+            "enemy_name": "ESFP",
+            "enemy_desc": "过于追求享乐和缺乏计划，会让你觉得是在浪费生命。"
+        },
+        "loop": {
+            "cp_name": "ESTJ / ENTJ",
+            "cp_desc": "你需要 Te 的客观数据。他会用冷冰冰的事实直接打碎你的“被害妄想”。",
+            "enemy_name": "ISFP",
+            "enemy_desc": "他会陪着你一起情绪化（Fi），让你在“没人懂我”的自闭怪圈里越陷越深。"
+        },
+        "grip": {
+            "cp_name": "ESFP / ESTP",
+            "cp_desc": "你需要 Se 的感官引导。别讲大道理了，让他带你去吃顿好的、玩点刺激的。",
+            "enemy_name": "INTP",
+            "enemy_desc": "这时候你不需要分析（Ti），分析只会让你觉得现在的堕落更不可原谅。"
+        },
+        "crisis": {
+            "cp_name": "ISTJ",
+            "cp_desc": "你需要极致的稳定。他不会问你未来怎么走，只会保证你今天有饭吃、有觉睡。",
+            "enemy_name": "ENFP",
+            "enemy_desc": "太吵了。这时候任何新的可能性（Ne）对你来说都是噪音。"
+        }
+    },
+
+    "INFP": {
+        "growth": {
+            "cp_name": "ENFJ / ENTJ",
+            "cp_desc": "你的才华需要秩序。他能欣赏你的内核（Fi），同时帮你把梦想落地（Te/Fe）。",
+            "enemy_name": "ESTJ",
+            "enemy_desc": "如果不成熟，他会粗暴地否定你的感受，把你变成一个只会干活的机器。"
+        },
+        "loop": {
+            "cp_name": "ENFP / ENTP",
+            "cp_desc": "你需要 Ne 的新鲜空气。他能把你从“回忆旧账”的房间里拖出去，看看外面的世界。",
+            "enemy_name": "ISFJ",
+            "enemy_desc": "他会陪你一起回忆过去（Si），让你在遗憾和自责的泥潭里躺得更平。"
+        },
+        "grip": {
+            "cp_name": "ISFP / ENFP",
+            "cp_desc": "你需要 Fi 的共情。只有同样敏感的人，才能让你觉得“原来我不是怪物”。",
+            "enemy_name": "ESTJ",
+            "enemy_desc": "你越焦虑越想控制（劣势Te），碰上真正的掌控者，你会彻底崩盘。"
+        },
+        "crisis": {
+            "cp_name": "ISFJ",
+            "cp_desc": "你需要像妈妈一样的安全感。不评判，不讲道理，只是给你做顿热饭。",
+            "enemy_name": "ENTP",
+            "enemy_desc": "这时候的辩论和玩笑（Ti/Ne）对你来说就是一种残忍的攻击。"
+        }
+    },
+
+    "INFJ": {
+        "growth": {
+            "cp_name": "ENTP / ENFP",
+            "cp_desc": "你的深刻需要他的发散（Ne）。他能懂你的潜台词，还能带你看不一样的风景。",
+            "enemy_name": "ESTJ",
+            "enemy_desc": "过于强调传统和服从，会让你觉得灵魂被囚禁了。"
+        },
+        "loop": {
+            "cp_name": "ENFJ / ESFJ",
+            "cp_desc": "你需要 Fe 的连接。他能把你从冷漠的逻辑塔楼里拉出来，让你重新感受到人的温度。",
+            "enemy_name": "INTP",
+            "enemy_desc": "你们会一起陷入冷冰冰的分析（Ti），让你觉得这个世界更没救了。"
+        },
+        "grip": {
+            "cp_name": "ESTP / ESFP",
+            "cp_desc": "你需要 Se 的落地。别想深意了，让他带你去运动、去兜风，回到真实世界。",
+            "enemy_name": "INFP",
+            "enemy_desc": "两个情绪漩涡撞在一起，只会互相淹没，谁也救不了谁。"
+        },
+        "crisis": {
+            "cp_name": "ISTJ",
+            "cp_desc": "你需要与世隔绝的安稳。他话少靠谱（Si），能帮你守住门，挡住外面的洪水。",
+            "enemy_name": "ENFJ",
+            "enemy_desc": "这时候你需要独处，过度的情感关怀（Fe）反而是一种负担。"
+        }
+    },
+
+    "ISTP": {
+        "growth": {
+            "cp_name": "ESTJ / ENTJ",
+            "cp_desc": "你的手艺需要他的规划。你负责解决单点问题，他负责把这变成大项目。",
+            "enemy_name": "ENFP",
+            "enemy_desc": "太飘了。你想聊具体怎么做，他跟你聊梦想和宇宙，你会想翻白眼。"
+        },
+        "loop": {
+            "cp_name": "ESTP / ESFP",
+            "cp_desc": "你需要 Se 的行动。别在脑子里空想了，跟他出门，干点出汗的事，立刻就好。",
+            "enemy_name": "INTJ",
+            "enemy_desc": "他会把你带进更深的阴谋论（Ni）里，让你觉得什么都没意义，不用动了。"
+        },
+        "grip": {
+            "cp_name": "ESFJ / ISFJ",
+            "cp_desc": "你情绪失控时需要 Fe 的包容。他们不会跟你讲道理，只会温柔地哄你。",
+            "enemy_name": "ENTJ",
+            "enemy_desc": "他会试图用逻辑压制你的情绪，这会让你直接炸毛，甚至动手。"
+        },
+        "crisis": {
+            "cp_name": "ISFP",
+            "cp_desc": "你需要无声的陪伴。他懂你的独立，会在旁边安静地做自己的事，陪着你。",
+            "enemy_name": "ESFJ",
+            "enemy_desc": "这时候哪怕是善意的唠叨（Fe），对你来说也是噪音污染。"
+        }
+    },
+
+    "ISFP": {
+        "growth": {
+            "cp_name": "ESFP / ESTP",
+            "cp_desc": "你需要 Se 的活力。跟他们在一起，你的艺术才华才能变成看得见的快乐。",
+            "enemy_name": "ENTJ",
+            "enemy_desc": "如果你没准备好，他的强势规划会让你觉得自我被吞噬了。"
+        },
+        "loop": {
+            "cp_name": "ESFP / ESTP",
+            "cp_desc": "出门！你需要 Se 的刺激。别躲在家里被害妄想了，去看看真实的阳光和人群。",
+            "enemy_name": "INFJ",
+            "enemy_desc": "他可能会过度解读你的情绪（Ni），让你觉得那个虚假的噩梦是真的。"
+        },
+        "grip": {
+            "cp_name": "INFP / ISFP",
+            "cp_desc": "你需要 Fi 的共鸣。当你因为做不到而暴躁时，只有他能告诉你“这没关系”。",
+            "enemy_name": "ESTJ",
+            "enemy_desc": "你正在模仿劣势的 Te（强权），遇到真正的 Te 使用者，会被秒杀成渣。"
+        },
+        "crisis": {
+            "cp_name": "ISFJ",
+            "cp_desc": "你需要安全感。他能把生活琐事打理好，让你在这个小窝里慢慢回血。",
+            "enemy_name": "ENTP",
+            "enemy_desc": "他的玩笑和质疑（Ne/Ti）会让你觉得世界充满了恶意。"
+        }
+    },
+
+    "ISTJ": {
+        "growth": {
+            "cp_name": "ESTJ",
+            "cp_desc": "效率最大化组合。你们都讲逻辑、守规矩（Te/Si），在一起做事极其舒服。",
+            "enemy_name": "ENFP",
+            "enemy_desc": "如果是工作伙伴，他的随性和变卦会让你每天都在崩溃边缘。"
+        },
+        "loop": {
+            "cp_name": "ESTJ / ENTJ",
+            "cp_desc": "你需要 Te 的客观。别翻旧账了，让他帮你分析现在的利弊，向前看。",
+            "enemy_name": "ISFP",
+            "enemy_desc": "他会陪你一起情绪化（Fi），让你觉得委屈是理所当然的，永远走不出来。"
+        },
+        "grip": {
+            "cp_name": "ESFJ / ISFJ",
+            "cp_desc": "你需要 Fe 的安抚。当你灾难化想象（Ne）时，听听他们的安慰：“没事的，大家都在”。",
+            "enemy_name": "ENTP",
+            "enemy_desc": "他是制造混乱的高手（Ne），会把你脑子里的灾难片变成现实版。"
+        },
+        "crisis": {
+            "cp_name": "ISTP",
+            "cp_desc": "你需要极简。他话少、务实，能帮你解决眼前具体的麻烦，绝不废话。",
+            "enemy_name": "ENFP",
+            "enemy_desc": "这时候任何“惊喜”对你来说都是惊吓。你需要绝对的确定性。"
+        }
+    },
+
+    "ISFJ": {
+        "growth": {
+            "cp_name": "ESFJ",
+            "cp_desc": "最温暖的组合。Fe 的共鸣让你们互相理解，Si 的稳重让生活井井有条。",
+            "enemy_name": "ENTP",
+            "enemy_desc": "他的跳跃思维和爱抬杠（Ne/Ti），会让你时刻处于不安之中。"
+        },
+        "loop": {
+            "cp_name": "ENFJ / ESFJ",
+            "cp_desc": "你需要 Fe 的出口。别闷头算账了，找他们聊聊，把心里的怨气吐出来。",
+            "enemy_name": "ISTP",
+            "enemy_desc": "他的冷漠逻辑（Ti）会让你觉得人心凉薄，更加封闭自己。"
+        },
+        "grip": {
+            "cp_name": "ESTP / ISTP",
+            "cp_desc": "你需要 Se/Ti 的破局。当你被恐惧吓瘫时，他能直接帮你把问题解决了。",
+            "enemy_name": "INFP",
+            "enemy_desc": "你已经很慌了，他比你还慌（Ne/Fi），两人抱在一起哭解决不了问题。"
+        },
+        "crisis": {
+            "cp_name": "ENTJ",
+            "cp_desc": "你需要一个强权者。让他来接管一切，告诉你该做什么。你只需要服从，这很安心。",
+            "enemy_name": "INTP",
+            "enemy_desc": "他的撒手不管和理性分析，会让你觉得被全世界抛弃了。"
+        }
+    },
+
+    "ENTJ": {
+        "growth": {
+            "cp_name": "INTP / ISTP",
+            "cp_desc": "你需要一个顶级智囊。你负责打江山，他负责提供技术蓝图，省得你瞎指挥。",
+            "enemy_name": "ISFP",
+            "enemy_desc": "他的缓慢、随性和情绪化（Fi）会让你急出高血压。"
+        },
+        "loop": {
+            "cp_name": "INTJ / INFJ",
+            "cp_desc": "你需要 Ni 的深度。只有他们敢按住你的头说：“停下来，你的方向错了。”",
+            "enemy_name": "ESFP",
+            "enemy_desc": "他会带着你一起疯狂行动（Se），让你在错误的道路上狂奔到底。"
+        },
+        "grip": {
+            "cp_name": "INFP / ISFP",
+            "cp_desc": "你需要 Fi 的温室。当你觉得自己没人爱时，只有他们能接住你那别扭的脆弱。",
+            "enemy_name": "ESTJ",
+            "enemy_desc": "他会让你“别矫情，起来干活”，这会让你直接心态崩盘。"
+        },
+        "crisis": {
+            "cp_name": "ISFJ",
+            "cp_desc": "你需要强制关机。他能帮你挡住外面的事，给你做顿饭，让你像植物一样静养。",
+            "enemy_name": "ENTP",
+            "enemy_desc": "他制造的混乱（Ne）会让你那个已经过载的大脑彻底烧毁。"
+        }
+    },
+
+    "ENTP": {
+        "growth": {
+            "cp_name": "INFJ / INTJ",
+            "cp_desc": "你需要一个能看懂你疯癫背后的逻辑，还能帮你把坑填上的人。",
+            "enemy_name": "ISTJ",
+            "enemy_desc": "在你想搞大事的时候，他只会拿着规章制度告诉你“这不合规矩”。"
+        },
+        "loop": {
+            "cp_name": "INTP / ISTP",
+            "cp_desc": "你需要 Ti 的冷水。当你为了博眼球在表演时，只有他会冷冷地说：“你看起来像个傻子。”",
+            "enemy_name": "ESFJ",
+            "enemy_desc": "他会给你鼓掌（Fe），鼓励你继续哗众取宠，让你彻底迷失。"
+        },
+        "grip": {
+            "cp_name": "ISFJ / ISTJ",
+            "cp_desc": "你需要 Si 的安抚。当你疑神疑鬼怕得病时，他拿出的体检报告比什么都管用。",
+            "enemy_name": "ENFP",
+            "enemy_desc": "两个生活不能自理的人凑在一起，只会把焦虑放大十倍。"
+        },
+        "crisis": {
+            "cp_name": "INFJ",
+            "cp_desc": "你需要深度的精神按摩。他能穿透你的面具，安抚那个破碎的灵魂。",
+            "enemy_name": "ESTP",
+            "enemy_desc": "他会带你去寻欢作乐（Se），让你在狂欢后感到更深的虚无。"
+        }
+    },
+
+    "ENFJ": {
+        "growth": {
+            "cp_name": "INFP / ISFP",
+            "cp_desc": "你需要保护的人。他们的纯粹（Fi）能让你感到付出的意义，互相滋养。",
+            "enemy_name": "ESTJ",
+            "enemy_desc": "他的冷酷指令会让你觉得自己的善意被践踏了。"
+        },
+        "loop": {
+            "cp_name": "INTJ / INFJ",
+            "cp_desc": "你需要 Ni 的独处。他能把你从无效社交里拽出来，按在椅子上读本书。",
+            "enemy_name": "ESFP",
+            "enemy_desc": "他会拉你去更多的局，把你最后一点电量耗干。"
+        },
+        "grip": {
+            "cp_name": "ISTP / INTP",
+            "cp_desc": "你需要 Ti 的逻辑免疫。当你变得刻薄时，他们反而觉得“你终于肯说实话了”，不会受伤。",
+            "enemy_name": "INFP",
+            "enemy_desc": "你这时候的毒舌会直接把他骂哭，然后你醒了会后悔死。"
+        },
+        "crisis": {
+            "cp_name": "ISFJ",
+            "cp_desc": "你需要被反向照顾。一直当保姆的你，现在需要一个不需要你操心的真保姆。",
+            "enemy_name": "ENTJ",
+            "enemy_desc": "他会分析你的情绪毫无价值，这会让你对自己彻底绝望。"
+        }
+    },
+
+    "ENFP": {
+        "growth": {
+            "cp_name": "INTJ / INFJ",
+            "cp_desc": "经典的官配。你负责发疯，他负责把你拉回地球，顺便帮你把PPT做了。",
+            "enemy_name": "ISTJ",
+            "enemy_desc": "在你想飞的时候，他就是拴在你脚上的那个铁球。"
+        },
+        "loop": {
+            "cp_name": "INFP / ISFP",
+            "cp_desc": "你需要 Fi 的灵魂拷问。他会问你：“你忙成这样，真的开心吗？”让你瞬间清醒。",
+            "enemy_name": "ENTJ",
+            "enemy_desc": "他会递给你一根鞭子，让你跑得更快，直到累死为止。"
+        },
+        "grip": {
+            "cp_name": "ISTJ / ISFJ",
+            "cp_desc": "你需要 Si 的老妈子。当你瘫在床上抑郁时，他会默默给你收拾屋子、端茶送水。",
+            "enemy_name": "ENTP",
+            "enemy_desc": "他也没长生活自理那根筋，你俩会一起烂在家里。"
+        },
+        "crisis": {
+            "cp_name": "INFJ",
+            "cp_desc": "你需要精神避难所。他能无条件接纳你的阴暗面，让你觉得安全。",
+            "enemy_name": "ESTJ",
+            "enemy_desc": "他对混乱的零容忍，会让你觉得自己是个无可救药的垃圾。"
+        }
+    },
+
+    "ESTJ": {
+        "growth": {
+            "cp_name": "ISTJ / ISFJ",
+            "cp_desc": "你需要靠谱的执行者。你下命令，他落实细节，没有任何废话。",
+            "enemy_name": "INFP",
+            "enemy_desc": "他的拖延和情绪化会每天挑战你的血压极限。"
+        },
+        "loop": {
+            "cp_name": "ISTJ",
+            "cp_desc": "你需要 Si 的证据。当你瞎焦虑（Ne）时，他会拿出数据告诉你“以前没出过这事”。",
+            "enemy_name": "ENFP",
+            "enemy_desc": "他那些天马行空的“万一”，会把你那个焦虑的火坑浇上一桶油。"
+        },
+        "grip": {
+            "cp_name": "ISFP / INFP",
+            "cp_desc": "你需要 Fi 的允许。只有他们能让你卸下铠甲，像个孩子一样哭一场。",
+            "enemy_name": "ENTP",
+            "enemy_desc": "他会嘲笑你的脆弱，让你恼羞成怒，直接开战。"
+        },
+        "crisis": {
+            "cp_name": "ISFJ",
+            "cp_desc": "你需要隐形的服务。他会把一切打理好，且不打扰你，让你有空间自我修复。",
+            "enemy_name": "ENTJ",
+            "enemy_desc": "两个暴君撞在一起，只会把房子拆了。"
+        }
+    },
+
+    "ESTP": {
+        "growth": {
+            "cp_name": "ISTJ / ISFJ",
+            "cp_desc": "你需要一个刹车片。你往前冲，他帮你盯着后院起没起火，这就稳了。",
+            "enemy_name": "INFJ",
+            "enemy_desc": "他那些神神叨叨的哲学话题，会让你觉得像在听天书，只想逃跑。"
+        },
+        "loop": {
+            "cp_name": "ISTP / INTP",
+            "cp_desc": "你需要 Ti 的嘲讽。当你为了面子（Fe）装X时，他一句“好蠢”能让你瞬间冷静。",
+            "enemy_name": "ESFP",
+            "enemy_desc": "他会给你递酒，让你继续装，直到你把脸丢光为止。"
+        },
+        "grip": {
+            "cp_name": "INTJ / INFJ",
+            "cp_desc": "你需要 Ni 的导航。当你迷信怕死时，他能逻辑清晰地告诉你未来的剧本，让你安心。",
+            "enemy_name": "ENFP",
+            "enemy_desc": "他比你还神神叨叨，会跟你一起相信世界末日要来了。"
+        },
+        "crisis": {
+            "cp_name": "ISTJ",
+            "cp_desc": "你需要物理拘留。让他没收你的车钥匙和钱包，直到你脑子清醒为止。",
+            "enemy_name": "ESFP",
+            "enemy_desc": "他会怂恿你“今朝有酒今朝醉”，那是通往悬崖的路。"
+        }
+    },
+
+    "ESFJ": {
+        "growth": {
+            "cp_name": "ISFJ / ISTP",
+            "cp_desc": "你需要安稳。ISFJ 懂你的付出，ISTP 能帮你搞定那些你不懂的麻烦事。",
+            "enemy_name": "ENTJ",
+            "enemy_desc": "他只看利益不讲人情，会让你觉得这个世界冷酷得可怕。"
+        },
+        "loop": {
+            "cp_name": "ISTJ / ISFJ",
+            "cp_desc": "你需要 Si 的现实感。当你脑补大家都在恨你时，他会告诉你“没人有空理你”。",
+            "enemy_name": "ENTP",
+            "enemy_desc": "他会编造更多的阴谋论来逗你玩，把你吓得半死。"
+        },
+        "grip": {
+            "cp_name": "INTP / ISTP",
+            "cp_desc": "你需要 Ti 的冷处理。当你变得刻薄时，他们根本不在乎，正好帮你降降温。",
+            "enemy_name": "INFP",
+            "enemy_desc": "你这时候的攻击性会严重伤害他，让他从此躲着你走。"
+        },
+        "crisis": {
+            "cp_name": "ISTJ",
+            "cp_desc": "你需要秩序。别管人际关系了，跟他一起把家里打扫一遍，心里就踏实了。",
+            "enemy_name": "ENFP",
+            "enemy_desc": "他的情绪化和不可预测，会让你本就紧绷的神经彻底断裂。"
+        }
+    },
+
+    "ESFP": {
+        "growth": {
+            "cp_name": "ISFP / ISTJ",
+            "cp_desc": "ISTJ 是你最好的锚。你负责让生活有趣，他负责让生活不崩盘。",
+            "enemy_name": "INTJ",
+            "enemy_desc": "他的严肃和说教（Te/Ni），瞬间就能把你的快乐火苗掐灭。"
+        },
+        "loop": {
+            "cp_name": "INFP / ISFP",
+            "cp_desc": "你需要 Fi 的初心。他会问你：“你是真的快乐，还是在表演快乐？”",
+            "enemy_name": "ESTJ",
+            "enemy_desc": "他会逼你去做更有用的事，让你在空虚的忙碌中越陷越深。"
+        },
+        "grip": {
+            "cp_name": "INTJ / INFJ",
+            "cp_desc": "你需要 Ni 的灯塔。当你觉得人生没希望时，他能带你看到隧道尽头的光。",
+            "enemy_name": "ENTP",
+            "enemy_desc": "他会用逻辑论证“人生确实没意义”，把你推向深渊。"
+        },
+        "crisis": {
+            "cp_name": "ISFJ",
+            "cp_desc": "你需要回血站。别在外面浪了，回家喝他煲的汤，睡个好觉。",
+            "enemy_name": "ENTJ",
+            "enemy_desc": "他会觉得你软弱无能，这种轻视会成为压垮你的最后一根稻草。"
+        }
+    }
+}
+
+# 默认兜底数据 (防止忘了填报错)
+DEFAULT_RELATION = {
+    "cp_name": "???",
+    "cp_desc": "数据正在计算中...",
+    "enemy_name": "???",
+    "enemy_desc": "数据正在计算中..."
+}
+
+
+CP_TITLE_MAP = {
+        "growth": "当下最佳的合伙人/战友",      # Stable / Growth
+        "loop":   "当下最佳的开心果/破局者",    # Loop
+        "grip":   "当下最佳的陪伴者/听众",      # Grip
+        "crisis": "当下最佳的守护者"              # Crisis
+    }
 # ==========================================
 # 3. Pydantic 模型
 # ==========================================
@@ -1955,8 +2411,11 @@ class AnalysisResult(BaseModel):
     chart_data: List[int]
     month_title: str
     month_text: str
-
-
+    cp_name: str       # 最佳CP类型，
+    cp_desc: str       # 为什么是CP
+    enemy_name: str    # 天敌类型
+    enemy_desc: str    # 为什么是天敌
+    cp_title:str
 # ==========================================
 # 4. 辅助函数
 # ==========================================
@@ -2119,6 +2578,13 @@ def submit_answers(req: SubmitRequest):
     else:
         pill_text = "高压"
 
+        # 获取动态标题，默认为“能量补给”
+    dynamic_cp_title = CP_TITLE_MAP.get(advice_key, "你的最佳CP")
+
+        # 获取关系数据 (这部分保持上一轮的逻辑)
+    type_rel_data = RELATIONSHIP_DATA.get(mbti, {})
+    current_rel = type_rel_data.get(advice_key, DEFAULT_RELATION)
+
     return AnalysisResult(
         maturity=res_m,
         loop=res_l,
@@ -2131,5 +2597,10 @@ def submit_answers(req: SubmitRequest):
         month_title=final_advice["title"],
         month_text=final_advice["text"],
         pill_text=pill_text,
-        chart_data=[res_m, res_coh, 100 - res_l, 100 - res_g, 100 - res_load, res_overall]
+        chart_data=[res_m, res_coh, 100 - res_l, 100 - res_g, 100 - res_load, res_overall],
+        cp_name = current_rel["cp_name"],
+        cp_desc = current_rel["cp_desc"],
+        enemy_name = current_rel["enemy_name"],
+        enemy_desc = current_rel["enemy_desc"],
+        cp_title = dynamic_cp_title
     )
