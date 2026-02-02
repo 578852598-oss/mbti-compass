@@ -727,6 +727,27 @@
       serverURL: "/lc-api" // 如果后台没有ServerURL，这行可以删掉
     });
 
+
+      // === 智能后端地址配置 ===
+  const getApiUrl = () => {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return 'http://localhost:8000/api/analyze';
+      } else {
+          // === 线上环境 (Vercel) ===
+          // 方案 A (推荐): 使用相对路径。
+          // 只要你的 Python 和 HTML 在同一个 Vercel 项目里，这样写最稳，
+          // 哪怕你以后换域名也不用改代码。
+          // return '/api/analyze'; 
+          
+          // 方案 B (备选): 如果方案 A 不行，就强制写死线上域名
+          return 'https://mbti-compass.vercel.app/api/analyze';
+      }
+  };
+
+  const API_URL = getApiUrl(); // 最终使用的地址
+  console.log("当前使用的后端 API 地址:", API_URL); // 方便调试看一眼
+
     // 选择类型入口
 // ==========================================
 
