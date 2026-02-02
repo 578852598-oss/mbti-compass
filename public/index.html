@@ -33,7 +33,34 @@
     .container{ max-width: 720px; margin: 0 auto; padding: 20px 16px; }
     
     /* Topbar */
-    .topbar{ position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); transition: transform 0.3s; }
+    /* === 1. 修改 .topbar 让它吸顶 === */
+.topbar {
+    position: fixed;       /* 核心：固定定位 */
+    top: 0;                /* 紧贴顶部 */
+    left: 0;
+    width: 100%;           /* 撑满宽度 */
+    z-index: 999;          /* 层级最高，防止被题目遮挡 */
+    
+    background: rgba(255, 255, 255, 0.95); /* 微微透明的白色背景 */
+    backdrop-filter: blur(10px);           /* 加上“毛玻璃”模糊效果，显得很高级 */
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05); /* 加一点阴影，更有层次感 */
+    
+    /* 之前的样式保留... */
+    margin-bottom: 0;      /* 去掉下边距，用 body padding 代替 */
+}
+
+/* === 2. 给页面加“垫片” === */
+/* 因为 topbar 固定后不占位置了，题目会钻到顶栏下面去 */
+/* 所以我们要给 body 或 main 容器加一个上内边距 */
+body {
+    padding-top: 110px; /* 这个数值根据你顶栏的实际高度微调，通常 100px-120px 左右 */
+}
+
+@media (max-width: 640px) {
+    body {
+        padding-top: 100px; /* 手机上可能稍微矮一点 */
+    }
+}
     .topbar-inner{ max-width: 720px; margin: 0 auto; padding: 12px 16px; display:flex; align-items:center; justify-content:space-between; height: 60px; }
     
     .brand{ display:flex; align-items:center; gap:10px; cursor: pointer; }
@@ -528,23 +555,65 @@
     .rel-tag { font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
     .rel-type { font-size: 24px; font-weight: 800; font-family: 'Inter', sans-serif; letter-spacing: -1px; }
     .rel-desc { font-size: 13px; color: var(--muted); line-height: 1.6; text-align: justify; }
+
+    .disclaimer-tag {
+    font-size: 12px;
+    color: var(--muted-light);
+    background: var(--surface-2);
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-left: auto; /* 让它靠右对齐 */
+    border: 1px solid var(--line);
+    }
+
+    @media (max-width: 640px) {
+      .disclaimer-tag {
+        font-size: 10px; /* 手机上字小一点 */
+        padding: 2px 6px;
+      }
+    }
+
+    .site-footer {
+      margin-top: 60px; /* 与上面内容拉开距离 */
+      padding: 30px 20px;
+      text-align: center;
+      border-top: 1px solid var(--line);
+      background: var(--surface-2);
+    }
+
+    .footer-content p {
+      margin: 4px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .footer-note {
+      color: var(--muted-light) !important;
+      font-size: 12px !important;
+      margin-top: 8px !important;
+    }
   </style>
 </head>
 
 <body>
-  <div class="topbar">
+<div class="topbar">
     <div class="topbar-inner">
-      <div class="brand" onclick="location.reload()">
-        <div class="logo">M</div>
-        <div class="brand-text">心理状态罗盘</div>
-      </div>
-      
-      <div class="status-capsule" id="status-bar">
-        正在分析 <span id="current-type-label">INTP</span>
-        <button class="btn-change" onclick="resetApp()">切换</button>
-      </div>
+        <div class="brand" onclick="location.reload()">
+            <div class="logo">M</div>
+            <div class="brand-text">舒木罗盘 MBTI状态解析</div>
+        </div>
+        <div class="disclaimer-tag">非医疗诊断</div>
     </div>
-  </div>
+
+    <div id="q-progress-box" style="display:none; padding: 0 20px 15px 20px;">
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="q-progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="progress-text">
+            <span id="q-current">1</span> / <span id="q-total">0</span>
+        </div>
+    </div>
+</div>
 
   <div id="loading" class="loading-overlay">
     <div class="spinner"></div>
@@ -555,7 +624,7 @@
     
     <div id="landing-page">
       <div class="hero">
-        <h1>你的能量，处于什么相位？</h1>
+        <h1>你最近感觉还好吗？</h1>
         <p>基于荣格八维认知功能模型，精准探测你当下的内耗程度、压力反应与心理效能。</p>
       </div>
 
@@ -1178,5 +1247,12 @@ $('quiz-form').addEventListener('submit', (e) => {
   });
 });
   </script>
-</body>
+<footer class="site-footer">
+    <div class="footer-content">
+      <p>© 2025 舒木罗盘 (Shumu Compass). All Rights Reserved.</p>
+      <p class="footer-note">本测试基于 MBTI 心理学理论模型，结果仅供自我探索参考，不作为心理咨询或医疗诊断依据。</p>
+    </div>
+  </footer>
+
+  </body>
 </html>
