@@ -963,17 +963,17 @@ function renderResult(data) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       // 2. 填充基础数据的辅助函数
-      const fill = document.getElementById('overall-fill');
-          if (fill) {
-              fill.textContent = res.status; 
-              
-              // (可选) 根据状态切换颜色 class
-              fill.className = 'overall-fill ' + (
-                  res.o >= 75 ? 'pill-good' : 
-                  res.o >= 55 ? 'pill-ok' : 
-                  res.o >= 35 ? 'pill-warn' : 'pill-danger'
-              );
+      const updateField = (id, val, desc, className) => {
+          const el = document.getElementById(id);
+          if(el) {
+              el.innerHTML = val; // 允许 HTML，比如插入 span
+              el.className = `v ${className}`;
+              // 更新对应的描述文字 (d-maturity, d-loop 等)
+              const typeKey = id.split('-')[1]; 
+              const descEl = document.getElementById(`d-${typeKey}`);
+              if(descEl) descEl.textContent = desc;
           }
+        };
 
           // 2. 设置主标题文本 (Result Text) -> 存入 result_text
           // 目标效果："高压 · 26/100"
@@ -983,261 +983,199 @@ function renderResult(data) {
               valEl.textContent = `${res.status} · ${res.o}/100`;
           }
 
-      // --- 填充六维数据 ---
-      
-      // 1. 认知成熟度
-      let mClass = data.maturity >= 67 ? "color-high" : (data.maturity >= 34 ? "color-mid" : "color-low");
-      let mTxt = data.maturity >= 67 ? "高阶 · 整合者" : (data.maturity >= 34 ? "中阶 · 探索者" : "低阶 · 固守者");
-      let mDesc = data.maturity >= 67 ? "思维与现实整合度高" : (data.maturity >= 34 ? "思路成形，持续迭代" : "易被旧模式牵引");
-      fill('v-maturity', mTxt, mDesc, mClass);
+// --- A. 填充六维数据 ---
+  
+  // 1. 认知成熟度
+  let mClass = data.maturity >= 67 ? "color-high" : (data.maturity >= 34 ? "color-mid" : "color-low");
+  let mTxt = data.maturity >= 67 ? "高阶 · 整合者" : (data.maturity >= 34 ? "中阶 · 探索者" : "低阶 · 固守者");
+  let mDesc = data.maturity >= 67 ? "思维与现实整合度高" : (data.maturity >= 34 ? "思路成形，持续迭代" : "易被旧模式牵引");
+  updateField('v-maturity', mTxt, mDesc, mClass);
 
-      // 2. Loop
-      let lClass = data.loop < 35 ? "color-healthy" : (data.loop < 65 ? "color-warn" : "color-bad");
-      let lTxt = data.loop < 35 ? "低" : (data.loop < 65 ? "中" : "高");
-      let lDesc = data.loop < 35 ? "启动成本低" : (data.loop < 65 ? "偶有精神反刍" : "自我攻击严重");
-      fill('v-loop', lTxt, lDesc, lClass);
+  // 2. Loop
+  let lClass = data.loop < 35 ? "color-healthy" : (data.loop < 65 ? "color-warn" : "color-bad");
+  let lTxt = data.loop < 35 ? "低" : (data.loop < 65 ? "中" : "高");
+  let lDesc = data.loop < 35 ? "启动成本低" : (data.loop < 65 ? "偶有精神反刍" : "自我攻击严重");
+  updateField('v-loop', lTxt, lDesc, lClass);
 
-      // 3. Grip
-      let gClass = data.grip < 35 ? "color-healthy" : (data.grip < 65 ? "color-warn" : "color-bad");
-      let gTxt = data.grip < 35 ? "低" : (data.grip < 65 ? "中" : "高");
-      let gDesc = data.grip < 35 ? "情绪稳定" : (data.grip < 65 ? "压力下偶有爆发" : "处在高压边缘");
-      fill('v-grip', gTxt, gDesc, gClass);
+  // 3. Grip
+  let gClass = data.grip < 35 ? "color-healthy" : (data.grip < 65 ? "color-warn" : "color-bad");
+  let gTxt = data.grip < 35 ? "低" : (data.grip < 65 ? "中" : "高");
+  let gDesc = data.grip < 35 ? "情绪稳定" : (data.grip < 65 ? "压力下偶有爆发" : "处在高压边缘");
+  updateField('v-grip', gTxt, gDesc, gClass);
 
-      // 4. Load
-      let ldClass = data.load < 35 ? "color-healthy" : (data.load < 65 ? "color-warn" : "color-bad");
-      let ldTxt = data.load < 35 ? "轻" : (data.load < 65 ? "中" : "重");
-      let ldDesc = data.load < 35 ? "余量充足" : (data.load < 65 ? "强度适中" : "急需减负恢复");
-      fill('v-load', ldTxt, ldDesc, ldClass);
+  // 4. Load
+  let ldClass = data.load < 35 ? "color-healthy" : (data.load < 65 ? "color-warn" : "color-bad");
+  let ldTxt = data.load < 35 ? "轻" : (data.load < 65 ? "中" : "重");
+  let ldDesc = data.load < 35 ? "余量充足" : (data.load < 65 ? "强度适中" : "急需减负恢复");
+  updateField('v-load', ldTxt, ldDesc, ldClass);
 
-      // 5. 自洽度
-      let cClass = data.coherence >= 70 ? "color-high" : (data.coherence >= 55 ? "color-mid" : "color-warn");
-      let cTxt = data.coherence >= 70 ? "高" : (data.coherence >= 55 ? "中" : "低");
-      let cDesc = data.coherence >= 70 ? "内在逻辑清晰" : (data.coherence >= 55 ? "可自我校准" : "近期摇摆较多");
-      fill('v-coherence', cTxt, cDesc, cClass);
+  // 5. 自洽度
+  let cClass = data.coherence >= 70 ? "color-high" : (data.coherence >= 55 ? "color-mid" : "color-warn");
+  let cTxt = data.coherence >= 70 ? "高" : (data.coherence >= 55 ? "中" : "低");
+  let cDesc = data.coherence >= 70 ? "内在逻辑清晰" : (data.coherence >= 55 ? "可自我校准" : "近期摇摆较多");
+  updateField('v-coherence', cTxt, cDesc, cClass);
 
-      // 6. 总分
-      let oClass = data.overall >= 75 ? "color-high" : (data.overall >= 55 ? "color-healthy" : (data.overall >= 35 ? "color-warn" : "color-bad"));
-      fill('v-overall', `${data.pill_text} <span style="font-size:14px">${data.overall}</span>`, "综合心理效能", oClass);
+  // 6. 状态指数 (这里恢复你要的格式！)
+  // 逻辑：只要状态词(pill_text)和分数
+  let oClass = data.overall >= 75 ? "color-high" : (data.overall >= 55 ? "color-healthy" : (data.overall >= 35 ? "color-warn" : "color-bad"));
+  
+  // 🔥【关键修复】恢复显示格式为：高压 · 26/100
+  const finalStatusText = `${data.pill_text} · ${data.overall}/100`;
+  updateField('v-overall', finalStatusText, "综合心理效能", oClass);
 
-      // --- 填充核心洞察与建议 ---
-      $('res-insight').textContent = data.insight;
-      $('res-advice').textContent = data.advice;
+  // --- B. 填充文字内容 ---
+  $('res-insight').textContent = data.insight;
+  $('res-advice').textContent = data.advice;
 
-      if($('cp-name')) $('cp-name').textContent = data.cp_name;
-      if($('cp-desc')) $('cp-desc').textContent = data.cp_desc;
-      if($('cp-title-tag')) $('cp-title-tag').textContent = data.cp_title;
-      if($('enemy-name')) $('enemy-name').textContent = data.enemy_name;
-      if($('enemy-desc')) $('enemy-desc').textContent = data.enemy_desc;
+  if($('cp-name')) $('cp-name').textContent = data.cp_name;
+  if($('cp-desc')) $('cp-desc').textContent = data.cp_desc;
+  if($('cp-title-tag')) $('cp-title-tag').textContent = data.cp_title;
+  if($('enemy-name')) $('enemy-name').textContent = data.enemy_name;
+  if($('enemy-desc')) $('enemy-desc').textContent = data.enemy_desc;
 
-      // --- 【重点】处理未来30天指南 (美化排版逻辑) ---
-      
-      // 1. 确保 HTML 里有这个容器，防止报错
-      const guideContainer = $('guide-card-container');
-      
-      if (guideContainer && data.month_text) {
-          guideContainer.style.display = 'block'; // 显示卡片
-          
-          // 填充标题
-          if($('res-month-title')) $('res-month-title').textContent = data.month_title;
-
-
-          let rawText = data.month_text || "";
-          rawText = rawText.trim();
-          
-          // 1. 强力去除标题前后的干扰换行
-          rawText = rawText.replace(/\n\s*【/g, '【').replace(/】\s*\n/g, '】');
-
-          let formattedHtml = rawText;
-
-          // 2. 【关键修改】生成 HTML 结构
-          // 注意这里：用了两个 </div></div> 
-          // 第一个关掉 guide-text，第二个关掉 guide-block，确保大家是平级的兄弟关系
-          formattedHtml = formattedHtml.replace(/【(.*?)】/g, (match, title) => {
-            return `</div></div><div class="guide-block"><div class="guide-sub-title">${title}</div><div class="guide-text">`;
-          });
-
-          // 3. 清理开头多余的闭合标签
-          // 因为第一段前面没有盒子需要关闭，所以正则替换掉开头的 </div>
-          formattedHtml = formattedHtml.replace(/^(<\/div>)+/, '');
-
-          // 4. 补上最后的闭合标签
-          formattedHtml += '</div></div>';
-
-          // 5. 处理列表项 (1. 2. 3.)
-          formattedHtml = formattedHtml.replace(/(?:^|<br>|\n|\s)(\d+\.)/g, '<br><span class="guide-num">$1</span>');
-          
-          // 6. 处理剩余换行
-          formattedHtml = formattedHtml.replace(/\n/g, '<br>');
-          if (formattedHtml.startsWith('<br>')) formattedHtml = formattedHtml.substring(4);
-
-          // 填充进 HTML
-          if($('res-month-body')) $('res-month-body').innerHTML = formattedHtml;
-
-
-
-      }
-
-
-      // --- 绘制雷达图 ---
-      const ctx = $('radarChart').getContext('2d');
-      if(myChart) myChart.destroy();
-      
-      // 动态获取CSS变量颜色
-      const style = getComputedStyle(document.body);
-      const brandColor = style.getPropertyValue('--brand').trim() || '#2563eb'; // 给个默认值防止获取失败
-
-      myChart = new Chart(ctx, {
-        type: 'radar',
-        data: {
-          labels: ['认知成熟度', '自洽度', '内耗弹性', '压力弹性', '负荷余量', '状态指数'],
-          datasets: [{
-            label: '当前状态',
-            data: data.chart_data,
-            backgroundColor: 'rgba(37, 99, 235, 0.2)',
-            borderColor: brandColor,
-            borderWidth: 2,
-            pointBackgroundColor: '#fff',
-            pointBorderColor: brandColor,
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            r: {
-              min: 0, max: 100,
-              ticks: { display: false },
-              grid: { color: '#f1f5f9', circular: true },
-              pointLabels: { font: { size: 12, family:'Inter' }, color: '#64748b' }
-            }
-          },
-          plugins: { legend: { display: false } }
-        }
+  // --- C. 未来30天指南 (保持之前的排版优化) ---
+  const guideContainer = $('guide-card-container');
+  if (guideContainer && data.month_text) {
+      guideContainer.style.display = 'block';
+      if($('res-month-title')) $('res-month-title').textContent = data.month_title;
+      let rawText = (data.month_text || "").trim();
+      rawText = rawText.replace(/\n\s*【/g, '【').replace(/】\s*\n/g, '】');
+      let formattedHtml = rawText.replace(/【(.*?)】/g, (match, title) => {
+        return `</div></div><div class="guide-block"><div class="guide-sub-title">${title}</div><div class="guide-text">`;
       });
+      formattedHtml = formattedHtml.replace(/^(<\/div>)+/, '') + '</div></div>';
+      formattedHtml = formattedHtml.replace(/(?:^|<br>|\n|\s)(\d+\.)/g, '<br><span class="guide-num">$1</span>');
+      formattedHtml = formattedHtml.replace(/\n/g, '<br>');
+      if (formattedHtml.startsWith('<br>')) formattedHtml = formattedHtml.substring(4);
+      if($('res-month-body')) $('res-month-body').innerHTML = formattedHtml;
+  }
+
+  // --- D. 绘制雷达图 ---
+  const ctx = $('radarChart').getContext('2d');
+  if(myChart) myChart.destroy();
+  const style = getComputedStyle(document.body);
+  const brandColor = style.getPropertyValue('--brand').trim() || '#2563eb';
+
+  myChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['认知成熟度', '自洽度', '内耗弹性', '压力弹性', '负荷余量', '状态指数'],
+      datasets: [{
+        label: '当前状态',
+        data: data.chart_data,
+        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+        borderColor: brandColor,
+        borderWidth: 2,
+        pointBackgroundColor: '#fff',
+        pointBorderColor: brandColor,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: { min: 0, max: 100, ticks: { display: false }, grid: { color: '#f1f5f9', circular: true }, pointLabels: { font: { size: 12, family:'Inter' }, color: '#64748b' } }
+      },
+      plugins: { legend: { display: false } }
     }
+  });
+}
 
     // 绑定提交事件
 // === 找到你的 form 提交监听部分，用这段完全替换 ===
-
 $('quiz-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const answers = {};
-    let firstUnanswered = null;
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const answers = {};
+  let firstUnanswered = null;
 
-    // 1. 收集答案
-    if (typeof currentQuestions !== 'undefined') {
-        for (let q of currentQuestions) {
-            const val = formData.get(`q${q.id}`);
-            if (!val) {
-                if (!firstUnanswered) firstUnanswered = q.id;
-            } else {
-                answers[q.id] = parseInt(val);
-            }
-        }
+  if (typeof currentQuestions !== 'undefined') {
+    for (let q of currentQuestions) {
+      const val = formData.get(`q${q.id}`);
+      if (!val) {
+        if (!firstUnanswered) firstUnanswered = q.id;
+      } else {
+        answers[q.id] = parseInt(val);
+      }
     }
+  }
 
-    if (firstUnanswered) {
-        if(typeof toast === 'function') toast("请完成所有题目");
-        else alert("请完成所有题目");
-        return;
-    }
+  if (firstUnanswered) {
+    if(typeof toast === 'function') toast("请完成所有题目");
+    const card = document.querySelector(`.card[data-qid="${firstUnanswered}"]`);
+    if(card) card.scrollIntoView({block:'center',behavior:'smooth'});
+    return;
+  }
 
-    if(typeof setLoading === 'function') setLoading(true);
+  if(typeof setLoading === 'function') setLoading(true);
 
-    // 2. 准备发送给 Python 的数据
-    const payload = {
-        mbti: currentType, 
-        answers: answers
-    };
+  // 1. 发送请求给 Python
+  const payload = { mbti: currentType, answers: answers };
 
-    // 3. 发送请求
-    fetch(API_URL, { 
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    })
-    .then(response => {
-        if (!response.ok) return response.json().then(err => { throw new Error(err.detail || '后端验证失败') });
-        return response.json();
-    })
-    .then(res => { 
-        console.log("🔥 Python 返回结果:", res);
+  fetch(API_BASE ? `${API_BASE}/api/submit` : '/api/submit', { 
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(response => {
+    if (!response.ok) return response.json().then(err => { throw new Error(err.detail || '后端验证失败') });
+    return response.json();
+  })
+  .then(res => { 
+    // 2. 拿到数据，先渲染界面 (Render)
+    renderResult(res); 
 
-        // === A. 先渲染页面 (关键) ===
-        // 必须先渲染，DOM元素(overall-pill等)才会有最新的文字，后面才能抓取到
-        if(typeof renderResult === 'function') {
-             renderResult(res); 
-        }
-
-        // === B. 延迟一点点保存到 LeanCloud (确保 DOM 已更新) ===
-        setTimeout(() => {
-            if(typeof setLoading === 'function') setLoading(false);
-
-            try {
-                console.log("正在保存完整数据到 LeanCloud...");
-                const TestRecord = AV.Object.extend('TestRecord');
-                const record = new TestRecord();
-
-                // --- 1. 补全：答题时长 ---
-                const endTime = Date.now();
-                // 如果没有记录开始时间，就默认时长为 0
-                const startTime = window.testStartTime || endTime; 
-                const duration = Math.round((endTime - startTime) / 1000);
-                record.set('duration_seconds', duration);
-
-                // --- 2. 补全：用户具体选项 ---
-                // 为了方便看，把 key 转成 "Q1", "Q2" 这种格式
-                const choicesForDb = {};
-                Object.keys(answers).forEach(key => {
-                    choicesForDb['Q' + key] = answers[key];
-                });
-                record.set('user_choices', choicesForDb);
-
-                // --- 3. 基础信息 ---
-                record.set('mbti_type', res.mbti_type || currentType || 'UNKNOWN');
-                record.set('device', navigator.userAgent);
-                
-                // --- 4. 分数 (双重保险) ---
-                const getScore = (longName, shortName) => {
-                    if (res[longName] !== undefined) return res[longName];
-                    if (res[shortName] !== undefined) return res[shortName];
-                    return 0; 
-                };
-                record.set('score_maturity', getScore('maturity', 'm')); 
-                record.set('score_loop', getScore('loop', 'l'));
-                record.set('score_grip', getScore('grip', 'g'));
-                record.set('score_load', res.load !== undefined ? res.load : 0);
-                record.set('score_overall', getScore('overall', 'o'));
-                record.set('score_coherence', getScore('coherence', 'coh'));
-
-                // --- 5. 补全：抓取页面上的文案 ---
-                // 因为刚才执行了 renderResult，现在页面上已经是新结果了
-                const fillEl = document.getElementById("overall-fill");
-                if (fllEl) record.set('status_tag', fillEl.textContent.trim()); // 如 "充盈"
-                
-                const overallEl = document.getElementById("overall-v");
-                if (overallEl) record.set('result_text', overallEl.textContent.trim()); // 如 "状态良好..."
-
-                // 执行保存
-                record.save().then((saved) => {
-                    console.log('✅ 完整数据已保存! ID:', saved.id);
-                });
-
-            } catch (error) {
-                console.error('数据库保存出错:', error);
-            }
-
-            // 切换显示结果页
-            if(typeof showResult === 'function') showResult();
-            
-        }, 500); // 延迟 500ms 比较稳妥
-    })
-    .catch(error => {
-        console.error('❌ 错误:', error);
+    // 3. 保存到 LeanCloud 数据库 (Database)
+    setTimeout(() => {
         if(typeof setLoading === 'function') setLoading(false);
-        alert("提交失败: " + error.message);
-    });
+        try {
+            console.log("正在保存数据...");
+            const TestRecord = AV.Object.extend('TestRecord');
+            const record = new TestRecord();
+
+            // A. 时长
+            const endTime = Date.now();
+            const startTime = window.testStartTime || endTime; 
+            const duration = Math.round((endTime - startTime) / 1000);
+            record.set('duration_seconds', duration);
+
+            // B. 用户选项 (Q1: 5, Q2: 3 ...)
+            const choicesForDb = {};
+            Object.keys(answers).forEach(key => { choicesForDb['Q' + key] = answers[key]; });
+            record.set('user_choices', choicesForDb);
+
+            // C. 基础分
+            record.set('mbti_type', res.mbti_type || currentType);
+            record.set('device', navigator.userAgent);
+            record.set('score_maturity', res.maturity); 
+            record.set('score_loop', res.loop);
+            record.set('score_grip', res.grip);
+            record.set('score_load', res.load);
+            record.set('score_overall', res.overall);
+            record.set('score_coherence', res.coherence);
+
+            // D. 文本字段 (🔥这里直接用数据生成，不再抓取 DOM，防止抓空)
+            // status_tag: "高压"
+            // result_text: "高压 · 26/100"
+            const statusTag = res.pill_text; // Python返回的短语
+            const fullResultText = `${res.pill_text} · ${res.overall}/100`;
+            
+            record.set('status_tag', statusTag);
+            record.set('result_text', fullResultText);
+
+            record.save().then((saved) => {
+                console.log('✅ 保存成功 ID:', saved.id);
+            });
+        } catch (error) {
+            console.error('数据库保存出错:', error);
+        }
+    }, 500);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    if(typeof setLoading === 'function') setLoading(false);
+    alert("提交失败: " + error.message);
+  });
 });
   </script>
 </body>
