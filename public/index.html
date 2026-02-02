@@ -850,6 +850,7 @@
     }
 
 function renderQuestions() {
+      window.testStartTime = Date.now();
       const container = $('questions-container');
       container.innerHTML = "";
       updateProgress();
@@ -1115,7 +1116,6 @@ $('quiz-form').addEventListener('submit', (e) => {
     let firstUnanswered = null;
 
     // 1. 收集答案
-    // 注意：这里假设 currentQuestions 是你题目的数组变量
     if (typeof currentQuestions !== 'undefined') {
         for (let q of currentQuestions) {
             const val = formData.get(`q${q.id}`);
@@ -1127,111 +1127,106 @@ $('quiz-form').addEventListener('submit', (e) => {
         }
     }
 
-    // 校验是否填完
     if (firstUnanswered) {
-        // 假设你有一个 toast 函数提示错误
         if(typeof toast === 'function') toast("请完成所有题目");
         else alert("请完成所有题目");
-        
-        const card = document.querySelector(`.card[data-qid="${firstUnanswered}"]`);
-        if(card) card.scrollIntoView({ block: 'center', behavior: 'smooth' });
         return;
     }
 
-    // 显示加载中
     if(typeof setLoading === 'function') setLoading(true);
 
-    // 2. 【关键】请求 Python 后端获取结果 (定义 res)
-    // 假设你的 Python 接口地址是 /api/analyze，如果不同请修改
+    // 2. 准备发送给 Python 的数据
     const payload = {
-        mbti: currentType, // 确保 currentType 变量存在 (通常是 "INTP" 等)
-        answers: answers   // 具体的答题数据
+        mbti: currentType, 
+        answers: answers
     };
 
+    // 3. 发送请求
     fetch(API_URL, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload) //  发送包装好的数据
+        body: JSON.stringify(payload)
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) return response.json().then(err => { throw new Error(err.detail || '后端验证失败') });
+        return response.json();
+    })
     .then(res => { 
-        // 🔍 第一步：先打印出来看看，到底是啥
-        console.log("Python 原始返回数据:", res);
+        console.log("🔥 Python 返回结果:", res);
 
-        // === 1. 优先恢复页面显示 (直接用 res) ===
-        // 如果之前能跑通，说明 res 本身就是对的，不要瞎改它
+        // === A. 先渲染页面 (关键) ===
+        // 必须先渲染，DOM元素(overall-pill等)才会有最新的文字，后面才能抓取到
         if(typeof renderResult === 'function') {
              renderResult(res); 
         }
 
-        // === 2. 这里的“双重保险”是为了 LeanCloud 存数据库 ===
-        // 自动判断：如果 res.maturity 有值就用它，否则用 res.m，再没有就填 0
-        const getScore = (longName, shortName) => {
-            if (res[longName] !== undefined) return res[longName];
-            if (res[shortName] !== undefined) return res[shortName];
-            return 0; // 保底
-        };
-
-        // 准备好要存的数据
-        const score_m = getScore('maturity', 'm');
-        const score_l = getScore('loop', 'l');
-        const score_g = getScore('grip', 'g');
-        const score_o = getScore('overall', 'o');
-        const score_coh = getScore('coherence', 'coh');
-        const score_load = res.load !== undefined ? res.load : 0;
-        
-        // 即使 UI 已经显示了，我们稍等一下再存数据库，避免卡顿
+        // === B. 延迟一点点保存到 LeanCloud (确保 DOM 已更新) ===
         setTimeout(() => {
             if(typeof setLoading === 'function') setLoading(false);
 
             try {
-                console.log("准备保存到 LeanCloud...");
+                console.log("正在保存完整数据到 LeanCloud...");
                 const TestRecord = AV.Object.extend('TestRecord');
                 const record = new TestRecord();
 
-                // 记录时间
+                // --- 1. 补全：答题时长 ---
                 const endTime = Date.now();
-                const startTime = window.testStartTime || endTime;
+                // 如果没有记录开始时间，就默认时长为 0
+                const startTime = window.testStartTime || endTime; 
                 const duration = Math.round((endTime - startTime) / 1000);
+                record.set('duration_seconds', duration);
 
-                // 存入字段
+                // --- 2. 补全：用户具体选项 ---
+                // 为了方便看，把 key 转成 "Q1", "Q2" 这种格式
+                const choicesForDb = {};
+                Object.keys(answers).forEach(key => {
+                    choicesForDb['Q' + key] = answers[key];
+                });
+                record.set('user_choices', choicesForDb);
+
+                // --- 3. 基础信息 ---
                 record.set('mbti_type', res.mbti_type || currentType || 'UNKNOWN');
                 record.set('device', navigator.userAgent);
-                record.set('duration_seconds', duration);
                 
-                // 存入分数 (使用刚才取出的双重保险值)
-                record.set('score_maturity', score_m); 
-                record.set('score_loop', score_l);
-                record.set('score_grip', score_g);
-                record.set('score_load', score_load);
-                record.set('score_overall', score_o);
-                record.set('score_coherence', score_coh);
+                // --- 4. 分数 (双重保险) ---
+                const getScore = (longName, shortName) => {
+                    if (res[longName] !== undefined) return res[longName];
+                    if (res[shortName] !== undefined) return res[shortName];
+                    return 0; 
+                };
+                record.set('score_maturity', getScore('maturity', 'm')); 
+                record.set('score_loop', getScore('loop', 'l'));
+                record.set('score_grip', getScore('grip', 'g'));
+                record.set('score_load', res.load !== undefined ? res.load : 0);
+                record.set('score_overall', getScore('overall', 'o'));
+                record.set('score_coherence', getScore('coherence', 'coh'));
 
-                // 存入文本 (直接从页面元素上抓，这样最准)
+                // --- 5. 补全：抓取页面上的文案 ---
+                // 因为刚才执行了 renderResult，现在页面上已经是新结果了
                 const pillEl = document.getElementById("overall-pill");
-                if (pillEl) record.set('status_tag', pillEl.textContent);
+                if (pillEl) record.set('status_tag', pillEl.textContent.trim()); // 如 "充盈"
                 
                 const overallEl = document.getElementById("overall-v");
-                if (overallEl) record.set('result_text', overallEl.textContent);
+                if (overallEl) record.set('result_text', overallEl.textContent.trim()); // 如 "状态良好..."
 
                 // 执行保存
                 record.save().then((saved) => {
-                    console.log('✅ 数据库保存成功! ID:', saved.id);
+                    console.log('✅ 完整数据已保存! ID:', saved.id);
                 });
 
             } catch (error) {
-                console.error('❌ 数据库保存出错:', error);
+                console.error('数据库保存出错:', error);
             }
 
-            // 切换到结果页
+            // 切换显示结果页
             if(typeof showResult === 'function') showResult();
             
-        }, 650);
+        }, 500); // 延迟 500ms 比较稳妥
     })
     .catch(error => {
-        console.error('❌ 请求出错:', error);
+        console.error('❌ 错误:', error);
         if(typeof setLoading === 'function') setLoading(false);
-        alert("系统繁忙，请稍后再试");
+        alert("提交失败: " + error.message);
     });
 });
   </script>
