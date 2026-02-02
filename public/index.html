@@ -7,6 +7,7 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="//code.bdstatic.com/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
 
   <style>
     :root{
@@ -256,7 +257,7 @@
         padding: 0 4px;
       }
       .scale-options {
-        gap: 6px; /* 缩小圆圈间距 */
+        gap: 10px; /* 缩小圆圈间距 */
       }
       .label-text { font-size: 12px; }
 
@@ -288,7 +289,7 @@
     .chart-box, .section{ background: #fff; padding: 24px; border-radius: 20px; margin-top: 16px; box-shadow: var(--shadow); }
     .section h3{ margin: 0 0 12px; font-size: 16px; font-weight: 700; display:flex; align-items:center; gap:8px; }
     .section h3::before{ content:''; width: 4px; height: 16px; background: var(--brand); border-radius: 4px; }
-    .section p{ margin: 0; font-size: 15px; line-height: 1.7; color: var(--muted); text-align: justify; }
+    .section p{ margin: 0; font-size: 14px; line-height: 1.7; color: var(--muted); text-align: justify; }
 
     /* Loading & Toast */
     .loading-overlay{ position: fixed; inset: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(5px); z-index: 100; display:none; flex-direction: column; align-items:center; justify-content:center; }
@@ -392,7 +393,7 @@
 
     /* 正文文字 */
     .guide-text {
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1.8; /* 增加行高，阅读不累 */
       color: #475569;
       text-align: justify; /* 两端对齐 */
@@ -463,6 +464,70 @@
       color: #334155;
       text-align: justify;
     }
+
+    /* 社交能量场样式 */
+    .relation-box {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .rel-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.05);
+      box-shadow: var(--shadow);
+      transition: transform 0.2s;
+    }
+    .rel-card:hover { transform: translateY(-2px); }
+
+    .rel-desc { 
+      font-size: 15px;           
+      color: #475569; 
+      line-height: 1.7;          
+      text-align: justify; 
+      max-width: 90%;             
+      position: relative;
+      z-index: 2;
+    }
+
+    /* 装饰背景字 */
+    .rel-card::before {
+      content: attr(data-bg);
+      position: absolute;
+      right: -10px; bottom: -10px;
+      font-size: 100px;
+      font-weight: 900;
+      opacity: 0.06;
+      font-family: sans-serif;
+      pointer-events: none;
+    }
+
+    /* 最佳CP - 暖色系 */
+    .rel-cp {
+      background: linear-gradient(135deg, #fff0f3 0%, #fff 100%);
+      border-left: 4px solid #f43f5e;
+    }
+    .rel-cp .rel-tag { color: #f43f5e; background: rgba(244, 63, 94, 0.1); }
+    .rel-cp .rel-type { color: #be123c; }
+
+    /* 天敌 - 冷灰色系 */
+    .rel-enemy {
+      background: linear-gradient(135deg, #f1f5f9 0%, #fff 100%);
+      border-left: 4px solid #64748b;
+    }
+    .rel-enemy .rel-tag { color: #475569; background: rgba(71, 85, 105, 0.1); }
+    .rel-enemy .rel-type { color: #334155; }
+
+    /* 内容排版 */
+    .rel-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .rel-tag { font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
+    .rel-type { font-size: 24px; font-weight: 800; font-family: 'Inter', sans-serif; letter-spacing: -1px; }
+    .rel-desc { font-size: 13px; color: var(--muted); line-height: 1.6; text-align: justify; }
   </style>
 </head>
 
@@ -595,6 +660,29 @@
 
         <div class="section"><h3>核心洞察</h3><p id="res-insight">...</p></div>
         <div class="section"><h3>调整建议</h3><p id="res-advice">...</p></div>
+
+        <div class="relation-box">
+          <div class="rel-card rel-cp" data-bg="❤️">
+            <div class="rel-header">
+              <div class="rel-type" id="cp-name">ENTJ</div>
+              <div class="rel-tag" id="cp-title-tag">合伙人/战友</div>
+            </div>
+            <div class="rel-desc" id="cp-desc">
+              正在计算最匹配的能量源...
+            </div>
+          </div>
+
+          <div class="rel-card rel-enemy" data-bg="⚠️">
+            <div class="rel-header">
+              <div class="rel-type" id="enemy-name">ESFJ</div>
+              <div class="rel-tag">当下需回避的人格</div>
+            </div>
+            <div class="rel-desc" id="enemy-desc">
+              正在识别需要远离的对象...
+            </div>
+          </div>
+        </div>
+
         <div class="section month-card">
         <div class="guide-card" id="guide-card-container" style="display:none">
           <div class="guide-header">
@@ -625,9 +713,19 @@
     const $ = (id) => document.getElementById(id);
     const setLoading = (show) => { $('loading').style.display = show ? 'flex' : 'none'; };
     const toast = (msg) => {
-      const t = $('toast'); t.textContent = msg; t.style.display = 'block'; t.style.animation = 'fadeIn 0.3s';
+    const t = $('toast'); t.textContent = msg; t.style.display = 'block'; t.style.animation = 'fadeIn 0.3s';
       setTimeout(() => t.style.display = 'none', 3000);
     };
+
+
+    const APP_ID = 'oHk4yKURFUq90Z2v66jCONZF-MdYXbMMI';
+    const APP_KEY = 'sxruA5kvqDApvWG5FRslFJId';
+    // 国际版通常不需要填 serverURL，如果报错再说
+    AV.init({
+      appId: APP_ID,
+      appKey: APP_KEY,
+      serverURL: "/lc-api" // 如果后台没有ServerURL，这行可以删掉
+    });
 
     // 选择类型入口
 // ==========================================
@@ -893,6 +991,11 @@ function renderResult(data) {
       $('res-insight').textContent = data.insight;
       $('res-advice').textContent = data.advice;
 
+      if($('cp-name')) $('cp-name').textContent = data.cp_name;
+      if($('cp-desc')) $('cp-desc').textContent = data.cp_desc;
+      if($('cp-title-tag')) $('cp-title-tag').textContent = data.cp_title;
+      if($('enemy-name')) $('enemy-name').textContent = data.enemy_name;
+      if($('enemy-desc')) $('enemy-desc').textContent = data.enemy_desc;
 
       // --- 【重点】处理未来30天指南 (美化排版逻辑) ---
       
@@ -1006,7 +1109,70 @@ function renderResult(data) {
         return;
       }
       submitAnswers(answers);
-    });
+    })
+    
+    setTimeout(() => {
+    setLoading(false); 
+
+    renderResult(res); 
+
+    try {
+        console.log("准备发送数据到 LeanCloud..."); // 调试日志
+        const TestRecord = AV.Object.extend('TestRecord');
+        const record = new TestRecord();
+
+        // 1. 计算耗时
+        const endTime = Date.now();
+        const startTime = window.testStartTime || endTime;
+        const duration = Math.round((endTime - startTime) / 1000);
+
+        // 2. 基础信息
+        record.set('mbti_type', currentType); 
+        record.set('device', navigator.userAgent);
+        record.set('duration_seconds', duration);
+
+        // 3. 维度分数
+        record.set('score_maturity', res.m);
+        record.set('score_loop', res.l);
+        record.set('score_grip', res.g);
+        record.set('score_load', res.load);
+        record.set('score_coherence', res.coh); // 确保 res.coh 存在，如果你的算法没算这个，要检查一下
+        record.set('score_overall', res.o);
+
+        const pillEl = document.getElementById("overall-pill");
+        if (pillEl) record.set('status_tag', pillEl.textContent);
+
+        const overallEl = document.getElementById("overall-v");
+        if (overallEl) record.set('result_text', overallEl.textContent);
+
+        const answerDetails = {};
+        // ⚠️ 确保 currentQuestions 和 formData 在这里可用
+        // 如果 formData 不可用，你可能需要重新获取一下
+        if (typeof currentQuestions !== 'undefined') {
+            currentQuestions.forEach(q => {
+                 // 尝试从 input 获取，或者从你保存的 answers 对象获取
+                 const el = document.querySelector(`input[name="q${q.id}"]:checked`);
+                 if(el) answerDetails['Q' + q.id] = parseInt(el.value);
+            });
+        }
+        record.set('user_choices', answerDetails);
+
+        // 发送
+        record.save().then((saved) => {
+            console.log('✅ LeanCloud 保存成功! ID:', saved.id);
+        }).catch((err) => {
+            console.error('❌ LeanCloud 保存失败:', err);
+        });
+
+    } catch (error) {
+        console.error('❌ 代码执行出错:', error);
+    }
+    
+    // 原有的切换界面逻辑
+    // showResult(); 
+
+}, 650
+    );
   </script>
 </body>
 </html>
