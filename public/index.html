@@ -1143,7 +1143,7 @@ $('quiz-form').addEventListener('submit', (e) => {
 
     // 2. 【关键】请求 Python 后端获取结果 (定义 res)
     // 假设你的 Python 接口地址是 /api/analyze，如果不同请修改
-      fetch(API_URL, {  // <--- 这里改成变量 API_URL
+fetch(API_URL, {  // <--- 这里改成变量 API_URL
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -1157,14 +1157,44 @@ $('quiz-form').addEventListener('submit', (e) => {
         
         console.log("Python 返回结果:", res); 
 
-        // 3. 执行渲染和 LeanCloud 保存
+const finalRes = {
+            // 维度分数转换
+            m: res.maturity,        // 对应 Python 的 maturity
+            l: res.loop,            // 对应 Python 的 loop
+            g: res.grip,            // 对应 Python 的 grip
+            load: res.load,         // 这个名字一样，不用变
+            o: res.overall,         // 对应 Python 的 overall
+            coh: res.coherence,     // 对应 Python 的 coherence
+            
+            // 其他展示字段 (直接拷贝)
+            chart_data: res.chart_data,
+            status: res.status,     // 状态词 (如：充盈)
+            summary: res.summary,
+            advice_title: res.advice_title,
+            advice_content: res.advice_content,
+            cp_title: res.cp_title,
+            rel_type: res.rel_type,
+            rel_desc: res.rel_desc,
+            
+            // 保留一下 mbti 类型，以防万一
+            mbti_type: res.mbti_type || (typeof currentType !== 'undefined' ? currentType : '') 
+        };
+
+        console.log("转换后的数据 (用于渲染):", finalRes);
+
+        // 3. 执行渲染和保存
         setTimeout(() => {
             if(typeof setLoading === 'function') setLoading(false);
 
-            // A. 渲染结果到页面
-            if(typeof renderResult === 'function') renderResult(res);
+            // A. 【渲染】用转换后的 finalRes 传给前端渲染函数
+            // 这样 renderResult 就能读到它想要的 .m, .l, .g 了
+            if(typeof renderResult === 'function') {
+                renderResult(finalRes);
+            } else {
+                console.error("找不到 renderResult 函数，无法显示结果");
+            }
 
-            // B. LeanCloud 保存逻辑 (你刚才的那段代码)
+            // B. 【LeanCloud 保存】(继续用 finalRes)
             try {
                 const TestRecord = AV.Object.extend('TestRecord');
                 const record = new TestRecord();
@@ -1173,22 +1203,22 @@ $('quiz-form').addEventListener('submit', (e) => {
                 const startTime = window.testStartTime || endTime;
                 const duration = Math.round((endTime - startTime) / 1000);
 
-                // 尝试获取 mbti_type，如果 res 里没有，就尝试从全局取
-                const mbtiType = res.mbti_type || (typeof currentType !== 'undefined' ? currentType : 'UNKNOWN');
-
-                record.set('mbti_type', mbtiType);
+                record.set('mbti_type', finalRes.mbti_type);
                 record.set('device', navigator.userAgent);
                 record.set('duration_seconds', duration);
                 
-                // 确保 res 中的字段名和你 Python 返回的一致
-                // Python index.py 返回的通常是 maturity, loop, grip 等
-                record.set('score_maturity', res.maturity || res.m); 
-                record.set('score_loop', res.loop || res.l);
-                record.set('score_grip', res.grip || res.g);
-                record.set('score_load', res.load);
-                record.set('score_overall', res.overall || res.o);
+                // 保存分数
+                record.set('score_maturity', finalRes.m); 
+                record.set('score_loop', finalRes.l);
+                record.set('score_grip', finalRes.g);
+                record.set('score_load', finalRes.load);
+                record.set('score_overall', finalRes.o);
+                record.set('score_coherence', finalRes.coh);
 
-                // 保存
+                // 保存文本
+                record.set('status_tag', finalRes.status);
+                record.set('result_text', finalRes.summary);
+
                 record.save().then((saved) => {
                     console.log('LeanCloud 保存成功 ID:', saved.id);
                 });
@@ -1197,7 +1227,7 @@ $('quiz-form').addEventListener('submit', (e) => {
                 console.error('LeanCloud 保存出错:', error);
             }
 
-            // C. 切换页面
+            // C. 切换页面到结果页
             if(typeof showResult === 'function') showResult();
             
         }, 650);
