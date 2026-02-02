@@ -33,34 +33,7 @@
     .container{ max-width: 720px; margin: 0 auto; padding: 20px 16px; }
     
     /* Topbar */
-    /* === 1. 修改 .topbar 让它吸顶 === */
-.topbar {
-    position: fixed;       /* 核心：固定定位 */
-    top: 0;                /* 紧贴顶部 */
-    left: 0;
-    width: 100%;           /* 撑满宽度 */
-    z-index: 999;          /* 层级最高，防止被题目遮挡 */
-    
-    background: rgba(255, 255, 255, 0.95); /* 微微透明的白色背景 */
-    backdrop-filter: blur(10px);           /* 加上“毛玻璃”模糊效果，显得很高级 */
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05); /* 加一点阴影，更有层次感 */
-    
-    /* 之前的样式保留... */
-    margin-bottom: 0;      /* 去掉下边距，用 body padding 代替 */
-}
-
-/* === 2. 给页面加“垫片” === */
-/* 因为 topbar 固定后不占位置了，题目会钻到顶栏下面去 */
-/* 所以我们要给 body 或 main 容器加一个上内边距 */
-body {
-    padding-top: 110px; /* 这个数值根据你顶栏的实际高度微调，通常 100px-120px 左右 */
-}
-
-@media (max-width: 640px) {
-    body {
-        padding-top: 100px; /* 手机上可能稍微矮一点 */
-    }
-}
+    .topbar{ position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); transition: transform 0.3s; }
     .topbar-inner{ max-width: 720px; margin: 0 auto; padding: 12px 16px; display:flex; align-items:center; justify-content:space-between; height: 60px; }
     
     .brand{ display:flex; align-items:center; gap:10px; cursor: pointer; }
@@ -158,7 +131,22 @@ body {
        ========================================= */
     #quiz-interface{ display: none; animation: slideUp 0.4s ease; }
     
-    .q-progress-box{ margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+     .q-progress-box {
+        display: flex; 
+        align-items: center; 
+        gap: 10px;
+      
+        position: sticky;        /* 开启吸顶模式 */
+        top: 60px;               /* 距离顶部60px (刚好避开顶部的导航栏) */
+        z-index: 40;             /* 层级要比普通卡片高，但比导航栏(50)低 */
+        background: var(--surface-2); 
+        padding: 10px 0;         
+        margin-bottom: 20px;    
+        
+        /* 可选：加一点毛玻璃效果，看起来更高级 */
+        backdrop-filter: blur(5px);
+        background: rgba(248, 250, 252, 0.9); 
+      }
     .progress-track{ flex:1; height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
     .progress-fill{ height: 100%; background: var(--brand); width: 0%; transition: width 0.3s ease; border-radius: 99px; }
     .progress-text{ font-size: 12px; font-weight: 600; color: var(--muted); width: 40px; text-align: right; }
@@ -596,24 +584,20 @@ body {
 </head>
 
 <body>
-<div class="topbar">
+  <div class="topbar">
     <div class="topbar-inner">
-        <div class="brand" onclick="location.reload()">
-            <div class="logo">M</div>
-            <div class="brand-text">舒木罗盘 MBTI状态解析</div>
-        </div>
+      <div class="brand" onclick="location.reload()">
+        <div class="logo">M</div>
+        <div class="brand-text">舒木罗盘-MBTI状态解析</div>
         <div class="disclaimer-tag">非医疗诊断</div>
+      </div>
+      
+      <div class="status-capsule" id="status-bar">
+        正在分析 <span id="current-type-label">INTP</span>
+        <button class="btn-change" onclick="resetApp()">切换</button>
+      </div>
     </div>
-
-    <div id="q-progress-box" style="display:none; padding: 0 20px 15px 20px;">
-        <div class="progress-bar-bg">
-            <div class="progress-bar-fill" id="q-progress-fill" style="width: 0%"></div>
-        </div>
-        <div class="progress-text">
-            <span id="q-current">1</span> / <span id="q-total">0</span>
-        </div>
-    </div>
-</div>
+  </div>
 
   <div id="loading" class="loading-overlay">
     <div class="spinner"></div>
@@ -1253,6 +1237,5 @@ $('quiz-form').addEventListener('submit', (e) => {
       <p class="footer-note">本测试基于 MBTI 心理学理论模型，结果仅供自我探索参考，不作为心理咨询或医疗诊断依据。</p>
     </div>
   </footer>
-
   </body>
 </html>
