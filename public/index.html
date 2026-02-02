@@ -963,12 +963,12 @@ function renderResult(data) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       // 2. 填充基础数据的辅助函数
-      const pill = document.getElementById('overall-pill');
-          if (pill) {
-              pill.textContent = res.status; 
+      const fill = document.getElementById('overall-fill');
+          if (fill) {
+              fill.textContent = res.status; 
               
               // (可选) 根据状态切换颜色 class
-              pill.className = 'overall-pill ' + (
+              fill.className = 'overall-fill ' + (
                   res.o >= 75 ? 'pill-good' : 
                   res.o >= 55 ? 'pill-ok' : 
                   res.o >= 35 ? 'pill-warn' : 'pill-danger'
@@ -1213,8 +1213,8 @@ $('quiz-form').addEventListener('submit', (e) => {
 
                 // --- 5. 补全：抓取页面上的文案 ---
                 // 因为刚才执行了 renderResult，现在页面上已经是新结果了
-                const pillEl = document.getElementById("overall-pill");
-                if (pillEl) record.set('status_tag', pillEl.textContent.trim()); // 如 "充盈"
+                const fillEl = document.getElementById("overall-fill");
+                if (fllEl) record.set('status_tag', fillEl.textContent.trim()); // 如 "充盈"
                 
                 const overallEl = document.getElementById("overall-v");
                 if (overallEl) record.set('result_text', overallEl.textContent.trim()); // 如 "状态良好..."
