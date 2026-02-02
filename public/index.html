@@ -1143,12 +1143,12 @@ $('quiz-form').addEventListener('submit', (e) => {
 
     // 2. 【关键】请求 Python 后端获取结果 (定义 res)
     // 假设你的 Python 接口地址是 /api/analyze，如果不同请修改
-    fetch('http://localhost:8000/api/analyze', { 
+      fetch(API_URL, {  // <--- 这里改成变量 API_URL
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(answers) // 把答案发给 Python
+        body: JSON.stringify(answers)
     })
     .then(response => response.json())
     .then(res => { 
