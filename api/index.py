@@ -2461,7 +2461,7 @@ def get_questions(mbti_type: str):
     return [QuestionItem(id=q["id"], text=q["text"]) for q in shuffled]
 
 
-@app.post("/api/submit", response_model=AnalysisResult)
+@app.post("/api/analyze", response_model=AnalysisResult)
 def submit_answers(req: SubmitRequest):
     mbti = req.mbti.upper()
     if mbti not in MBTI_BANK:
