@@ -580,6 +580,101 @@
       font-size: 12px !important;
       margin-top: 8px !important;
     }
+/* ====================
+   付费解锁模块样式
+   ==================== */
+.locked-section {
+  margin-top: 30px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  position: relative;
+  overflow: hidden; /* 防止模糊溢出 */
+}
+
+/* 标题可见 */
+.lock-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lock-title::before {
+  content: "🔒";
+  font-size: 14px;
+}
+
+/* 内容模糊层 */
+.blur-content {
+  filter: blur(6px); /* 高斯模糊 */
+  user-select: none; /* 禁止选中 */
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* 假文段落样式 (用于撑开模糊区域) */
+.fake-text p {
+  margin-bottom: 8px;
+  background: #e2e8f0;
+  height: 14px;
+  border-radius: 4px;
+  width: 100%;
+}
+.fake-text p:nth-child(2) { width: 80%; }
+.fake-text p:nth-child(3) { width: 90%; }
+
+/* 购买遮罩层 */
+.pay-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 30%, #fff 100%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 60px;
+}
+
+/* 价格标签 */
+.price-box {
+  text-align: center;
+  margin-bottom: 15px;
+}
+.price-original {
+  text-decoration: line-through;
+  color: #94a3b8;
+  font-size: 14px;
+}
+.price-current {
+  color: #ef4444; /* 红色强调 */
+  font-size: 24px;
+  font-weight: 800;
+  margin-left: 8px;
+}
+
+/* 购买按钮 */
+.btn-buy {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 99px;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+  cursor: pointer;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
   </style>
 </head>
 
@@ -1114,6 +1209,7 @@ function renderResult(data) {
           if (valEl) {
               // 这里就是你要的格式：状态 + 点 + 分数 + /100
               valEl.textContent = `${res.status} · ${res.o}/100`;
+            
           }
 
 // --- A. 填充六维数据 ---
@@ -1212,7 +1308,13 @@ function renderResult(data) {
       plugins: { legend: { display: false } }
     }
   });
+
+  renderLockedSection();
 }
+
+<div id="locked-content-placeholder"></div>
+
+
 
     // 绑定提交事件
 // === 找到你的 form 提交监听部分，用这段完全替换 ===
@@ -1311,6 +1413,196 @@ $('quiz-form').addEventListener('submit', (e) => {
     alert("提交失败: " + error.message);
   });
 });
+
+/* ============================================================
+   以下是付费模块的完整逻辑 (直接复制到 <script> 最末尾)
+   ============================================================ */
+
+// 1. 渲染“锁定状态”的界面
+function renderLockedSection() {
+    const container = document.getElementById('locked-content-placeholder');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="locked-section" id="sec-insight">
+        <div class="lock-title">核心洞察 & 深层心理</div>
+        <div class="blur-content fake-text">
+           <p></p><p></p><p></p><p></p>
+           <br>
+           <p></p><p></p>
+        </div>
+        
+        <div class="pay-overlay">
+          <div class="price-box">
+            <span class="price-original">原价 ¥29.9</span>
+            <span class="price-current">限时 ¥9.9</span>
+          </div>
+          <button class="btn-buy" onclick="handlePayment()">立即解锁完整报告</button>
+          <div style="margin-top:8px; font-size:12px; color:#94a3b8;">已有 2,304 人解锁成功</div>
+        </div>
+      </div>
+
+      <div class="locked-section" id="sec-advice">
+        <div class="lock-title">专属调整建议</div>
+        <div class="blur-content fake-text">
+           <p></p><p></p><p></p>
+        </div>
+      </div>
+
+      <div class="locked-section" id="sec-cp">
+        <div class="lock-title">当下最佳 CP (高适配)</div>
+        <div class="blur-content">
+           <div style="display:flex; gap:10px; margin-bottom:10px;">
+              <span style="background:#eee; padding:5px 10px; border-radius:8px;">守护者类型</span>
+              <span style="background:#eee; padding:5px 10px; border-radius:8px;">占有型伴侣</span>
+           </div>
+           <div class="fake-text"><p></p><p></p></div>
+        </div>
+      </div>
+
+      <div class="locked-section" id="sec-avoid">
+        <div class="lock-title" style="color:#ef4444;">当下需回避的人格 ⚠️</div>
+        <div class="blur-content fake-text">
+           <p></p><p></p>
+        </div>
+      </div>
+
+      <div class="locked-section" id="sec-guide">
+        <div class="lock-title">未来 30 天能量指南</div>
+        <div class="blur-content fake-text">
+           <p></p><p></p><p></p><p></p>
+        </div>
+      </div>
+    `;
+}
+
+// 2. 点击购买按钮触发
+window.handlePayment = async function() {
+    const btn = document.querySelector('.btn-buy');
+    btn.innerText = "正在创建订单...";
+    btn.disabled = true;
+
+    try {
+        // 这里的地址必须是你的 Python 后端地址
+        // 如果是本地测试用 http://127.0.0.1:8000/api/pay
+        // 上线后用 http://mypsytest.site/api/pay
+        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                         ? 'http://127.0.0.1:8000' 
+                         : 'http://mypsytest.site';
+
+        const response = await fetch(`${API_BASE}/api/pay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_type: 'alipay' })
+        });
+        
+        const data = await response.json();
+        
+        if(data.code === 200 && data.pay_url) {
+            window.location.href = data.pay_url; // 跳转去支付宝
+        } else {
+            alert('订单创建失败');
+            btn.innerText = "立即解锁完整报告";
+            btn.disabled = false;
+        }
+    } catch (e) {
+        console.error(e);
+        alert('网络请求出错');
+        btn.innerText = "立即解锁完整报告";
+        btn.disabled = false;
+    }
+}
+
+// 3. 页面加载监听：检查是否支付成功跳回来的
+window.addEventListener('load', async function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get('check_order');
+
+    // 如果网址里带有 order_id，说明用户刚付完款回来
+    if (orderId) {
+        // 自动切换到结果页显示（你需要确保这里能把用户带到结果页，而不是留在封面）
+        // 如果你的 SPA 逻辑比较简单，可能需要手动隐藏 Landing Page，显示 Result Page
+        // document.getElementById('landing-page').style.display = 'none';
+        // document.getElementById('result-page').style.display = 'block';
+        
+        // 先把锁定的架子搭起来（防止用户没点提交就没有架子）
+        renderLockedSection(); 
+
+        const btn = document.querySelector('.btn-buy');
+        if(btn) btn.innerText = "正在验证支付结果...";
+
+        let attempts = 0;
+        const checkInterval = setInterval(async () => {
+            attempts++;
+            try {
+                const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+                         ? 'http://127.0.0.1:8000' 
+                         : 'http://mypsytest.site';
+
+                const res = await fetch(`${API_BASE}/api/check_order?order_id=${orderId}`);
+                const data = await res.json();
+
+                if (data.paid === true) {
+                    clearInterval(checkInterval);
+                    unlockContent(data.data); // 调用下面的解锁函数
+                    alert("解锁成功！");
+                    // 清理 URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            } catch (e) { console.error(e); }
+
+            if (attempts > 10) {
+                clearInterval(checkInterval);
+                if(btn) btn.innerText = "验证超时，请刷新页面";
+            }
+        }, 2000);
+    }
+});
+
+// 4. 解锁函数：把真实数据填进去
+function unlockContent(data) {
+    // 移除遮罩
+    const overlay = document.querySelector('.pay-overlay');
+    if(overlay) overlay.remove();
+
+    // 辅助函数：填充内容并移除模糊
+    const fill = (id, htmlContent) => {
+        const section = document.getElementById(id);
+        if(!section) return;
+        const blurDiv = section.querySelector('.blur-content');
+        if(blurDiv) {
+            blurDiv.classList.remove('blur-content', 'fake-text');
+            blurDiv.style.filter = 'none';
+            blurDiv.style.opacity = '1';
+            blurDiv.innerHTML = htmlContent;
+        }
+    };
+
+    // 1. 核心洞察
+    if(data.insight) fill('sec-insight', data.insight.map(t => `<p>${t}</p>`).join(''));
+    
+    // 2. 调整建议
+    if(data.advice) fill('sec-advice', data.advice.map(t => `<p class="advice-item">✅ ${t}</p>`).join(''));
+
+    // 3. CP
+    if(data.cp) {
+        fill('sec-cp', `
+            <div style="margin-bottom:15px">
+                <strong>🛡️ 守护者:</strong> ${data.cp.guard}
+            </div>
+            <div>
+                <strong>💍 占有型:</strong> ${data.cp.owner}
+            </div>
+        `);
+    }
+
+    // 4. 回避
+    if(data.avoid) fill('sec-avoid', `<p>${data.avoid}</p>`);
+
+    // 5. 指南
+    if(data.guide_30d) fill('sec-guide', `<p>${data.guide_30d}</p>`);
+}
+
   </script>
 <footer class="site-footer">
     <div class="footer-content">
