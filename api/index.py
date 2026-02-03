@@ -1,11 +1,13 @@
 from __future__ import annotations
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware # <--- 新增这行
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, List
+from typing import Dict, List, Optional
 import statistics
 import random
-
+from urllib.parse import urlencode
+import hashlib
+import time
+from fastapi import FastAPI, Request, HTTPException
 
 app = FastAPI()
 
@@ -16,6 +18,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+PAID_ORDERS = {}
 # ==========================================
 # 1. 核心数据：题库
 # ==========================================
@@ -2605,3 +2609,98 @@ def submit_answers(req: SubmitRequest):
         enemy_desc = current_rel["enemy_desc"],
         cp_title = dynamic_cp_title
     )
+
+
+@app.post("/api/pay")
+def create_payment(req: PaymentRequest):
+    PID = '2026020316192039'
+    KEY = '34ecGidqcWlTTOfp9p1QC0zi6s2OWUum'
+    API_URL = 'https://zpayz.cn/submit.php'
+
+    order_id = f"ORD_{int(time.time())}_{random.randint(100, 999)}"
+
+    # ★★★ 这里修改了域名配置 ★★★
+    # return_url: 支付完跳回主页，并带上订单号
+    # notify_url: 支付平台偷偷通知你的接口
+    params = {
+        'pid': PID,
+        'type': req.payment_type,
+        'out_trade_no': order_id,
+        'notify_url': 'http://mypsytest.site/api/notify',
+        'return_url': f'http://mypsytest.site/?check_order={order_id}',
+        'name': 'MBTI核心状态解锁-早鸟价',
+        'money': '9.90',
+        'sign_type': 'MD5'
+    }
+
+    # ... (之前的签名算法逻辑保持不变) ...
+    # 签名代码省略，和之前一样
+
+    # 在生成链接前，先在“记账本”里记一笔，状态是 pending (未支付)
+    PAID_ORDERS[order_id] = {"status": "pending"}
+
+    # ... (返回 redirect_url) ...
+    # 完整代码参考上一轮，只要确保 params 里的 url 改对了就行
+
+
+# ==========================================
+# 支付接口 2: 接收异步通知 (必须有！核心！)
+# ==========================================
+@app.post("/api/notify")  # 对应 notify_url
+@app.get("/api/notify")  # 有些支付平台用GET，两个都写上保险
+async def notify_payment(request: Request):
+    # 获取支付平台发来的所有数据
+    data = dict(request.query_params) if request.method == 'GET' else await request.form()
+    data = dict(data)  # 转成普通字典
+
+    # 1. 验证签名 (防止有人伪造支付成功)
+    if 'sign' not in data:
+        return "fail"
+
+    client_sign = data.pop('sign')  # 取出签名并从数据中删除，因为签名不参与签名计算
+    KEY = '34ecGidqcWlTTOfp9p1QC0zi6s2OWUum'
+
+    # 重新计算签名
+    sorted_keys = sorted([k for k, v in data.items() if v != ''])
+    sign_str = '&'.join([f"{k}={data[k]}" for k in sorted_keys])
+    sign_str_final = sign_str + KEY
+    my_sign = hashlib.md5(sign_str_final.encode('utf-8')).hexdigest()
+
+    if my_sign == client_sign:
+        # 签名正确，说明真的是支付平台发来的
+        out_trade_no = data.get('out_trade_no')
+        trade_status = data.get('trade_status')  # 易支付通常用 TRADE_SUCCESS
+
+        # 只要是回调，基本就是成功，或者判断 trade_status
+        if out_trade_no in PAID_ORDERS:
+            PAID_ORDERS[out_trade_no]['status'] = 'paid'
+            print(f"订单 {out_trade_no} 支付成功！")
+
+        return "success"  # 必须返回 success 给支付平台，否则它会一直发
+    else:
+        return "fail"
+
+
+# ==========================================
+# 支付接口 3: 前端查询结果
+# ==========================================
+@app.get("/api/check_order")
+def check_order_status(order_id: str):
+    # 前端拿着订单号来问：这个订单付了吗？
+    order = PAID_ORDERS.get(order_id)
+
+    if order and order['status'] == 'paid':
+        # 如果付了，返回解锁的文字内容
+        # ★★★ 这里你可以根据需求生成更复杂的文字 ★★★
+        return {
+            "paid": True,
+            "data": {
+                "insight": ["你内心深处渴望秩序，但又抗拒被控制...", "在压力下，你容易陷入过度分析的循环..."],
+                "advice": ["尝试每天记录三件具体的小事", "在此刻，行动比完美的计划更重要"],
+                "cp": {"guard": "ESTJ - 总理型", "owner": "ENTJ - 指挥官"},
+                "avoid": "ESFP - 表演者 (可能会让你觉得吵闹且缺乏深度)",
+                "guide_30d": "第一周：断舍离；第二周：建立微习惯..."
+            }
+        }
+    else:
+        return {"paid": False}
