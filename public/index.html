@@ -780,7 +780,95 @@
       serverURL: "/lc-api" // 如果后台没有ServerURL，这行可以删掉
     });
 
+    // ==========================================
+    // 流量监控模块 (Pro版：支持 PV/UV/转化)
+    // ==========================================
+    const Analytics = {
+        // 获取当前日期字符串 YYYY-MM-DD
+        getDateStr: function() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = ('0' + (d.getMonth() + 1)).slice(-2);
+            const day = ('0' + d.getDate()).slice(-2);
+            return `${year}-${month}-${day}`;
+        },
 
+        // 核心逻辑：记录访问 (同时处理 PV 和 UV)
+        trackVisit: function() {
+            const dateStr = this.getDateStr();
+            
+            // 定义本地缓存的 Key，格式如: "visited_2023-10-27"
+            // 这样到了明天，Key 变了，用户就会被重新算作新的 UV
+            const storageKey = 'visited_' + dateStr;
+            const isUniqueVisitor = !localStorage.getItem(storageKey);
+
+            const query = new AV.Query('DailyStats');
+            query.equalTo('dateStr', dateStr);
+            
+            query.first().then((stat) => {
+                if (stat) {
+                    // 1. 无论是否新访客，PV 都要 +1
+                    stat.increment('pv', 1);
+
+                    // 2. 只有本地没有今日记录时，UV 才 +1
+                    if (isUniqueVisitor) {
+                        stat.increment('uv', 1);
+                    }
+                    
+                    stat.save();
+                } else {
+                    // 当天第一条记录，初始化
+                    const DailyStats = AV.Object.extend('DailyStats');
+                    const newStat = new DailyStats();
+                    newStat.set('dateStr', dateStr);
+                    newStat.set('pv', 1);
+                    newStat.set('uv', 1); // 第一条肯定是新访客
+                    newStat.set('completed', 0);
+                    
+                    newStat.save(null, { fetchWhenSave: true }).catch(e => {
+                        // 处理高并发下的唯一索引冲突 (Error 137)
+                        if (e.code === 137) {
+                            this.trackVisit(); // 递归重试
+                        }
+                    });
+                }
+
+                // 3. 标记本地缓存：今天已经访问过了
+                if (isUniqueVisitor) {
+                    localStorage.setItem(storageKey, '1');
+                }
+
+            }).catch(console.error);
+        },
+
+        // 记录完成量 (保持不变)
+        trackCompletion: function() {
+            const dateStr = this.getDateStr();
+            const query = new AV.Query('DailyStats');
+            query.equalTo('dateStr', dateStr);
+
+            query.first().then((stat) => {
+                if (stat) {
+                    stat.increment('completed', 1);
+                    stat.save();
+                    // 可以在这里打印日志方便调试
+                    // console.log('📊 Conversion recorded for', dateStr);
+                } else {
+                    // 极少见的跨天边界情况处理
+                    const DailyStats = AV.Object.extend('DailyStats');
+                    const newStat = new DailyStats();
+                    newStat.set('dateStr', dateStr);
+                    newStat.set('pv', 0); 
+                    newStat.set('uv', 0);
+                    newStat.set('completed', 1);
+                    newStat.save();
+                }
+            });
+        }
+    };
+
+    // 页面加载即触发
+    Analytics.trackVisit();
       // === 智能后端地址配置 ===
   const getApiUrl = () => {
       const hostname = window.location.hostname;
@@ -1218,6 +1306,7 @@ $('quiz-form').addEventListener('submit', (e) => {
 
             record.save().then((saved) => {
                 console.log('✅ 保存成功 ID:', saved.id);
+                Analytics.trackCompletion();
             });
         } catch (error) {
             console.error('数据库保存出错:', error);
