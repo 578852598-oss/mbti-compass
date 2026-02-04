@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MBTI 心理状态罗盘</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="//code.bdstatic.com/npm/leancloud-storage@4.12.0/dist/av-min.js"></script>
+
+  <style>
+    :root{
+      --bg:#ffffff; --surface:#ffffff; --surface-2:#f8fafc; --line:#e2e8f0;
+      --text:#0f172a; --muted:#64748b; --muted-light:#94a3b8;
+      
+      /* 品牌色 */
+      --brand:#2563eb; 
+      
+      /* 四大类型色系 (参考主流配色) */
+      --color-nt: #8b5cf6; --bg-nt: #f5f3ff; /* 紫色 - 分析家 */
+      --color-nf: #10b981; --bg-nf: #ecfdf5; /* 绿色 - 外交家 */
+      --color-sj: #3b82f6; --bg-sj: #eff6ff; /* 蓝色 - 守护者 */
+      --color-sp: #f59e0b; --bg-sp: #fffbeb; /* 黄色 - 探险家 */
+
+      --radius:20px; 
+      --shadow:0 10px 40px -10px rgba(0,0,0,0.05);
+      --shadow-hover:0 20px 40px -10px rgba(0,0,0,0.1);
+    }
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    body{ margin:0; font-family: Inter, system-ui, -apple-system, sans-serif; color:var(--text); background: var(--surface-2); padding-bottom: 40px;}
+    
+    .container{ max-width: 720px; margin: 0 auto; padding: 20px 16px; }
+    
+    /* Topbar */
+    .topbar{ position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,0.05); transition: transform 0.3s; }
+    .topbar-inner{ max-width: 720px; margin: 0 auto; padding: 12px 16px; display:flex; align-items:center; justify-content:space-between; height: 60px; }
+    
+    .brand{ display:flex; align-items:center; gap:10px; cursor: pointer; }
+    .logo{ width:32px; height:32px; border-radius: 10px; background: var(--brand); color: #fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size: 14px; }
+    .brand-text{ font-weight: 700; font-size: 15px; letter-spacing: -0.5px; }
+
+    .controls{ display:flex; align-items:center; gap:12px; }
+    
+    /* 当前状态胶囊 */
+    .status-capsule{ display:none; align-items:center; gap:8px; padding: 4px 4px 4px 12px; background: #fff; border:1px solid var(--line); border-radius: 99px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    .status-capsule span{ color: var(--brand); }
+    .btn-change{ background: var(--surface-2); border:none; padding: 6px 12px; border-radius: 99px; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-change:hover{ background: #e2e8f0; color: var(--text); }
+
+    /* =========================================
+       新入口：类型选择器 (Landing Page)
+       ========================================= */
+    #landing-page{ display: block; animation: fadeIn 0.5s ease; }
+    .hero{ text-align: center; padding: 40px 0 30px; }
+    .hero h1{ font-family: "Noto Serif SC", serif; font-size: 32px; margin: 0 0 12px; color: var(--text); letter-spacing: -1px; }
+    .hero p{ font-size: 15px; color: var(--muted); line-height: 1.6; max-width: 480px; margin: 0 auto; }
+
+    .group-title{ font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 10px; color: var(--muted-light); display:flex; align-items:center; gap:8px; }
+    .group-title::after{ content:''; flex:1; height:1px; background: var(--line); }
+    
+    .type-grid{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    
+    /* 移动端改为2列 */
+    @media(max-width: 640px){ .type-grid{ grid-template-columns: repeat(2, 1fr); } }
+
+    .type-card{ 
+      position: relative; border: none; border-radius: 16px; padding: 16px; 
+      text-align: left; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; flex-direction: column; justify-content: space-between; height: 90px;
+      overflow: hidden;
+    }
+    .type-card:hover{ transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+    .type-card:active{ transform: scale(0.98); }
+
+    .type-card strong{ font-size: 20px; font-weight: 800; display: block; font-family: 'Inter', sans-serif; letter-spacing: -0.5px; }
+    .type-card span{ font-size: 12px; font-weight: 600; opacity: 0.8; margin-top: 4px; display: block; }
+    
+    /* 装饰性背景图标 */
+    .type-card::after{ 
+      content: attr(data-type); 
+      position: absolute; right: -10px; bottom: -15px; 
+      font-size: 60px; font-weight: 900; opacity: 0.06; 
+      font-family: sans-serif; pointer-events: none;
+    }
+
+    /* 新增：筹备中标签样式 */
+    .badge-soon {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255,255,255,0.7); /* 半透明白底 */
+      backdrop-filter: blur(4px);        /* 毛玻璃效果 */
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #64748b;                    /* 灰色文字 */
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      z-index: 2;
+    }
+
+    /* 新增：S人卡片的特殊状态（稍微变淡，更有“未解锁”的感觉） */
+    .card-locked {
+      opacity: 0.75; 
+      filter: grayscale(0.2); /* 稍微去色 */
+    }
+    .card-locked:hover {
+      transform: none;      /* 禁用上浮动画 */
+      box-shadow: none;     /* 禁用阴影 */
+      opacity: 0.9;         /* hover时稍微亮一点，提示可点击 */
+      cursor: not-allowed;  /* 鼠标变成禁止手势（或者保留 pointer 配合弹窗） */
+    }
+
+    /* 颜色配置 */
+    .nt-card{ background: var(--bg-nt); color: var(--color-nt); border: 1px solid rgba(139, 92, 246, 0.1); }
+    .nt-card:hover{ background: #ede9fe; border-color: var(--color-nt); }
+    
+    .nf-card{ background: var(--bg-nf); color: var(--color-nf); border: 1px solid rgba(16, 185, 129, 0.1); }
+    .nf-card:hover{ background: #d1fae5; border-color: var(--color-nf); }
+    
+    .sj-card{ background: var(--bg-sj); color: var(--color-sj); border: 1px solid rgba(59, 130, 246, 0.1); }
+    .sj-card:hover{ background: #dbeafe; border-color: var(--color-sj); }
+    
+    .sp-card{ background: var(--bg-sp); color: var(--color-sp); border: 1px solid rgba(245, 158, 11, 0.1); }
+    .sp-card:hover{ background: #fef3c7; border-color: var(--color-sp); }
+
+
+    /* =========================================
+       答题页 & 结果页 (默认隐藏)
+       ========================================= */
+    #quiz-interface{ display: none; animation: slideUp 0.4s ease; }
+    
+     .q-progress-box {
+        display: flex; 
+        align-items: center; 
+        gap: 10px;
+      
+        position: sticky;        /* 开启吸顶模式 */
+        top: 60px;               /* 距离顶部60px (刚好避开顶部的导航栏) */
+        z-index: 40;             /* 层级要比普通卡片高，但比导航栏(50)低 */
+        background: var(--surface-2); 
+        padding: 10px 0;         
+        margin-bottom: 20px;    
+        
+        /* 可选：加一点毛玻璃效果，看起来更高级 */
+        backdrop-filter: blur(5px);
+        background: rgba(248, 250, 252, 0.9); 
+      }
+    .progress-track{ flex:1; height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .progress-fill{ height: 100%; background: var(--brand); width: 0%; transition: width 0.3s ease; border-radius: 99px; }
+    .progress-text{ font-size: 12px; font-weight: 600; color: var(--muted); width: 40px; text-align: right; }
+
+    .card{ background: #fff; border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid #fff; }
+    .qtext{ font-size: 17px; font-weight: 600; line-height: 1.6; margin: 10px 0 24px; color: var(--text); }
+    .qmeta{ font-size: 12px; font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: 1px; background: rgba(37,99,235,0.08); display: inline-block; padding: 4px 8px; border-radius: 6px; }
+
+    /* 选项样式优化
+    .scale{ display:grid; grid-template-columns: repeat(6, 1fr); gap:6px; background: var(--surface-2); padding: 6px; border-radius: 16px; border: 1px solid var(--line); }
+    .opt label{ display:flex; align-items:center; justify-content:center; height: 44px; border-radius: 12px; background: transparent; cursor: pointer; transition: all 0.2s; font-weight: 600; color: var(--muted); font-size: 14px; }
+    .opt label:hover{ background: rgba(255,255,255,0.5); }
+    .opt input{ display:none; }
+    
+    /* 选中态 */
+    /* .opt input:checked + label{ background: #fff; color: var(--brand); box-shadow: 0 4px 12px rgba(0,0,0,0.08); font-weight: 800; transform: scale(1.05); } */
+
+    .scale-ends{ display:flex; justify-content:space-between; font-size: 12px; color: var(--muted-light); margin-top: 8px; padding: 0 4px; font-weight: 500; }
+
+    .btn{ width:100%; padding: 16px; border-radius: 16px; background: var(--brand); color: #fff; border:none; font-weight: 700; font-size: 16px; cursor: pointer; box-shadow: 0 10px 20px rgba(37,99,235,0.2); transition: all 0.2s; }
+    .btn:active{ transform: scale(0.98); } 
+
+    /* =========================================
+       16P 风格打分条样式 (UI 修复版)
+       ========================================= */
+    .scale-wrapper {
+      width: 100%;
+      padding: 20px 0;
+      /* 防止在窄屏下出现滚动条 */
+      overflow-x: visible; 
+    }
+
+    /* 核心容器：强制一行排列，垂直居中 */
+    .scale-container {
+      display: flex;
+      align-items: center;
+      justify-content: center; /* 整体居中 */
+      gap: 30px;               /* 文字和圆圈组的距离 */
+      margin: 0 auto;
+      max-width: 750px;        /* 限制最大宽度，防止太散 */
+    }
+
+    /* 文字标签样式 */
+    .label-text {
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap; /* 禁止文字换行 */
+      flex-shrink: 0;      /* 禁止文字被压缩 */
+    }
+    .label-agree { color: #33c6a9; }
+    .label-disagree { color: #88619a; }
+
+    /* 中间圆圈的容器 */
+    .scale-options {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px; /* 圆圈之间的间距 */
+    }
+
+    /* 隐藏原生 Radio */
+    .opt-radio input { display: none; }
+
+    /* 圆圈基础样式 */
+    .opt-radio label {
+      display: block;
+      border-radius: 50%;
+      border: 2px solid; 
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      box-sizing: border-box; /* 确保边框算在大小内 */
+    }
+
+    /* 选中时的对勾图标 */
+    .opt-radio label::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      width: 50%; height: 50%;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+      background-size: contain;
+      background-repeat: no-repeat;
+      transition: transform 0.2s ease;
+    }
+    /* 选中状态：显示对勾 */
+    .opt-radio input:checked + label::after {
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+
+    .size-lg label { width: 50px; height: 50px; }
+    .size-md label { width: 40px; height: 40px; }
+    .size-sm label { width: 30px; height: 30px; }
+
+    /* ------- 颜色定义 ------- */
+    /* 同意系 (绿色) */
+    .color-agree label { border-color: #33c6a9; color: #33c6a9; }
+    .color-agree input:checked + label {
+      background-color: #33c6a9;
+      box-shadow: 0 0 0 4px rgba(51, 198, 169, 0.2);
+    }
+    
+    /* 反对系 (紫色) */
+    .color-disagree label { border-color: #88619a; color: #88619a; }
+    .color-disagree input:checked + label {
+      background-color: #88619a;
+      box-shadow: 0 0 0 4px rgba(136, 97, 154, 0.2);
+    }
+
+    /* Hover 效果 */
+    .opt-radio label:hover { border-width: 3px; transform: scale(1.05); }
+
+    /* ============================
+       移动端适配 (重点修复)
+       ============================ */
+    @media(max-width: 480px) {
+      .scale-container {
+        gap: 8px; /* 缩小文字和圆圈的距离 */
+        width: 100%;
+        padding: 0 4px;
+      }
+      .scale-options {
+        gap: 20px; /* 缩小圆圈间距 */
+      }
+      .label-text { font-size: 12px; }
+
+      /* 整体缩小圆圈尺寸，防止换行 */
+      .size-lg label { width: 34px; height: 34px; }
+      .size-md label { width: 26px; height: 26px; }
+      .size-sm label { width: 20px; height: 20px; }
+    }
+
+
+    /* 结果页网格 */
+    #result{
+    display:none;
+    padding-bottom:60px;
+    position: relative; /* ✅关键：让 pay-overlay 相对 result 定位 */
+     }
+    .grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 20px; }
+    @media(min-width: 640px){ .grid{ grid-template-columns: repeat(3, 1fr); } }
+    
+    .stat{ background: #fff; padding: 20px; border-radius: 18px; box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.5); display:flex; flex-direction:column; align-items: center; text-align: center; }
+    .stat .k{ font-size: 12px; font-weight: 700; color: var(--muted-light); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat .v{ font-family: "Noto Serif SC", serif; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .stat .d{ font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+    .color-high{ color: #7c3aed; }
+    .color-mid{ color: #2563eb; }
+    .color-low{ color: #64748b; }
+    .color-healthy{ color: #16a34a; }
+    .color-warn{ color: #d97706; }
+    .color-bad{ color: #dc2626; }
+
+    /* 图表和建议 */
+    .chart-box, .section{ background: #fff; padding: 24px; border-radius: 20px; margin-top: 16px; box-shadow: var(--shadow); }
+    .section h3{ margin: 0 0 12px; font-size: 16px; font-weight: 700; display:flex; align-items:center; gap:8px; }
+    .section h3::before{ content:''; width: 4px; height: 16px; background: var(--brand); border-radius: 4px; }
+    .section p{ margin: 0; font-size: 14px; line-height: 1.7; color: var(--muted); text-align: justify; }
+
+    /* Loading & Toast */
+    .loading-overlay{ position: fixed; inset: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(5px); z-index: 100; display:none; flex-direction: column; align-items:center; justify-content:center; }
+    .spinner{ width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--brand); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+    .toast{ position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 24px; border-radius: 99px; font-size: 14px; font-weight: 500; z-index: 200; display:none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+
+    @keyframes spin{ to{ transform: rotate(360deg); } }
+    @keyframes fadeIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
+    @keyframes slideUp{ from{ opacity:0; transform:translateY(20px); } to{ opacity:1; transform:translateY(0); } }
+    /* 新增：空状态/建设中样式 */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      animation: fadeIn 0.5s;
+    }
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+      opacity: 0.5;
+    }
+    .empty-text {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .empty-sub {
+      font-size: 13px;
+      opacity: 0.8;
+    }
+    .guide-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 0; /* 内部布局自己控制 */
+      margin-top: 24px;
+      box-shadow: 0 10px 30px -10px rgba(37, 99, 235, 0.15); /* 蓝色系投影 */
+      border: 1px solid #eff6ff;
+      overflow: hidden;
+    }
+
+    /* 顶部标题栏 */
+    .guide-header {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      padding: 20px 24px;
+      border-bottom: 1px solid #bfdbfe;
+    }
+    
+    .guide-tag {
+      display: inline-block;
+      background: #2563eb;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .guide-title {
+      font-size: 20px; /* 大标题 */
+      font-weight: 800;
+      color: #1e3a8a;  /* 深蓝 */
+      margin: 0;
+      line-height: 1.4;
+      font-family: "Noto Serif SC", serif; /* 衬线体更有质感 */
+    }
+
+    /* 内容区域 */
+    .guide-body {
+      padding: 24px;
+    }
+
+    /* 自动生成的段落块 */
+    .guide-block {
+      margin-bottom: 20px;
+    }
+    .guide-block:last-child { margin-bottom: 0; }
+
+    /* 小标题 (即【XXX】的内容) */
+    .guide-sub-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #2563eb;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    /* 给小标题加个装饰性竖线 */
+    .guide-sub-title::before {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 14px;
+      background: #2563eb;
+      border-radius: 2px;
+    }
+
+    /* 正文文字 */
+    .guide-text {
+      font-size: 15px;
+      line-height: 1.8; /* 增加行高，阅读不累 */
+      color: #475569;
+      text-align: justify; /* 两端对齐 */
+    }
+    
+    /* 特殊处理：高亮原本的 1. 2. 3. */
+    .guide-text b {
+      color: #0f172a;
+      font-weight: 700;
+      background: #f1f5f9;
+      padding: 0 4px;
+      border-radius: 4px;
+      margin-right: 4px;
+    }
+    .guide-block {
+      margin-bottom: 16px; /* 稍微调小一点 */
+    }
+    
+    /* 解决空行导致的额外高度 */
+    .guide-text {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #475569;
+      text-align: justify;
+    }
+    
+
+    /* 每一个【标题+正文】都是一个 guide-block */
+    .guide-block {
+      /* 块内部不用设太大，主要靠 margin-top 推开上面的块 */
+      margin-bottom: 0; 
+    }
+
+    /* 【核心修复】 */
+    /* 只要一个 block 前面还有另一个 block，就给它顶部加 32px 的距离 */
+    /* 这会让 "未来30天怎么过" 离上面那段话远远的 */
+    .guide-block + .guide-block {
+      margin-top: 32px; 
+      padding-top: 16px; /* 额外加一点内边距作为缓冲 */
+      border-top: 1px dashed #e2e8f0; /* (可选) 加一条虚线分割线，视觉更清晰 */
+    }
+
+    /* 小标题样式 */
+    .guide-sub-title {
+      font-size: 16px; /* 稍微加大一点 */
+      font-weight: 800;
+      color: #1e40af;  /* 深一点的蓝 */
+      margin-bottom: 12px; /* 让标题离下面的正文远一点 */
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    /* 标题前的装饰竖线 */
+    .guide-sub-title::before {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 16px;
+      background: #3b82f6;
+      border-radius: 4px;
+    }
+
+    /* 正文样式 */
+    .guide-text {
+      font-size: 14px;
+      line-height: 1.8; /* 行高加大，阅读更舒服 */
+      color: #334155;
+      text-align: justify;
+    }
+
+    /* 社交能量场样式 */
+    .relation-box {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .rel-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.05);
+      box-shadow: var(--shadow);
+      transition: transform 0.2s;
+    }
+    .rel-card:hover { transform: translateY(-2px); }
+
+    .rel-desc { 
+      font-size: 15px;           
+      color: #475569; 
+      line-height: 1.7;          
+      text-align: justify; 
+      max-width: 90%;             
+      position: relative;
+      z-index: 2;
+    }
+
+    /* 装饰背景字 */
+    .rel-card::before {
+      content: attr(data-bg);
+      position: absolute;
+      right: -10px; bottom: -10px;
+      font-size: 100px;
+      font-weight: 900;
+      opacity: 0.06;
+      font-family: sans-serif;
+      pointer-events: none;
+    }
+
+    /* 最佳CP - 暖色系 */
+    .rel-cp {
+      background: linear-gradient(135deg, #fff0f3 0%, #fff 100%);
+      border-left: 4px solid #f43f5e;
+    }
+    .rel-cp .rel-tag { color: #f43f5e; background: rgba(244, 63, 94, 0.1); }
+    .rel-cp .rel-type { color: #be123c; }
+
+    /* 天敌 - 冷灰色系 */
+    .rel-enemy {
+      background: linear-gradient(135deg, #f1f5f9 0%, #fff 100%);
+      border-left: 4px solid #64748b;
+    }
+    .rel-enemy .rel-tag { color: #475569; background: rgba(71, 85, 105, 0.1); }
+    .rel-enemy .rel-type { color: #334155; }
+
+    /* 内容排版 */
+    .rel-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .rel-tag { font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
+    .rel-type { font-size: 24px; font-weight: 800; font-family: 'Inter', sans-serif; letter-spacing: -1px; }
+    .rel-desc { font-size: 13px; color: var(--muted); line-height: 1.6; text-align: justify; }
+
+    .disclaimer-tag {
+    font-size: 12px;
+    color: var(--muted-light);
+    background: var(--surface-2);
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-left: auto; /* 让它靠右对齐 */
+    border: 1px solid var(--line);
+    }
+
+    @media (max-width: 640px) {
+      .disclaimer-tag {
+        font-size: 10px; /* 手机上字小一点 */
+        padding: 2px 6px;
+      }
+    }
+
+    .site-footer {
+      margin-top: 60px; /* 与上面内容拉开距离 */
+      padding: 30px 20px;
+      text-align: center;
+      border-top: 1px solid var(--line);
+      background: var(--surface-2);
+    }
+
+    .footer-content p {
+      margin: 4px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .footer-note {
+      color: var(--muted-light) !important;
+      font-size: 12px !important;
+      margin-top: 8px !important;
+    }
+/* ====================
+   付费解锁模块样式
+   ==================== */
+.locked-section {
+  margin-top: 30px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  position: relative;
+  overflow: hidden; /* 防止模糊溢出 */
+}
+
+/* 标题可见 */
+.lock-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lock-title::before {
+  content: "🔒";
+  font-size: 14px;
+}
+
+/* 内容模糊层 */
+.blur-content {
+  filter: blur(12px); /* 高斯模糊 */
+  opacity: 0.18 !important;
+  user-select: none; /* 禁止选中 */
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* 假文段落样式 (用于撑开模糊区域) */
+.fake-text p {
+  margin-bottom: 8px;
+  background: #e2e8f0;
+  height: 14px;
+  border-radius: 4px;
+  width: 100%;
+}
+.fake-text p:nth-child(2) { width: 80%; }
+.fake-text p:nth-child(3) { width: 90%; }
+
+/* 购买遮罩层 */
+.pay-overlay{
+  /* 关键：统一遮罩，不要渐变 */
+  background: rgba(255,255,255,0.92) !important;
+  /* 建议保留这些 */
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 10;
+}
+
+/* 价格标签 */
+.price-box {
+  text-align: center;
+  margin-bottom: 15px;
+}
+.price-original {
+  text-decoration: line-through;
+  color: #94a3b8;
+  font-size: 14px;
+}
+.price-current {
+  color: #ef4444; /* 红色强调 */
+  font-size: 24px;
+  font-weight: 800;
+  margin-left: 8px;
+}
+
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand" onclick="location.reload()">
+        <div class="logo">M</div>
+        <div class="brand-text">舒木罗盘-MBTI状态解析</div>
+        <div class="disclaimer-tag">非医疗诊断</div>
+      </div>
+      
+      <div class="status-capsule" id="status-bar">
+        正在分析 <span id="current-type-label">INTP</span>
+        <button class="btn-change" onclick="resetApp()">切换</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading" class="loading-overlay">
+    <div class="spinner"></div>
+    <div style="font-size:14px; font-weight:600; color:#64748b; letter-spacing: 1px;">正在连接罗盘...</div>
+  </div>
+
+  <div class="container">
+    
+    <div id="landing-page">
+      <div class="hero">
+        <h1>你最近感觉还好吗？</h1>
+        <p>基于荣格八维认知功能模型，精准探测你当下的内耗程度、压力反应与心理效能。</p>
+      </div>
+
+      <div class="group-title" style="color:#8b5cf6">🟣 Analysts 分析家</div>
+      <div class="type-grid">
+        <button class="type-card nt-card" data-type="INTJ" onclick="selectType('INTJ')">
+          <strong>INTJ</strong><span>建筑师</span>
+        </button>
+        <button class="type-card nt-card" data-type="INTP" onclick="selectType('INTP')">
+          <strong>INTP</strong><span>逻辑学家</span>
+        </button>
+        <button class="type-card nt-card" data-type="ENTJ" onclick="selectType('ENTJ')">
+          <strong>ENTJ</strong><span>指挥官</span>
+        </button>
+        <button class="type-card nt-card" data-type="ENTP" onclick="selectType('ENTP')">
+          <strong>ENTP</strong><span>辩论家</span>
+        </button>
+      </div>
+
+      <div class="group-title" style="color:#10b981">🟢 Diplomats 外交家</div>
+      <div class="type-grid">
+        <button class="type-card nf-card" data-type="INFJ" onclick="selectType('INFJ')">
+          <strong>INFJ</strong><span>提倡者</span>
+        </button>
+        <button class="type-card nf-card" data-type="INFP" onclick="selectType('INFP')">
+          <strong>INFP</strong><span>调停者</span>
+        </button>
+        <button class="type-card nf-card" data-type="ENFJ" onclick="selectType('ENFJ')">
+          <strong>ENFJ</strong><span>主人公</span>
+        </button>
+        <button class="type-card nf-card" data-type="ENFP" onclick="selectType('ENFP')">
+          <strong>ENFP</strong><span>竞选者</span>
+        </button>
+      </div>
+
+      <div class="group-title" style="color:#3b82f6">🔵 Sentinels 守护者</div>
+      <div class="type-grid">
+        <button class="type-card sj-card" data-type="ISTJ" onclick="selectType('ISTJ')">
+          <strong>ISTJ</strong><span>物流师</span>
+        </button>
+        <button class="type-card sj-card" data-type="ISFJ" onclick="selectType('ISFJ')">
+          <strong>ISFJ</strong><span>守卫者</span>
+        </button>
+        <button class="type-card sj-card" data-type="ESTJ" onclick="selectType('ESTJ')">
+          <strong>ESTJ</strong><span>总经理</span>
+        </button>
+        <button class="type-card sj-card" data-type="ESFJ" onclick="selectType('ESFJ')">
+          <strong>ESFJ</strong><span>执政官</span>
+        </button>
+      </div>
+
+      <div class="group-title" style="color:#f59e0b">🟡 Explorers 探险家</div>
+      <div class="type-grid">
+        <button class="type-card sp-card" data-type="ISTP" onclick="selectType('ISTP')">
+          <strong>ISTP</strong><span>鉴赏家</span>
+        </button>
+        <button class="type-card sp-card" data-type="ISFP" onclick="selectType('ISFP')">
+          <strong>ISFP</strong><span>探险家</span>
+        </button>
+        <button class="type-card sp-card" data-type="ESTP" onclick="selectType('ESTP')">
+          <strong>ESTP</strong><span>企业家</span>
+        </button>
+        <button class="type-card sp-card" data-type="ESFP" onclick="selectType('ESFP')">
+          <strong>ESFP</strong><span>表演者</span>
+        </button>
+      </div>
+      
+      
+      <div style="margin-top:40px; text-align:center; color:var(--muted); font-size:12px; opacity:0.6;">
+        MBTI State Compass v2.0
+      </div>
+    </div>
+
+    <div id="quiz-interface">
+      <div class="q-progress-box" id="q-progress-box">
+        <div class="progress-text" id="progress-text">0/0</div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-bar"></div>
+        </div>
+      </div>
+
+      <form id="quiz-form">
+        <div id="questions-container"></div>
+        <button type="submit" class="btn" id="submit-btn" style="margin-top:20px;">生成深度报告</button>
+      </form>
+
+      <div id="result">
+        <div class="grid">
+          <div class="stat"><div class="k">认知成熟度</div><div class="v" id="v-maturity">-</div><div class="d" id="d-maturity">-</div></div>
+          <div class="stat"><div class="k">内耗倾向 Loop</div><div class="v" id="v-loop">-</div><div class="d" id="d-loop">-</div></div>
+          <div class="stat"><div class="k">压力反应 Grip</div><div class="v" id="v-grip">-</div><div class="d" id="d-grip">-</div></div>
+          <div class="stat"><div class="k">压力负荷 Load</div><div class="v" id="v-load">-</div><div class="d" id="d-load">-</div></div>
+          <div class="stat"><div class="k">自洽度</div><div class="v" id="v-coherence">-</div><div class="d" id="d-coherence">-</div></div>
+          <div class="stat"><div class="k">状态指数</div><div class="v" id="v-overall">-</div><div class="d" id="d-overall">-</div></div>
+        </div>
+        
+        <div class="chart-box">
+          <div style="width:100%; height:320px; position:relative;">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+
+        <div class="section"><h3>核心洞察</h3><p id="res-insight">...</p></div>
+        <div class="section"><h3>调整建议</h3><p id="res-advice">...</p></div>
+
+        <div class="relation-box">
+          <div class="rel-card rel-cp" data-bg="❤️">
+            <div class="rel-header">
+              <div class="rel-type" id="cp-name">ENTJ</div>
+              <div class="rel-tag" id="cp-title-tag">合伙人/战友</div>
+            </div>
+            <div class="rel-desc" id="cp-desc">
+              正在计算最匹配的能量源...
+            </div>
+          </div>
+
+          <div class="rel-card rel-enemy" data-bg="⚠️">
+            <div class="rel-header">
+              <div class="rel-type" id="enemy-name">ESFJ</div>
+              <div class="rel-tag">当下需回避的人格</div>
+            </div>
+            <div class="rel-desc" id="enemy-desc">
+              正在识别需要远离的对象...
+            </div>
+          </div>
+        </div>
+
+        <div class="section month-card">
+        <div class="guide-card" id="guide-card-container" style="display:none">
+          <div class="guide-header">
+            <div class="guide-tag">📅 未来30天指南</div>
+            <h3 class="guide-title" id="res-month-title">正在生成方案...</h3>
+          </div>
+          <div class="guide-body" id="res-month-body">
+            </div>
+        </div>
+
+                <!-- Paywall Overlay：覆盖层（不新增内容区块，只是遮罩） -->
+        <div id="pay-overlay" class="pay-overlay" style="display:none;">
+          <div class="price-box">
+            <div class="price-original">原价 ¥39.9</div>
+            <div>
+              <span class="price-current">限时 ¥19.9</span>
+            </div>
+          </div>
+
+          <button class="btn btn-buy" onclick="handlePayment()" style="width:auto; padding:14px 18px; border-radius:14px;">
+            🔒 立即解锁完整报告
+          </button>
+
+          <div style="margin-top:10px; font-size:12px; color:#64748b;">
+            支付成功后将自动解锁
+          </div>
+        </div>
+
+
+        <button class="btn btn-ghost" onclick="resetApp()" style="margin-top:30px; background:#f1f5f9; color:#475569;">重新测试</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    let currentQuestions = [];
+    let currentType = "";
+    let myChart = null;
+
+    // 配置：本地调试 vs 线上
+    const IS_LOCAL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+    const API_BASE = IS_LOCAL ? 'http://127.0.0.1:8000' : '';
+    
+    const $ = (id) => document.getElementById(id);
+    const setLoading = (show) => { $('loading').style.display = show ? 'flex' : 'none'; };
+    const toast = (msg) => {
+    const t = $('toast'); t.textContent = msg; t.style.display = 'block'; t.style.animation = 'fadeIn 0.3s';
+      setTimeout(() => t.style.display = 'none', 3000);
+    };
+
+
+    const APP_ID = 'oHk4yKURFUq90Z2v66jCONZF-MdYXbMMI';
+    const APP_KEY = 'sxruA5kvqDApvWG5FRslFJId';
+    // 国际版通常不需要填 serverURL，如果报错再说
+    AV.init({
+      appId: APP_ID,
+      appKey: APP_KEY,
+      serverURL: "/lc-api" // 如果后台没有ServerURL，这行可以删掉
+    });
+
+// ==========================================
+// 流量监控模块 (修复 ACL 权限版)
+// ==========================================
+const Analytics = {
+    getDateStr: function() {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = ('0' + (d.getMonth() + 1)).slice(-2);
+        const day = ('0' + d.getDate()).slice(-2);
+        return `${year}-${month}-${day}`;
+    },
+
+    trackVisit: function() {
+        const dateStr = this.getDateStr();
+        const storageKey = 'visited_' + dateStr;
+        
+        // 🚨 调试期间：建议先注释掉下面这行，方便你反复刷新测试
+        // if (localStorage.getItem(storageKey)) return; 
+
+        // 标记：是否是纯新访客（用于UV计算）
+        const isUniqueVisitor = !localStorage.getItem(storageKey);
+
+        const query = new AV.Query('DailyStats');
+        query.equalTo('dateStr', dateStr);
+        
+        query.first().then((stat) => {
+            if (stat) {
+                console.log('🔄 找到记录，正在更新...');
+                stat.increment('pv', 1);
+                if (isUniqueVisitor) {
+                    stat.increment('uv', 1);
+                }
+                stat.save().then(() => {
+                    console.log('✅ PV/UV 更新成功');
+                    // 只有成功更新后，才写入本地缓存
+                    if (isUniqueVisitor) localStorage.setItem(storageKey, '1');
+                }).catch(e => console.error('❌ 更新失败:', e));
+
+            } else {
+                console.log('🆕 今日无记录，正在初始化...');
+                const DailyStats = AV.Object.extend('DailyStats');
+                const newStat = new DailyStats();
+                
+                // =================================================
+                // 🔥 核心修复：设置 ACL 为“完全公开”
+                // =================================================
+                const acl = new AV.ACL();
+                acl.setPublicReadAccess(true);  // 所有人可读
+                acl.setPublicWriteAccess(true); // 所有人可写 (解决 403 关键!)
+                newStat.setACL(acl);
+                // =================================================
+
+                newStat.set('dateStr', dateStr);
+                newStat.set('pv', 1);
+                newStat.set('uv', 1);
+                newStat.set('completed', 0); // 别忘了初始化这个字段
+                
+                newStat.save().then(() => {
+                    console.log('✅ 初始化并设置 ACL 成功');
+                    localStorage.setItem(storageKey, '1');
+                }).catch(e => console.error('❌ 初始化失败:', e));
+            }
+        });
+    },
+
+    trackCompletion: function() {
+        const dateStr = this.getDateStr();
+        const query = new AV.Query('DailyStats');
+        query.equalTo('dateStr', dateStr);
+
+        query.first().then((stat) => {
+            if (stat) {
+                stat.increment('completed', 1);
+                stat.save().then(() => console.log('✅ 转化数据记录成功'));
+            }
+        }); // 这里不需要 else，因为 trackVisit 肯定先执行了
+    }
+};
+
+// 启动监控
+Analytics.trackVisit();
+      // === 智能后端地址配置 ===
+  const getApiUrl = () => {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return 'http://localhost:8000/api/submit';
+      } else {
+          // === 线上环境 (Vercel) ===
+          // 方案 A (推荐): 使用相对路径。
+          // 只要你的 Python 和 HTML 在同一个 Vercel 项目里，这样写最稳，
+          // 哪怕你以后换域名也不用改代码。
+          return '/api/submit'; 
+          
+          // 方案 B (备选): 如果方案 A 不行，就强制写死线上域名
+          // return 'https://mbti-compass.vercel.app/api/submit';
+      }
+  };
+
+  const API_URL = getApiUrl(); // 最终使用的地址
+  console.log("当前使用的后端 API 地址:", API_URL); // 方便调试看一眼
+
+    // 选择类型入口
+// ==========================================
+
+    function selectType(type) {
+      currentType = type;
+      $('current-type-label').textContent = type;
+      
+      // UI 切换
+      $('landing-page').style.display = 'none';
+      $('quiz-interface').style.display = 'block';
+      $('status-bar').style.display = 'flex';
+      
+      fetchQuestions(type);
+    }
+
+    // ==========================================
+    // 修改 3: 升级 fetchQuestions 函数 (处理空题库)
+    // ==========================================
+    async function fetchQuestions(type) {
+      setLoading(true);
+      const container = $('questions-container'); // 获取容器
+      $('submit-btn').style.display = 'none'; // 先隐藏提交按钮，有题目再显示
+      
+      try {
+        const res = await fetch(`${API_BASE}/api/questions/${type}`);
+        
+        // 如果后端报错，或者返回不是 200
+        if (!res.ok) throw new Error("API Error");
+        
+        currentQuestions = await res.json();
+
+        // 【关键逻辑】检查题目数量
+        if (!currentQuestions || currentQuestions.length === 0) {
+          renderEmptyState(type); // 渲染“建设中”界面
+        } else {
+          renderQuestions();      // 正常渲染题目
+          $('submit-btn').style.display = 'block'; // 显示提交按钮
+        }
+
+      } catch (err) {
+        console.error(err);
+        // 如果是网络错误，也显示一个友好的重试界面，而不是单纯 Toast
+        container.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-icon">📡</span>
+            <div class="empty-text">连接信号微弱</div>
+            <div class="empty-sub">无法获取题目数据，请检查网络或后端服务</div>
+            <button class="btn btn-ghost" onclick="fetchQuestions('${type}')" style="margin-top:20px; width:auto;">点击重试</button>
+          </div>
+        `;
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ==========================================
+    // 新增: 渲染“题库设计中”界面的函数
+    // ==========================================
+    function renderEmptyState(type) {
+      const container = $('questions-container');
+      container.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-icon">☕️</span>
+          <div class="empty-text">${type} 深度题库设计中</div>
+          <div class="empty-sub">
+            我们的心理学专家正在梳理 ${type} 的认知功能模型。<br>
+            为了保证测试精度，请再给我们一点时间。
+          </div>
+          <button class="btn btn-ghost" onclick="resetApp()" style="margin-top:24px; width:auto;">返回选择其他类型</button>
+        </div>
+      `;
+    }
+
+    // 重置回首页
+    function resetApp() {
+      $('quiz-interface').style.display = 'none';
+      $('landing-page').style.display = 'block';
+      $('landing-page').style.animation = 'fadeIn 0.5s ease';
+      $('status-bar').style.display = 'none';
+      $('result').style.display = 'none';
+      $('quiz-form').style.display = 'block';
+      currentQuestions = [];
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+
+function renderQuestions() {
+      window.testStartTime = Date.now();
+      const container = $('questions-container');
+      container.innerHTML = "";
+      updateProgress();
+
+      currentQuestions.forEach((q, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.qid = q.id;
+        
+        // 定义每个分数的样式配置
+        // 6分=最左边(大绿), 1分=最右边(大紫)
+        const styles = {
+          6: { size: 'size-lg', color: 'color-agree' },
+          5: { size: 'size-md', color: 'color-agree' },
+          4: { size: 'size-sm', color: 'color-agree' },
+          3: { size: 'size-sm', color: 'color-disagree' },
+          2: { size: 'size-md', color: 'color-disagree' },
+          1: { size: 'size-lg', color: 'color-disagree' }
+        };
+
+        // 生成中间圆圈 HTML
+        let circlesHtml = '';
+        for (let i = 6; i >= 1; i--) {
+          const s = styles[i];
+          circlesHtml += `
+            <div class="opt-radio ${s.size} ${s.color}">
+              <input type="radio" name="q${q.id}" id="q${q.id}_${i}" value="${i}">
+              <label for="q${q.id}_${i}"></label>
+            </div>
+          `;
+        }
+
+        // 组装 HTML
+        card.innerHTML = `
+          <div class="qmeta">Q${idx + 1}</div>
+          <div class="qtext">${q.text}</div>
+          
+          <div class="scale-wrapper">
+            <div class="scale-container">
+              <span class="label-text label-agree">同意</span>
+              <div class="scale-options">
+                ${circlesHtml}
+              </div>
+              <span class="label-text label-disagree">反对</span>
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(card);
+      });
+
+      // 重新绑定事件监听
+      $('quiz-form').addEventListener('change', updateProgress);
+    }
+
+    function updateProgress() {
+      const data = new FormData($('quiz-form'));
+      let count = 0; for(let pair of data.entries()) count++;
+      const total = currentQuestions.length;
+      
+      const percent = total === 0 ? 0 : (count / total) * 100;
+      $('progress-bar').style.width = `${percent}%`;
+      $('progress-text').textContent = `${count}/${total}`;
+    }
+
+    async function submitAnswers(answersMap) {
+          setLoading(true);
+          let resultData = null;
+
+          // 第一步：只负责拿数据（网络层）
+          try {
+            const res = await fetch(`${API_BASE}/api/submit`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ mbti: currentType, answers: answersMap })
+            });
+            
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            
+            resultData = await res.json();
+            
+          } catch (err) {
+            console.error("网络请求失败:", err);
+            toast("网络请求失败，请检查后端");
+            setLoading(false);
+            return; // 网络错了就停在这里
+          }
+
+          // 第二步：拿到数据后，负责画界面（渲染层）
+          // 这部分如果有错，会在控制台直接红字报错，而不会报“超时”
+          try {
+            console.log("后端返回的数据:", resultData); // 打印数据确认
+            renderResult(resultData);
+          } catch (err) {
+            console.error("界面渲染失败:", err);
+            alert("界面显示出错了！请看控制台报错信息。\n错误原因: " + err.message);
+          } finally {
+            setLoading(false);
+          }
+        }
+
+
+// ===============================
+// Paywall：对现有内容做模糊/取消模糊
+// ===============================
+function applyPaywall(locked) {
+  const result = document.getElementById('result');
+  const overlay = document.getElementById('pay-overlay');
+
+  // 从“核心洞察”这一块开始算遮罩位置
+  const insightP = document.getElementById('res-insight');
+  const anchorSection = insightP ? insightP.closest('.section') : null;
+
+  // === 需要模糊的正文（标题不动） ===
+  const blurTargets = [
+    document.getElementById('res-insight'),
+    document.getElementById('res-advice'),
+
+    // 2）最匹配人格 & 回避人格：隐藏人格类型 + 描述（保留右侧标签标题）
+    document.getElementById('cp-name'),
+    document.getElementById('cp-desc'),
+    document.getElementById('enemy-name'),
+    document.getElementById('enemy-desc'),
+  ].filter(Boolean);
+
+  if (locked) {
+    // 1) 模糊这些正文
+    blurTargets.forEach(el => el.classList.add('blur-content'));
+
+    // 3) 未来30天指南：只模糊正文 .guide-text，保留蓝色小标题 .guide-sub-title
+    document.querySelectorAll('#res-month-body .guide-text').forEach(el => {
+      el.classList.add('blur-content');
+    });
+    document.querySelectorAll('#res-month-body .guide-sub-title').forEach(el => {
+      el.classList.remove('blur-content');
+      el.style.filter = 'none';
+      el.style.opacity = '1';
+      el.style.pointerEvents = 'auto';
+    });
+
+    // 2) 遮罩只盖住“核心洞察”往下
+    if (overlay && result && anchorSection) {
+      overlay.style.display = 'flex';
+
+      // 让遮罩在 #result 内绝对定位，并从 anchorSection 开始盖
+      const top = anchorSection.offsetTop;
+      overlay.style.top = top + 'px';
+      overlay.style.left = '0';
+      overlay.style.right = '0';
+      overlay.style.bottom = 'auto';
+      overlay.style.height = (result.scrollHeight - top) + 'px';
+      overlay.style.position = 'absolute';
+    }
+  } else {
+    blurTargets.forEach(el => el.classList.remove('blur-content'));
+    document.querySelectorAll('#res-month-body .guide-text').forEach(el => {
+      el.classList.remove('blur-content');
+    });
+
+    if (overlay) overlay.style.display = 'none';
+  }
+}
+
+
+
+function renderResult(data) {
+      // 1. 切换界面显示
+      $('quiz-form').style.display = 'none';
+      if($('q-progress-box')) $('q-progress-box').style.display = 'none'; // 安全隐藏进度条
+      $('result').style.display = 'block';
+      $('result').style.animation = 'fadeIn 0.5s ease';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // 2. 填充基础数据的辅助函数
+      const updateField = (id, val, desc, className) => {
+          const el = document.getElementById(id);
+          if(el) {
+              el.innerHTML = val; // 允许 HTML，比如插入 span
+              el.className = `v ${className}`;
+              // 更新对应的描述文字 (d-maturity, d-loop 等)
+              const typeKey = id.split('-')[1]; 
+              const descEl = document.getElementById(`d-${typeKey}`);
+              if(descEl) descEl.textContent = desc;
+          }
+        };
+
+          // 2. 设置主标题文本 (Result Text) -> 存入 result_text
+          // 目标效果："高压 · 26/100"
+          const valEl = document.getElementById('overall-v');
+          if (valEl) {
+              // 这里就是你要的格式：状态 + 点 + 分数 + /100
+              valEl.textContent = `${res.status} · ${res.o}/100`;
+            
+          }
+
+// --- A. 填充六维数据 ---
+  
+  // 1. 认知成熟度
+  let mClass = data.maturity >= 67 ? "color-high" : (data.maturity >= 34 ? "color-mid" : "color-low");
+  let mTxt = data.maturity >= 67 ? "高阶 · 整合者" : (data.maturity >= 34 ? "中阶 · 探索者" : "低阶 · 固守者");
+  let mDesc = data.maturity >= 67 ? "思维与现实整合度高" : (data.maturity >= 34 ? "思路成形，持续迭代" : "易被旧模式牵引");
+  updateField('v-maturity', mTxt, mDesc, mClass);
+
+  // 2. Loop
+  let lClass = data.loop < 35 ? "color-healthy" : (data.loop < 65 ? "color-warn" : "color-bad");
+  let lTxt = data.loop < 35 ? "低" : (data.loop < 65 ? "中" : "高");
+  let lDesc = data.loop < 35 ? "启动成本低" : (data.loop < 65 ? "偶有精神反刍" : "自我攻击严重");
+  updateField('v-loop', lTxt, lDesc, lClass);
+
+  // 3. Grip
+  let gClass = data.grip < 35 ? "color-healthy" : (data.grip < 65 ? "color-warn" : "color-bad");
+  let gTxt = data.grip < 35 ? "低" : (data.grip < 65 ? "中" : "高");
+  let gDesc = data.grip < 35 ? "情绪稳定" : (data.grip < 65 ? "压力下偶有爆发" : "处在高压边缘");
+  updateField('v-grip', gTxt, gDesc, gClass);
+
+  // 4. Load
+  let ldClass = data.load < 35 ? "color-healthy" : (data.load < 65 ? "color-warn" : "color-bad");
+  let ldTxt = data.load < 35 ? "轻" : (data.load < 65 ? "中" : "重");
+  let ldDesc = data.load < 35 ? "余量充足" : (data.load < 65 ? "强度适中" : "急需减负恢复");
+  updateField('v-load', ldTxt, ldDesc, ldClass);
+
+  // 5. 自洽度
+  let cClass = data.coherence >= 70 ? "color-high" : (data.coherence >= 55 ? "color-mid" : "color-warn");
+  let cTxt = data.coherence >= 70 ? "高" : (data.coherence >= 55 ? "中" : "低");
+  let cDesc = data.coherence >= 70 ? "内在逻辑清晰" : (data.coherence >= 55 ? "可自我校准" : "近期摇摆较多");
+  updateField('v-coherence', cTxt, cDesc, cClass);
+
+  // 6. 状态指数 (这里恢复你要的格式！)
+  // 逻辑：只要状态词(pill_text)和分数
+  let oClass = data.overall >= 75 ? "color-high" : (data.overall >= 55 ? "color-healthy" : (data.overall >= 35 ? "color-warn" : "color-bad"));
+  
+  // 🔥【关键修复】恢复显示格式为：高压 · 26/100
+  const finalStatusText = `${data.pill_text} · ${data.overall}/100`;
+  updateField('v-overall', finalStatusText, "综合心理效能", oClass);
+
+  // --- B. 填充文字内容 ---
+  $('res-insight').textContent = data.insight;
+  $('res-advice').textContent = data.advice;
+
+  if($('cp-name')) $('cp-name').textContent = data.cp_name;
+  if($('cp-desc')) $('cp-desc').textContent = data.cp_desc;
+  if($('cp-title-tag')) $('cp-title-tag').textContent = data.cp_title;
+  if($('enemy-name')) $('enemy-name').textContent = data.enemy_name;
+  if($('enemy-desc')) $('enemy-desc').textContent = data.enemy_desc;
+
+  // --- C. 未来30天指南 (保持之前的排版优化) ---
+  const guideContainer = $('guide-card-container');
+  if (guideContainer && data.month_text) {
+      guideContainer.style.display = 'block';
+      if($('res-month-title')) $('res-month-title').textContent = data.month_title;
+      let rawText = (data.month_text || "").trim();
+      rawText = rawText.replace(/\n\s*【/g, '【').replace(/】\s*\n/g, '】');
+      let formattedHtml = rawText.replace(/【(.*?)】/g, (match, title) => {
+        return `</div></div><div class="guide-block"><div class="guide-sub-title">${title}</div><div class="guide-text">`;
+      });
+      formattedHtml = formattedHtml.replace(/^(<\/div>)+/, '') + '</div></div>';
+      formattedHtml = formattedHtml.replace(/(?:^|<br>|\n|\s)(\d+\.)/g, '<br><span class="guide-num">$1</span>');
+      formattedHtml = formattedHtml.replace(/\n/g, '<br>');
+      if (formattedHtml.startsWith('<br>')) formattedHtml = formattedHtml.substring(4);
+      if($('res-month-body')) $('res-month-body').innerHTML = formattedHtml;
+  }
+
+  // --- D. 绘制雷达图 ---
+  const ctx = $('radarChart').getContext('2d');
+  if(myChart) myChart.destroy();
+  const style = getComputedStyle(document.body);
+  const brandColor = style.getPropertyValue('--brand').trim() || '#2563eb';
+
+  myChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['认知成熟度', '自洽度', '内耗弹性', '压力弹性', '负荷余量', '状态指数'],
+      datasets: [{
+        label: '当前状态',
+        data: data.chart_data,
+        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+        borderColor: brandColor,
+        borderWidth: 2,
+        pointBackgroundColor: '#fff',
+        pointBorderColor: brandColor,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: { min: 0, max: 100, ticks: { display: false }, grid: { color: '#f1f5f9', circular: true }, pointLabels: { font: { size: 12, family:'Inter' }, color: '#64748b' } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+applyPaywall(true);
+}
+
+
+    // 绑定提交事件
+// === 找到你的 form 提交监听部分，用这段完全替换 ===
+$('quiz-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const answers = {};
+  let firstUnanswered = null;
+
+  if (typeof currentQuestions !== 'undefined') {
+    for (let q of currentQuestions) {
+      const val = formData.get(`q${q.id}`);
+      if (!val) {
+        if (!firstUnanswered) firstUnanswered = q.id;
+      } else {
+        answers[q.id] = parseInt(val);
+      }
+    }
+  }
+
+  if (firstUnanswered) {
+    if(typeof toast === 'function') toast("请完成所有题目");
+    const card = document.querySelector(`.card[data-qid="${firstUnanswered}"]`);
+    if(card) card.scrollIntoView({block:'center',behavior:'smooth'});
+    return;
+  }
+
+  if(typeof setLoading === 'function') setLoading(true);
+
+  // 1. 发送请求给 Python
+  const payload = { mbti: currentType, answers: answers };
+
+  fetch(API_BASE ? `${API_BASE}/api/submit` : '/api/submit', { 
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(response => {
+    if (!response.ok) return response.json().then(err => { throw new Error(err.detail || '后端验证失败') });
+    return response.json();
+  })
+  .then(res => { 
+    // 2. 拿到数据，先渲染界面 (Render)
+    renderResult(res); 
+
+    // 3. 保存到 LeanCloud 数据库 (Database)
+    setTimeout(() => {
+        if(typeof setLoading === 'function') setLoading(false);
+        try {
+            console.log("正在保存数据...");
+            const TestRecord = AV.Object.extend('TestRecord');
+            const record = new TestRecord();
+
+            // A. 时长
+            const endTime = Date.now();
+            const startTime = window.testStartTime || endTime; 
+            const duration = Math.round((endTime - startTime) / 1000);
+            record.set('duration_seconds', duration);
+
+            // B. 用户选项 (Q1: 5, Q2: 3 ...)
+            const choicesForDb = {};
+            Object.keys(answers).forEach(key => { choicesForDb['Q' + key] = answers[key]; });
+            record.set('user_choices', choicesForDb);
+
+            // C. 基础分
+            record.set('mbti_type', res.mbti_type || currentType);
+            record.set('device', navigator.userAgent);
+            record.set('score_maturity', res.maturity); 
+            record.set('score_loop', res.loop);
+            record.set('score_grip', res.grip);
+            record.set('score_load', res.load);
+            record.set('score_overall', res.overall);
+            record.set('score_coherence', res.coherence);
+
+            // D. 文本字段 (🔥这里直接用数据生成，不再抓取 DOM，防止抓空)
+            // status_tag: "高压"
+            // result_text: "高压 · 26/100"
+            const statusTag = res.pill_text; // Python返回的短语
+            const fullResultText = `${res.pill_text} · ${res.overall}/100`;
+            
+            record.set('status_tag', statusTag);
+            record.set('result_text', fullResultText);
+
+            record.save().then((saved) => {
+                console.log('✅ 保存成功 ID:', saved.id);
+                Analytics.trackCompletion();
+            });
+        } catch (error) {
+            console.error('数据库保存出错:', error);
+        }
+    }, 500);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    if(typeof setLoading === 'function') setLoading(false);
+    alert("提交失败: " + error.message);
+  });
+});
+
+function isMobile() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function showQrModal(data, channel) {
+  const title = channel === 'alipay' ? '请使用支付宝扫码支付' : '请使用微信扫码支付';
+  const qrSrc = data.img || data.qrcode;
+  if (!qrSrc) {
+    alert('支付网关未返回二维码，请稍后重试或改用手机支付。');
+    return;
+  }
+
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position:fixed; inset:0; background:rgba(0,0,0,.5);
+    display:flex; align-items:center; justify-content:center; z-index:9999;
+  `;
+  modal.innerHTML = `
+    <div style="background:#fff; padding:18px; border-radius:16px; width:320px; text-align:center;">
+      <div style="font-weight:700; margin-bottom:10px;">${title}</div>
+      <img src="${qrSrc}" style="width:240px; height:240px; object-fit:contain;" />
+      <div style="margin-top:10px; font-size:12px; color:#64748b;">扫码完成后会自动解锁报告</div>
+      <button style="margin-top:12px; padding:10px 14px; border-radius:12px; border:0; background:#111827; color:#fff; cursor:pointer;">关闭</button>
+    </div>
+  `;
+  modal.querySelector('button').onclick = () => modal.remove();
+  document.body.appendChild(modal);
+}
+
+window.handlePayment = async function () {
+  const btn = document.querySelector('.btn-buy');
+  if (btn) { btn.innerText = "正在创建订单..."; btn.disabled = true; }
+
+  try {
+    const res = await fetch('/api/pay', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_type: 'alipay' }) // 或 'wxpay'
+    });
+
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch {}
+
+    if (!res.ok) {
+      console.error("pay api error:", res.status, text);
+      alert("订单创建失败：" + (data?.detail || text.slice(0, 160)));
+      return;
+    }
+
+    // ✅【就在这里加】保存订单号，防止手机支付回来页面被杀
+    if (data && data.order_id) {
+      localStorage.setItem('pending_order_id', data.order_id);
+    }
+
+    const channel = data.payment_type || 'alipay';
+
+    // 手机：优先跳转 payurl；电脑：优先二维码
+    if (isMobile()) {
+      if (data.payurl) {
+        window.location.href = data.payurl;
+        return;
+      }
+      showQrModal(data, channel);
+    } else {
+      showQrModal(data, channel);
+    }
+
+  } catch (e) {
+    console.error(e);
+    alert('网络错误');
+  } finally {
+    if (btn) { btn.innerText = "🔒 立即解锁完整报告"; btn.disabled = false; }
+  }
+}
+
+
+
+
+window.addEventListener('load', () => {
+  const paid = new URLSearchParams(location.search).get('paid');
+  if (paid === '1') {
+    applyPaywall(false);
+    // 清理参数，避免刷新重复
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+});
+
+async function startCheckOrder(orderId) {
+  let attempts = 0;
+  const maxAttempts = 30; // 轮询 30 次（约 60 秒）
+
+  const timer = setInterval(async () => {
+    attempts += 1;
+
+    try {
+      const res = await fetch(`/api/check_order?order_id=${encodeURIComponent(orderId)}`);
+      const data = await res.json();
+
+      if (data && data.paid) {
+        clearInterval(timer);
+        localStorage.removeItem('pending_order_id');
+        applyPaywall(false); // ✅ 解锁
+        // 如果你有 unlockContent(data.data) 也可以在这里调用
+        // unlockContent(data.data);
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(timer);
+      }
+    } catch (e) {
+      // 网络错误就继续下一次
+      if (attempts >= maxAttempts) clearInterval(timer);
+    }
+  }, 2000);
+}
+
+window.addEventListener('load', () => {
+  const pending = localStorage.getItem('pending_order_id');
+  if (pending) {
+    startCheckOrder(pending);
+  }
+});
+
+  </script>
+<footer class="site-footer">
+    <div class="footer-content">
+      <p>© 2025 舒木罗盘 (Shumu Compass). All Rights Reserved.</p>
+      <p class="footer-note">本测试基于 MBTI 心理学理论模型，结果仅供自我探索参考，不作为心理咨询或医疗诊断依据。</p>
+    </div>
+  </footer>
+  </body>
+</html>
