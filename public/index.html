@@ -836,12 +836,17 @@
             </div>
           </div>
 
-          <button class="btn btn-buy" onclick="handlePayment()" style="width:auto; padding:14px 18px; border-radius:14px;margin-left: 10px;">
-            🔒 立即解锁完整报告
-          </button>
-          <button class="btn" onclick="manualCheckPaid()" style="width:auto; padding:10px 14px; border-radius:10px;margin-left: 10px;">
-              我已完成支付，点击解锁
-          </button>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 15px 0;">
+              
+              <button class="btn btn-buy" onclick="handlePayment()" style="width: 80%; padding:14px 18px; border-radius:14px; font-weight: bold;">
+                  🔒 立即解锁完整报告
+              </button>
+              
+              <button class="btn" onclick="manualCheckPaid()" style="width: 80%; padding:10px 14px; border-radius:10px; background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;">
+                  我已完成支付，点击解锁
+              </button>
+
+          </div>
 
           <div style="margin-top:10px; font-size:12px; color:#64748b;">
             支付成功后将自动解锁
@@ -1682,18 +1687,81 @@ async function startCheckOrder(orderId) {
 
 
 
-window.addEventListener('load', () => {
-  const pending = localStorage.getItem('pending_order_id');
+// window.addEventListener('load', () => {
+//   const pending = localStorage.getItem('pending_order_id');
 
-  // ✅ 如果 URL 里也有 check_order 参数，也一起兼容
-  const params = new URLSearchParams(location.search);
-  const fromUrl = params.get('check_order');
+//   // ✅ 如果 URL 里也有 check_order 参数，也一起兼容
+//   const params = new URLSearchParams(location.search);
+//   const fromUrl = params.get('check_order');
 
-  const orderId = fromUrl || pending;
-  if (orderId) {
-    startCheckOrder(orderId);
+//   const orderId = fromUrl || pending;
+//   if (orderId) {
+//     startCheckOrder(orderId);
+//   }
+// });
+
+function showResultUI() {
+  // ✅ 支付回跳时必须切这几个，否则会停在首页
+  const landing = document.getElementById('landing-page');
+  const quizUI = document.getElementById('quiz-interface');
+  const statusBar = document.getElementById('status-bar');
+
+  if (landing) landing.style.display = 'none';
+  if (quizUI) quizUI.style.display = 'block';
+  if (statusBar) statusBar.style.display = 'flex';
+
+  // ✅ 显示结果，隐藏做题
+  const quizForm = document.getElementById('quiz-form');
+  const result = document.getElementById('result');
+  if (quizForm) quizForm.style.display = 'none';
+  if (result) result.style.display = 'block';
+}
+
+async function verifyPaidAndUnlock(orderId) {
+  // ✅ 用相对路径，别再拼 http://127 或 http://mypsytest.site
+  const res = await fetch(`/api/check_order?order_id=${encodeURIComponent(orderId)}`);
+  const data = await res.json();
+
+  if (data && data.paid) {
+    applyPaywall(false);
+    localStorage.removeItem('pending_order_id');
+
+    // ✅ 清理 URL 上那一长串参数（你说“后缀没了”就是这个）
+    history.replaceState({}, document.title, window.location.pathname);
+    return true;
   }
-});
+  return false;
+}
+
+// ✅ 支付回跳：同时兼容 check_order 和 out_trade_no + trade_status
+async function handlePayReturn() {
+  const params = new URLSearchParams(window.location.search);
+
+  const checkOrder = params.get('check_order');
+  const tradeStatus = params.get('trade_status');
+  const outTradeNo = params.get('out_trade_no');
+
+  // 订单号优先级：check_order > out_trade_no > localStorage
+  const orderId =
+    checkOrder ||
+    (tradeStatus === 'TRADE_SUCCESS' ? outTradeNo : null) ||
+    localStorage.getItem('pending_order_id');
+
+  if (!orderId) return;
+
+  // 保存，方便用户之后再回来也能解锁
+  localStorage.setItem('pending_order_id', orderId);
+
+  // ✅ 关键：先切到结果 UI（否则你永远看到首页）
+  showResultUI();
+
+  // 查单解锁（查一次就行）
+  await verifyPaidAndUnlock(orderId);
+}
+
+// load + pageshow 都挂上，手机从支付宝回来经常走 pageshow
+window.addEventListener('load', handlePayReturn);
+window.addEventListener('pageshow', handlePayReturn);
 
 
 window.manualCheckPaid = function () {
