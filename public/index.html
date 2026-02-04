@@ -1534,6 +1534,23 @@ function isMobile() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
+
+// ✅ 1) 放这里：isOnResultPage
+function isOnResultPage() {
+  return !!document.querySelector('.btn-buy') || !!document.getElementById('paywall-overlay');
+}
+
+// ✅ 2) 放这里：checkOnce
+async function checkOnce(orderId) {
+  const res = await fetch(`/api/check_order?order_id=${encodeURIComponent(orderId)}`);
+  const data = await res.json();
+  if (data?.paid) {
+    applyPaywall(false);
+    localStorage.removeItem('pending_order_id');
+  }
+}
+
+
 window.handlePayment = async function () {
   const btn = document.querySelector('.btn-buy');
   if (btn) { btn.innerText = "正在创建订单..."; btn.disabled = true; }
@@ -1601,6 +1618,9 @@ window.addEventListener('load', () => {
   }
 });
 
+
+
+
 async function startCheckOrder(orderId) {
   let attempts = 0;
   const maxAttempts = 120; // 约 4 分钟
@@ -1665,6 +1685,8 @@ window.manualCheckPaid = function () {
 }
 
 function resumePendingOrderCheck() {
+  if (!isOnResultPage()) return;  // 不在结果页就不查单
+
   const params = new URLSearchParams(location.search);
   const fromUrl = params.get('check_order');
   const pending = localStorage.getItem('pending_order_id');
@@ -1673,16 +1695,11 @@ function resumePendingOrderCheck() {
   if (orderId) startCheckOrder(orderId);
 }
 
-//  首次加载
-window.addEventListener('load', resumePendingOrderCheck);
-
-//  从支付宝/其他 App 返回，可能是页面恢复，不走 load
 window.addEventListener('pageshow', resumePendingOrderCheck);
-
-//  从后台切回前台也检查一次
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) resumePendingOrderCheck();
 });
+
 
 function showMobilePayTip() {
   const tip = document.createElement('div');
