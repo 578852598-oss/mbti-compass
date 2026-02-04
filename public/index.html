@@ -1469,15 +1469,29 @@ window.handlePayment = async function () {
   if (btn) { btn.innerText = "正在创建订单..."; btn.disabled = true; }
 
   try {
-    const res = await fetch('/api/pay', { method: 'POST' });
-    const data = await res.json();
+    const res = await fetch('/api/pay', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_type: 'alipay' }) // 或 'wxpay'
+    });
 
-    if (data && data.payurl) {
-      window.location.href = data.payurl; // 跳转到 zpayz 收银台/支付页
+    const text = await res.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch {}
+
+    if (!res.ok) {
+      console.error("pay api error:", res.status, text);
+      alert("订单创建失败：" + (data?.detail || text.slice(0, 120)));
       return;
     }
 
-    alert(data?.msg || '订单创建失败');
+    // ✅ 后端返回的是 pay_url
+    if (data && data.pay_url) {
+      window.location.href = data.pay_url;
+      return;
+    }
+
+    alert(data?.msg || '订单创建失败：缺少 pay_url');
   } catch (e) {
     console.error(e);
     alert('网络错误');
@@ -1485,6 +1499,7 @@ window.handlePayment = async function () {
     if (btn) { btn.innerText = "🔒 立即解锁完整报告"; btn.disabled = false; }
   }
 }
+
 
 window.addEventListener('load', () => {
   const paid = new URLSearchParams(location.search).get('paid');
