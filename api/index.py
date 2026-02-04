@@ -2613,48 +2613,6 @@ def submit_answers(req: SubmitRequest):
         cp_title = dynamic_cp_title
     )
 
-@app.get("/api/health")
-def health():
-    return {
-        "ok": True,
-        "has_pay_route": True,   # 你删了支付就改成 False
-        "mbti_types": list(MBTI_BANK.keys())[:5],
-    }
-
-@app.get("/api/questions/{mbti_type}", response_model=List[QuestionItem])
-def get_questions(mbti_type: str):
-    mbti = mbti_type.upper()
-
-    if mbti not in MBTI_BANK:
-        raise HTTPException(status_code=404, detail=f"MBTI type not found: {mbti}")
-
-    questions = MBTI_BANK[mbti]
-
-    # 1) 强校验类型，避免 random.sample 直接 500
-    if not isinstance(questions, list):
-        raise HTTPException(status_code=400, detail=f"Question bank for {mbti} must be a list, got {type(questions)}")
-
-    # 2) 空列表直接返回空数组（不算错误）
-    if len(questions) == 0:
-        return []
-
-    shuffled = random.sample(questions, len(questions))
-
-    # 3) 强校验字段，避免 KeyError 500
-    items = []
-    for idx, q in enumerate(shuffled[:5]):  # 先检查前 5 个就够定位问题
-        if not isinstance(q, dict):
-            raise HTTPException(status_code=400, detail=f"Invalid question item type at idx={idx}, got {type(q)}")
-
-        if "id" not in q or "text" not in q:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid question schema at idx={idx}: keys={list(q.keys())}"
-            )
-
-    # 真正返回（全部按 id/text 输出）
-    return [QuestionItem(id=int(q["id"]), text=str(q["text"])) for q in shuffled]
-
 
 
 # ========== 配置（建议改成环境变量）==========
@@ -2764,23 +2722,40 @@ async def create_order(req: PayReq, request: Request):
     ORDERS[out_trade_no]["raw"] = data
     ORDERS[out_trade_no]["zpay_trade_no"] = data.get("trade_no")
 
-    return {"code": 200, "order_id": out_trade_no, "pay_url": pay_url ,"raw": data,}
+    return {
+        "code": 200,
+        "order_id": out_trade_no,
+        "payment_type": req.payment_type,
+        "payurl": data.get("payurl"),
+        "qrcode": data.get("qrcode"),
+        "img": data.get("img"),
+        "pay_url": pay_url,  # 你当前合并字段也保留
+    }
 
 
 @app.get("/api/check_order")
 async def check_order(order_id: str):
-    """
-    前端每 2s 轮询一次，最多 10 次 :contentReference[oaicite:16]{index=16}
-    paid=true 时返回 data 给 unlockContent(data.data) 使用 :contentReference[oaicite:17]{index=17}
-    """
-    order = ORDERS.get(order_id)
-    if not order:
-        return {"paid": False}
+    params = {
+        "act": "order",
+        "pid": ZPAY_PID,
+        "key": ZPAY_KEY,
+        "out_trade_no": order_id,
+    }
 
-    if order["paid"]:
-        # 这里的 data 字段结构，你要跟前端 unlockContent 期望一致
-        # 你目前前端最终会调用 unlockContent(data.data) :contentReference[oaicite:18]{index=18}
-        return {"paid": True, "data": order["unlocked_data"] or {"ok": True}}
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(ZPAY_API, params=params)
+        try:
+            data = r.json()
+        except Exception:
+            raise HTTPException(status_code=502, detail=f"gateway non-json: {r.text[:200]}")
+
+    # 文档：code=1 成功，status=1 已支付 :contentReference[oaicite:4]{index=4}
+    if str(data.get("code")) != "1":
+        return {"paid": False, "gateway": data}
+
+    paid = str(data.get("status")) == "1"
+    if paid:
+        return {"paid": True, "data": {"msg": "unlocked"}}
 
     return {"paid": False}
 
