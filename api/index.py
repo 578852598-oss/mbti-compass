@@ -2668,7 +2668,7 @@ ZPAY_KEY = os.getenv("ZPAY_KEY", "34ecGidqcWlTTOfp9p1QC0zi6s2OWUum")  # 文档�
 SITE_ORIGIN = os.getenv("SITE_ORIGIN", "http://127.0.0.1:8000")
 FRONTEND_RETURN = os.getenv("FRONTEND_RETURN", "http://127.0.0.1:5500/index.html")  # 你的前端页面地址
 
-PRICE_YUAN = os.getenv("PRICE_YUAN", "19.90")
+PRICE_YUAN = os.getenv("PRICE_YUAN", "0.01")
 PRODUCT_NAME = os.getenv("PRODUCT_NAME", "舒木罗盘-完整报告解锁")  # 文档要求：商品名要具体 :contentReference[oaicite:8]{index=8}
 
 
@@ -2757,14 +2757,14 @@ async def create_order(req: PayReq, request: Request):
     if str(data.get("code")) != "1":
         raise HTTPException(status_code=400, detail=f"create order failed: {data}")
 
-    pay_url = data.get("payurl") or data.get("qrcode") or data.get("img")
+    pay_url = data.get("img") or data.get("qrcode") or data.get("payurl") or data.get("payurl2")
     if not pay_url:
         raise HTTPException(status_code=502, detail=f"missing pay url fields: {data}")
 
     ORDERS[out_trade_no]["raw"] = data
     ORDERS[out_trade_no]["zpay_trade_no"] = data.get("trade_no")
 
-    return {"code": 200, "order_id": out_trade_no, "pay_url": pay_url}
+    return {"code": 200, "order_id": out_trade_no, "pay_url": pay_url ,"raw": data,}
 
 
 @app.get("/api/check_order")
