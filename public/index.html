@@ -1489,6 +1489,7 @@ function showQrModal(data, channel) {
   const isImg = /\.(png|jpg|jpeg|webp)(\?|$)/i.test(qrSrc) || qrSrc.includes('/qrcode/');
 
   const modal = document.createElement('div');
+  modal.id = 'pay-modal';
   modal.style.cssText = `
     position:fixed; inset:0; background:rgba(0,0,0,.5);
     display:flex; align-items:center; justify-content:center; z-index:9999;
@@ -1524,7 +1525,10 @@ function showQrModal(data, channel) {
   document.body.appendChild(modal);
 }
 
-
+function closePayModal() {
+  const m = document.getElementById('pay-modal');
+  if (m) m.remove();
+}
 
 function isMobile() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -1538,7 +1542,10 @@ window.handlePayment = async function () {
     const res = await fetch('/api/pay', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ payment_type: 'alipay' })
+      body: JSON.stringify({
+      payment_type: 'alipay',
+      device: isMobile() ? 'mobile' : 'pc'
+       })
     });
 
     const text = await res.text();
@@ -1563,15 +1570,14 @@ window.handlePayment = async function () {
       startCheckOrder(data.order_id);
     }
 
-    const channel = data.payment_type || 'alipay';
-    const raw = data.raw || {};
-
-    // 手机：优先跳转到支付宝链接（更可能拉起支付宝）
-    const mobileJumpUrl = raw.payurl || raw.payurl2 || raw.qrcode || data.payurl || data.pay_url;
-    if (isMobile() && mobileJumpUrl) {
-      window.location.href = mobileJumpUrl;
+    // 手机优先走收银台
+    if (isMobile() && data.checkout_url) {
+      window.location.href = data.checkout_url;
       return;
     }
+
+    // 否则 PC 继续弹窗二维码（img/pay_url）
+    showQrModal(data, 'alipay');
 
     // 电脑或手机无跳转链接：弹窗显示二维码/链接（showQrModal 会自动找 raw.img 等）
     showQrModal(data, channel);
@@ -1615,15 +1621,12 @@ async function startCheckOrder(orderId) {
         console.error("check_order failed:", res.status, text);
       } else if (data.paid) {
         console.log("✅ paid detected, unlocking...", data);
-
         clearInterval(timer);
-
+        closePayModal();
         // 1) 解锁付费墙
         applyPaywall(false);
-
         // 2) 清掉 pending 订单
         localStorage.removeItem('pending_order_id');
-
         // 3) 如果你后端未来返回完整内容，这里可以更新
         // if (data.data) unlockContent(data.data);
 
@@ -1680,6 +1683,34 @@ window.addEventListener('pageshow', resumePendingOrderCheck);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) resumePendingOrderCheck();
 });
+
+function showMobilePayTip() {
+  const tip = document.createElement('div');
+  tip.id = 'mobile-pay-tip';
+  tip.style.cssText = `
+    position:fixed; inset:0; background:rgba(0,0,0,.55);
+    display:flex; align-items:center; justify-content:center; z-index:9999;
+  `;
+  tip.innerHTML = `
+    <div style="background:#fff; padding:16px; border-radius:14px; width:320px; text-align:left;">
+      <div style="font-weight:800; margin-bottom:8px;">即将跳转到支付宝</div>
+      <div style="font-size:13px; color:#334155; line-height:1.5;">
+        支付完成后，请返回此页面（浏览器“返回”或切回浏览器）。
+        回到页面后会自动解锁报告。
+      </div>
+      <button id="btnBackToResult" style="margin-top:12px; width:100%; padding:10px 12px; border-radius:12px; border:0; background:#111827; color:#fff;">
+        我已支付 / 返回解锁
+      </button>
+    </div>
+  `;
+  tip.querySelector('#btnBackToResult').onclick = () => {
+    // 用户已经回来了：继续查单
+    const pending = localStorage.getItem('pending_order_id');
+    if (pending) startCheckOrder(pending);
+    tip.remove();
+  };
+  document.body.appendChild(tip);
+}
 
   </script>
 <footer class="site-footer">
