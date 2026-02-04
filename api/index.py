@@ -2733,8 +2733,17 @@ async def create_order(req: PayReq, request: Request):
     }
 
 
+from fastapi import HTTPException
+import httpx
+
+ZPAY_API = "https://zpayz.cn/api.php"
+
 @app.get("/api/check_order")
 async def check_order(order_id: str):
+    # 基本校验
+    if not order_id:
+        return {"paid": False, "reason": "missing order_id"}
+
     params = {
         "act": "order",
         "pid": ZPAY_PID,
@@ -2742,22 +2751,39 @@ async def check_order(order_id: str):
         "out_trade_no": order_id,
     }
 
-    async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(ZPAY_API, params=params)
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            r = await client.get(ZPAY_API, params=params)
+
+        # 网关偶尔会返回 HTML（比如被拦/参数错），先按文本保底
+        raw_text = r.text
+
+        # 尝试解析 JSON
         try:
             data = r.json()
         except Exception:
-            raise HTTPException(status_code=502, detail=f"gateway non-json: {r.text[:200]}")
+            # ✅ 永远返回 JSON，不要 500
+            return {
+                "paid": False,
+                "reason": "gateway_non_json",
+                "status_code": r.status_code,
+                "gateway_text_head": raw_text[:200],
+            }
 
-    # 文档：code=1 成功，status=1 已支付 :contentReference[oaicite:4]{index=4}
-    if str(data.get("code")) != "1":
+        # 约定：code=1 成功，status=1 已支付（以网关实际返回为准）
+        if str(data.get("code")) != "1":
+            return {"paid": False, "reason": "gateway_code_not_1", "gateway": data}
+
+        paid = str(data.get("status")) == "1"
+        if paid:
+            return {"paid": True, "data": {"msg": "unlocked"}}
+
         return {"paid": False, "gateway": data}
 
-    paid = str(data.get("status")) == "1"
-    if paid:
-        return {"paid": True, "data": {"msg": "unlocked"}}
+    except Exception as e:
+        # ✅ 永远返回 JSON，不要 500
+        return {"paid": False, "reason": "server_exception", "detail": str(e)}
 
-    return {"paid": False}
 
 
 @app.post("/api/notify", response_class=PlainTextResponse)
