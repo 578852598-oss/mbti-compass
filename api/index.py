@@ -2624,9 +2624,6 @@ ZPAY_PID = os.getenv("ZPAY_PID", "2026020316192039")  # 文档里的 PID :conten
 ZPAY_KEY = os.getenv("ZPAY_KEY", "34ecGidqcWlTTOfp9p1QC0zi6s2OWUum")  # 文档里的 PKEY :contentReference[oaicite:7]{index=7}
 
 # 你自己的域名（用于拼 notify_url / return_url）
-proto = request.headers.get("x-forwarded-proto", "https")
-host = request.headers.get("x-forwarded-host") or request.headers.get("host")
-SITE_ORIGIN = f"{proto}://{host}"
 FRONTEND_RETURN = os.getenv("FRONTEND_RETURN", "http://127.0.0.1:5500/index.html")  # 你的前端页面地址
 
 PRICE_YUAN = os.getenv("PRICE_YUAN", "0.01")
@@ -2671,10 +2668,10 @@ class PayReq(BaseModel):
 async def create_order(req: PayReq, request: Request):
     out_trade_no = uuid.uuid4().hex
     client_ip = request.client.host if request.client else "127.0.0.1"
-    notify_url = f"{SITE_ORIGIN}/api/notify"
-
-    # ⚠️ 文档说 return_url 不支持带参数 :contentReference[oaicite:7]{index=7}
-    # 所以这里用“纯页面地址”，回到页面后靠 localStorage 的 pending_order_id 自动解锁
+    proto = request.headers.get("x-forwarded-proto", "https")
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    site_origin = f"{proto}://{host}"
+    notify_url = f"{site_origin}/api/notify"
     return_url = f"{site_origin}/"
 
     # 先记录订单
