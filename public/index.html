@@ -834,6 +834,9 @@
             <div>
               <span class="price-current">限时 ¥19.9</span>
             </div>
+            <button class="btn" onclick="manualCheckPaid()" style="margin-top:10px;">
+              我已完成支付，点击解锁
+            </button>
           </div>
 
           <button class="btn btn-buy" onclick="handlePayment()" style="width:auto; padding:14px 18px; border-radius:14px;">
@@ -1552,6 +1555,14 @@ window.handlePayment = async function () {
 
     if (data.order_id) localStorage.setItem('pending_order_id', data.order_id);
 
+        // ✅ 保存订单号
+    if (data?.order_id) {
+      localStorage.setItem('pending_order_id', data.order_id);
+
+      // ✅【电脑端关键】创建订单后立即开始轮询（扫码支付时页面不离开，所以能自动解锁）
+      startCheckOrder(data.order_id);
+    }
+
     const channel = data.payment_type || 'alipay';
     const raw = data.raw || {};
 
@@ -1586,38 +1597,88 @@ window.addEventListener('load', () => {
 
 async function startCheckOrder(orderId) {
   let attempts = 0;
-  const maxAttempts = 30; // 轮询 30 次（约 60 秒）
+  const maxAttempts = 120; // 约 4 分钟
+  const intervalMs = 2000;
 
   const timer = setInterval(async () => {
-    attempts += 1;
+    attempts++;
 
     try {
       const res = await fetch(`/api/check_order?order_id=${encodeURIComponent(orderId)}`);
-      const data = await res.json();
 
-      if (data && data.paid) {
+      // ✅ 不要直接 res.json()（避免遇到非 JSON 崩）
+      const text = await res.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch {}
+
+      if (!res.ok || !data) {
+        console.error("check_order failed:", res.status, text);
+      } else if (data.paid) {
+        console.log("✅ paid detected, unlocking...", data);
+
         clearInterval(timer);
+
+        // 1) 解锁付费墙
+        applyPaywall(false);
+
+        // 2) 清掉 pending 订单
         localStorage.removeItem('pending_order_id');
-        applyPaywall(false); // ✅ 解锁
-        // 如果你有 unlockContent(data.data) 也可以在这里调用
-        // unlockContent(data.data);
-      }
 
-      if (attempts >= maxAttempts) {
-        clearInterval(timer);
+        // 3) 如果你后端未来返回完整内容，这里可以更新
+        // if (data.data) unlockContent(data.data);
+
+        return;
       }
     } catch (e) {
-      // 网络错误就继续下一次
-      if (attempts >= maxAttempts) clearInterval(timer);
+      console.error("check_order exception:", e);
     }
-  }, 2000);
+
+    if (attempts >= maxAttempts) {
+      clearInterval(timer);
+      console.warn("check_order timeout");
+    }
+  }, intervalMs);
 }
+
 
 window.addEventListener('load', () => {
   const pending = localStorage.getItem('pending_order_id');
-  if (pending) {
-    startCheckOrder(pending);
+
+  // ✅ 如果 URL 里也有 check_order 参数，也一起兼容
+  const params = new URLSearchParams(location.search);
+  const fromUrl = params.get('check_order');
+
+  const orderId = fromUrl || pending;
+  if (orderId) {
+    startCheckOrder(orderId);
   }
+});
+
+
+window.manualCheckPaid = function () {
+  const pending = localStorage.getItem('pending_order_id');
+  if (pending) startCheckOrder(pending);
+  else alert('未找到订单号，请重新发起支付。');
+}
+
+function resumePendingOrderCheck() {
+  const params = new URLSearchParams(location.search);
+  const fromUrl = params.get('check_order');
+  const pending = localStorage.getItem('pending_order_id');
+  const orderId = fromUrl || pending;
+
+  if (orderId) startCheckOrder(orderId);
+}
+
+//  首次加载
+window.addEventListener('load', resumePendingOrderCheck);
+
+//  从支付宝/其他 App 返回，可能是页面恢复，不走 load
+window.addEventListener('pageshow', resumePendingOrderCheck);
+
+//  从后台切回前台也检查一次
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) resumePendingOrderCheck();
 });
 
   </script>
