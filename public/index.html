@@ -284,7 +284,11 @@
 
 
     /* 结果页网格 */
-    #result{ display: none; padding-bottom: 60px; }
+    #result{
+    display:none;
+    padding-bottom:60px;
+    position: relative; /* ✅关键：让 pay-overlay 相对 result 定位 */
+     }
     .grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 20px; }
     @media(min-width: 640px){ .grid{ grid-template-columns: repeat(3, 1fr); } }
     
@@ -610,7 +614,8 @@
 
 /* 内容模糊层 */
 .blur-content {
-  filter: blur(6px); /* 高斯模糊 */
+  filter: blur(12px); /* 高斯模糊 */
+  opacity: 0.18 !important;
   user-select: none; /* 禁止选中 */
   pointer-events: none;
   opacity: 0.6;
@@ -628,16 +633,15 @@
 .fake-text p:nth-child(3) { width: 90%; }
 
 /* 购买遮罩层 */
-.pay-overlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 30%, #fff 100%);
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
+.pay-overlay{
+  /* 关键：统一遮罩，不要渐变 */
+  background: rgba(255,255,255,0.92) !important;
+  /* 建议保留这些 */
+  display: none;
   align-items: center;
   justify-content: center;
-  padding-top: 60px;
+  flex-direction: column;
+  z-index: 10;
 }
 
 /* 价格标签 */
@@ -657,24 +661,6 @@
   margin-left: 8px;
 }
 
-/* 购买按钮 */
-.btn-buy {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #fff;
-  border: none;
-  padding: 12px 32px;
-  border-radius: 99px;
-  font-size: 16px;
-  font-weight: 700;
-  box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
-  cursor: pointer;
-  animation: pulse 2s infinite;
-}
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
   </style>
 </head>
 
@@ -806,7 +792,6 @@
           </div>
         </div>
 
-        <div id="locked-content-placeholder"></div> 
         <div class="section"><h3>核心洞察</h3><p id="res-insight">...</p></div>
         <div class="section"><h3>调整建议</h3><p id="res-advice">...</p></div>
 
@@ -841,6 +826,25 @@
           <div class="guide-body" id="res-month-body">
             </div>
         </div>
+
+                <!-- Paywall Overlay：覆盖层（不新增内容区块，只是遮罩） -->
+        <div id="pay-overlay" class="pay-overlay" style="display:none;">
+          <div class="price-box">
+            <div class="price-original">原价 ¥39.9</div>
+            <div>
+              <span class="price-current">限时 ¥19.9</span>
+            </div>
+          </div>
+
+          <button class="btn btn-buy" onclick="handlePayment()" style="width:auto; padding:14px 18px; border-radius:14px;">
+            🔒 立即解锁完整报告
+          </button>
+
+          <div style="margin-top:10px; font-size:12px; color:#64748b;">
+            支付成功后将自动解锁
+          </div>
+        </div>
+
 
         <button class="btn btn-ghost" onclick="resetApp()" style="margin-top:30px; background:#f1f5f9; color:#475569;">重新测试</button>
       </div>
@@ -1062,21 +1066,6 @@ Analytics.trackVisit();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    async function fetchQuestions(type) {
-      setLoading(true);
-      try {
-        const res = await fetch(`${API_BASE}/api/questions/${type}`);
-        if (!res.ok) throw new Error("API Error");
-        currentQuestions = await res.json();
-        renderQuestions();
-      } catch (err) {
-        console.error(err);
-        toast("连接服务器失败，请稍后重试");
-        setTimeout(resetApp, 2000); // 失败后返回首页
-      } finally {
-        setLoading(false);
-      }
-    }
 
 function renderQuestions() {
       window.testStartTime = Date.now();
@@ -1182,6 +1171,70 @@ function renderQuestions() {
             setLoading(false);
           }
         }
+
+
+// ===============================
+// Paywall：对现有内容做模糊/取消模糊
+// ===============================
+function applyPaywall(locked) {
+  const result = document.getElementById('result');
+  const overlay = document.getElementById('pay-overlay');
+
+  // 从“核心洞察”这一块开始算遮罩位置
+  const insightP = document.getElementById('res-insight');
+  const anchorSection = insightP ? insightP.closest('.section') : null;
+
+  // === 需要模糊的正文（标题不动） ===
+  const blurTargets = [
+    document.getElementById('res-insight'),
+    document.getElementById('res-advice'),
+
+    // 2）最匹配人格 & 回避人格：隐藏人格类型 + 描述（保留右侧标签标题）
+    document.getElementById('cp-name'),
+    document.getElementById('cp-desc'),
+    document.getElementById('enemy-name'),
+    document.getElementById('enemy-desc'),
+  ].filter(Boolean);
+
+  if (locked) {
+    // 1) 模糊这些正文
+    blurTargets.forEach(el => el.classList.add('blur-content'));
+
+    // 3) 未来30天指南：只模糊正文 .guide-text，保留蓝色小标题 .guide-sub-title
+    document.querySelectorAll('#res-month-body .guide-text').forEach(el => {
+      el.classList.add('blur-content');
+    });
+    document.querySelectorAll('#res-month-body .guide-sub-title').forEach(el => {
+      el.classList.remove('blur-content');
+      el.style.filter = 'none';
+      el.style.opacity = '1';
+      el.style.pointerEvents = 'auto';
+    });
+
+    // 2) 遮罩只盖住“核心洞察”往下
+    if (overlay && result && anchorSection) {
+      overlay.style.display = 'flex';
+
+      // 让遮罩在 #result 内绝对定位，并从 anchorSection 开始盖
+      const top = anchorSection.offsetTop;
+      overlay.style.top = top + 'px';
+      overlay.style.left = '0';
+      overlay.style.right = '0';
+      overlay.style.bottom = 'auto';
+      overlay.style.height = (result.scrollHeight - top) + 'px';
+      overlay.style.position = 'absolute';
+    }
+  } else {
+    blurTargets.forEach(el => el.classList.remove('blur-content'));
+    document.querySelectorAll('#res-month-body .guide-text').forEach(el => {
+      el.classList.remove('blur-content');
+    });
+
+    if (overlay) overlay.style.display = 'none';
+  }
+}
+
+
 
 function renderResult(data) {
       // 1. 切换界面显示
@@ -1309,8 +1362,7 @@ function renderResult(data) {
       plugins: { legend: { display: false } }
     }
   });
-
-  renderLockedSection();
+applyPaywall(true);
 }
 
 
@@ -1412,194 +1464,36 @@ $('quiz-form').addEventListener('submit', (e) => {
   });
 });
 
-/* ============================================================
-   以下是付费模块的完整逻辑 (直接复制到 <script> 最末尾)
-   ============================================================ */
+window.handlePayment = async function () {
+  const btn = document.querySelector('.btn-buy');
+  if (btn) { btn.innerText = "正在创建订单..."; btn.disabled = true; }
 
-// 1. 渲染“锁定状态”的界面
-function renderLockedSection() {
-    const container = document.getElementById('locked-content-placeholder');
-    if (!container) return;
+  try {
+    const res = await fetch('/api/pay', { method: 'POST' });
+    const data = await res.json();
 
-    container.innerHTML = `
-      <div class="locked-section" id="sec-insight">
-        <div class="lock-title">核心洞察 & 深层心理</div>
-        <div class="blur-content fake-text">
-           <p></p><p></p><p></p><p></p>
-           <br>
-           <p></p><p></p>
-        </div>
-        
-        <div class="pay-overlay">
-          <div class="price-box">
-            <span class="price-original">原价 ¥29.9</span>
-            <span class="price-current">限时 ¥9.9</span>
-          </div>
-          <button class="btn-buy" onclick="handlePayment()">立即解锁完整报告</button>
-          <div style="margin-top:8px; font-size:12px; color:#94a3b8;">已有 2,304 人解锁成功</div>
-        </div>
-      </div>
+    if (data && data.payurl) {
+      window.location.href = data.payurl; // 跳转到 zpayz 收银台/支付页
+      return;
+    }
 
-      <div class="locked-section" id="sec-advice">
-        <div class="lock-title">专属调整建议</div>
-        <div class="blur-content fake-text">
-           <p></p><p></p><p></p>
-        </div>
-      </div>
-
-      <div class="locked-section" id="sec-cp">
-        <div class="lock-title">当下最佳 CP (高适配)</div>
-        <div class="blur-content">
-           <div style="display:flex; gap:10px; margin-bottom:10px;">
-              <span style="background:#eee; padding:5px 10px; border-radius:8px;">守护者类型</span>
-              <span style="background:#eee; padding:5px 10px; border-radius:8px;">占有型伴侣</span>
-           </div>
-           <div class="fake-text"><p></p><p></p></div>
-        </div>
-      </div>
-
-      <div class="locked-section" id="sec-avoid">
-        <div class="lock-title" style="color:#ef4444;">当下需回避的人格 ⚠️</div>
-        <div class="blur-content fake-text">
-           <p></p><p></p>
-        </div>
-      </div>
-
-      <div class="locked-section" id="sec-guide">
-        <div class="lock-title">未来 30 天能量指南</div>
-        <div class="blur-content fake-text">
-           <p></p><p></p><p></p><p></p>
-        </div>
-      </div>
-    `;
+    alert(data?.msg || '订单创建失败');
+  } catch (e) {
+    console.error(e);
+    alert('网络错误');
+  } finally {
+    if (btn) { btn.innerText = "🔒 立即解锁完整报告"; btn.disabled = false; }
+  }
 }
 
-// 2. 点击购买按钮触发
-window.handlePayment = async function() {
-    const btn = document.querySelector('.btn-buy');
-    btn.innerText = "正在创建订单...";
-    btn.disabled = true;
-
-    try {
-        // 这里的地址必须是你的 Python 后端地址
-        // 如果是本地测试用 http://127.0.0.1:8000/api/pay
-        // 上线后用 http://mypsytest.site/api/pay
-        const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-                         ? 'http://127.0.0.1:8000' 
-                         : 'http://mypsytest.site';
-
-        const response = await fetch(`${API_BASE}/api/pay`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ payment_type: 'alipay' })
-        });
-        
-        const data = await response.json();
-        
-        if(data.code === 200 && data.pay_url) {
-            window.location.href = data.pay_url; // 跳转去支付宝
-        } else {
-            alert('订单创建失败');
-            btn.innerText = "立即解锁完整报告";
-            btn.disabled = false;
-        }
-    } catch (e) {
-        console.error(e);
-        alert('网络请求出错');
-        btn.innerText = "立即解锁完整报告";
-        btn.disabled = false;
-    }
-}
-
-// 3. 页面加载监听：检查是否支付成功跳回来的
-window.addEventListener('load', async function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const orderId = urlParams.get('check_order');
-
-    // 如果网址里带有 order_id，说明用户刚付完款回来
-    if (orderId) {
-        // 自动切换到结果页显示（你需要确保这里能把用户带到结果页，而不是留在封面）
-        // 如果你的 SPA 逻辑比较简单，可能需要手动隐藏 Landing Page，显示 Result Page
-        // document.getElementById('landing-page').style.display = 'none';
-        // document.getElementById('result-page').style.display = 'block';
-        
-        // 先把锁定的架子搭起来（防止用户没点提交就没有架子）
-        renderLockedSection(); 
-
-        const btn = document.querySelector('.btn-buy');
-        if(btn) btn.innerText = "正在验证支付结果...";
-
-        let attempts = 0;
-        const checkInterval = setInterval(async () => {
-            attempts++;
-            try {
-                const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-                         ? 'http://127.0.0.1:8000' 
-                         : 'http://mypsytest.site';
-
-                const res = await fetch(`${API_BASE}/api/check_order?order_id=${orderId}`);
-                const data = await res.json();
-
-                if (data.paid === true) {
-                    clearInterval(checkInterval);
-                    unlockContent(data.data); // 调用下面的解锁函数
-                    alert("解锁成功！");
-                    // 清理 URL
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
-            } catch (e) { console.error(e); }
-
-            if (attempts > 10) {
-                clearInterval(checkInterval);
-                if(btn) btn.innerText = "验证超时，请刷新页面";
-            }
-        }, 2000);
-    }
+window.addEventListener('load', () => {
+  const paid = new URLSearchParams(location.search).get('paid');
+  if (paid === '1') {
+    applyPaywall(false);
+    // 清理参数，避免刷新重复
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
 });
-
-// 4. 解锁函数：把真实数据填进去
-function unlockContent(data) {
-    // 移除遮罩
-    const overlay = document.querySelector('.pay-overlay');
-    if(overlay) overlay.remove();
-
-    // 辅助函数：填充内容并移除模糊
-    const fill = (id, htmlContent) => {
-        const section = document.getElementById(id);
-        if(!section) return;
-        const blurDiv = section.querySelector('.blur-content');
-        if(blurDiv) {
-            blurDiv.classList.remove('blur-content', 'fake-text');
-            blurDiv.style.filter = 'none';
-            blurDiv.style.opacity = '1';
-            blurDiv.innerHTML = htmlContent;
-        }
-    };
-
-    // 1. 核心洞察
-    if(data.insight) fill('sec-insight', data.insight.map(t => `<p>${t}</p>`).join(''));
-    
-    // 2. 调整建议
-    if(data.advice) fill('sec-advice', data.advice.map(t => `<p class="advice-item">✅ ${t}</p>`).join(''));
-
-    // 3. CP
-    if(data.cp) {
-        fill('sec-cp', `
-            <div style="margin-bottom:15px">
-                <strong>🛡️ 守护者:</strong> ${data.cp.guard}
-            </div>
-            <div>
-                <strong>💍 占有型:</strong> ${data.cp.owner}
-            </div>
-        `);
-    }
-
-    // 4. 回避
-    if(data.avoid) fill('sec-avoid', `<p>${data.avoid}</p>`);
-
-    // 5. 指南
-    if(data.guide_30d) fill('sec-guide', `<p>${data.guide_30d}</p>`);
-}
 
   </script>
 <footer class="site-footer">
