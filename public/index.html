@@ -839,7 +839,7 @@
           <button class="btn btn-buy" onclick="handlePayment()" style="width:auto; padding:14px 18px; border-radius:14px;">
             🔒 立即解锁完整报告
           </button>
-          <button class="btn" onclick="manualCheckPaid()" style="width:auto; padding:14px 18px; border-radius:14px;">
+          <button class="btn" onclick="manualCheckPaid()" style="width:auto; padding:10px 14px; border-radius:10px;">
               我已完成支付，点击解锁
           </button>
 
@@ -1560,44 +1560,42 @@ window.handlePayment = async function () {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-      payment_type: 'alipay',
-      device: isMobile() ? 'mobile' : 'pc'
-       })
+        payment_type: 'alipay',
+        device: isMobile() ? 'mobile' : 'pc'
+      })
     });
 
     const text = await res.text();
     let data = null;
     try { data = JSON.parse(text); } catch {}
 
-    console.log("PAY RESPONSE RAW TEXT:", text);
-    console.log("PAY RESPONSE JSON:", data);
-
     if (!res.ok || !data) {
-      alert("订单创建失败：" + (text?.slice(0, 160) || res.status));
+      console.error("pay api error:", res.status, text);
+      alert("订单创建失败：" + (data?.detail || text.slice(0, 160)));
       return;
     }
 
-    if (data.order_id) localStorage.setItem('pending_order_id', data.order_id);
+    // ✅ 一定要有 channel（你报错就来自这里缺失）
+    const channel = data.payment_type || 'alipay';
 
-        // ✅ 保存订单号
-    if (data?.order_id) {
+    // ✅ 保存订单号（用于回来后 checkOnce 解锁）
+    if (data.order_id) {
       localStorage.setItem('pending_order_id', data.order_id);
-
-      // ✅【电脑端关键】创建订单后立即开始轮询（扫码支付时页面不离开，所以能自动解锁）
-      startCheckOrder(data.order_id);
     }
 
-    // 手机优先走收银台
+    // 手机：优先去收银台 checkout_url（图2体验）
     if (isMobile() && data.checkout_url) {
       window.location.href = data.checkout_url;
       return;
     }
 
-    // 否则 PC 继续弹窗二维码（img/pay_url）
-    showQrModal(data, 'alipay');
-
-    // 电脑或手机无跳转链接：弹窗显示二维码/链接（showQrModal 会自动找 raw.img 等）
+    // 电脑：弹窗二维码（不跳转）
     showQrModal(data, channel);
+
+    // 电脑端扫码：可以立即开始轮询自动解锁（如果你还保留 startCheckOrder）
+    if (!isMobile() && data.order_id && typeof startCheckOrder === 'function') {
+      startCheckOrder(data.order_id);
+    }
 
   } catch (e) {
     console.error(e);
@@ -1606,6 +1604,7 @@ window.handlePayment = async function () {
     if (btn) { btn.innerText = "🔒 立即解锁完整报告"; btn.disabled = false; }
   }
 }
+
 
 
 
@@ -1621,18 +1620,33 @@ window.addEventListener('load', () => {
 
 
 
+let __checkTimer = null;      // ✅ 防止重复开启
+let __checkingOrderId = null; // ✅ 记录当前查哪个单
+
 async function startCheckOrder(orderId) {
+  // ✅ 不在结果页就不查（避免首页/做题误触发）
+  if (typeof isOnResultPage === 'function' && !isOnResultPage()) return;
+
+  // ✅ 已经在查同一个订单，就不要重复开定时器
+  if (__checkTimer && __checkingOrderId === orderId) return;
+
+  // ✅ 如果之前在查别的订单，先停掉
+  if (__checkTimer) {
+    clearInterval(__checkTimer);
+    __checkTimer = null;
+  }
+
+  __checkingOrderId = orderId;
+
   let attempts = 0;
   const maxAttempts = 120; // 约 4 分钟
   const intervalMs = 2000;
 
-  const timer = setInterval(async () => {
+  __checkTimer = setInterval(async () => {
     attempts++;
 
     try {
       const res = await fetch(`/api/check_order?order_id=${encodeURIComponent(orderId)}`);
-
-      // ✅ 不要直接 res.json()（避免遇到非 JSON 崩）
       const text = await res.text();
       let data = null;
       try { data = JSON.parse(text); } catch {}
@@ -1641,15 +1655,14 @@ async function startCheckOrder(orderId) {
         console.error("check_order failed:", res.status, text);
       } else if (data.paid) {
         console.log("✅ paid detected, unlocking...", data);
-        clearInterval(timer);
-        closePayModal();
-        // 1) 解锁付费墙
-        applyPaywall(false);
-        // 2) 清掉 pending 订单
-        localStorage.removeItem('pending_order_id');
-        // 3) 如果你后端未来返回完整内容，这里可以更新
-        // if (data.data) unlockContent(data.data);
 
+        clearInterval(__checkTimer);
+        __checkTimer = null;
+        __checkingOrderId = null;
+
+        closePayModal();
+        applyPaywall(false);
+        localStorage.removeItem('pending_order_id');
         return;
       }
     } catch (e) {
@@ -1657,11 +1670,14 @@ async function startCheckOrder(orderId) {
     }
 
     if (attempts >= maxAttempts) {
-      clearInterval(timer);
+      clearInterval(__checkTimer);
+      __checkTimer = null;
+      __checkingOrderId = null;
       console.warn("check_order timeout");
     }
   }, intervalMs);
 }
+
 
 
 window.addEventListener('load', () => {
@@ -1684,21 +1700,18 @@ window.manualCheckPaid = function () {
   else alert('未找到订单号，请重新发起支付。');
 }
 
-function resumePendingOrderCheck() {
-  if (!isOnResultPage()) return;  // 不在结果页就不查单
+function resumePendingOrderCheckOnce() {
+  if (!isOnResultPage()) return;  // ✅ 首页/做题不查
 
-  const params = new URLSearchParams(location.search);
-  const fromUrl = params.get('check_order');
   const pending = localStorage.getItem('pending_order_id');
-  const orderId = fromUrl || pending;
-
-  if (orderId) startCheckOrder(orderId);
+  if (pending) checkOnce(pending); // ✅ 只查一次，不轮询
 }
 
-window.addEventListener('pageshow', resumePendingOrderCheck);
+window.addEventListener('pageshow', resumePendingOrderCheckOnce);
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) resumePendingOrderCheck();
+  if (!document.hidden) resumePendingOrderCheckOnce();
 });
+
 
 
 function showMobilePayTip() {
