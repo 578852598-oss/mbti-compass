@@ -2686,6 +2686,7 @@ async def create_order(req: PayReq, request: Request):
         "type": req.payment_type,
         "out_trade_no": out_trade_no,
         "notify_url": notify_url,
+        "return_url": return_url,
         "name": PRODUCT_NAME,
         "money": PRICE_YUAN,
         "clientip": client_ip,
