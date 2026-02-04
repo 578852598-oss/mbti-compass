@@ -8,6 +8,10 @@ from urllib.parse import urlencode
 import hashlib
 import time
 from fastapi import FastAPI, Request, HTTPException
+import os
+import uuid
+import httpx
+from fastapi.responses import PlainTextResponse
 
 app = FastAPI()
 
@@ -2610,97 +2614,169 @@ def submit_answers(req: SubmitRequest):
         cp_title = dynamic_cp_title
     )
 
+# ========== 配置（建议改成环境变量）==========
+ZPAY_BASE = "https://zpayz.cn"
+ZPAY_MAPI = f"{ZPAY_BASE}/mapi.php"
+
+ZPAY_PID = os.getenv("ZPAY_PID", "2026020316192039")  # 文档里的 PID :contentReference[oaicite:6]{index=6}
+ZPAY_KEY = os.getenv("ZPAY_KEY", "34ecGidqcWlTTOfp9p1QC0zi6s2OWUum")  # 文档里的 PKEY :contentReference[oaicite:7]{index=7}
+
+# 你自己的域名（用于拼 notify_url / return_url）
+SITE_ORIGIN = os.getenv("SITE_ORIGIN", "http://127.0.0.1:8000")
+FRONTEND_RETURN = os.getenv("FRONTEND_RETURN", "http://127.0.0.1:5500/index.html")  # 你的前端页面地址
+
+PRICE_YUAN = os.getenv("PRICE_YUAN", "19.90")
+PRODUCT_NAME = os.getenv("PRODUCT_NAME", "舒木罗盘-完整报告解锁")  # 文档要求：商品名要具体 :contentReference[oaicite:8]{index=8}
+
+
+# ========== 简易订单存储（生产请换 DB/Redis）==========
+ORDERS: Dict[str, Dict[str, Any]] = {}
+
+
+# ========== ZPAY 常见易支付签名（如规则不同我再帮你改）==========
+def md5(s: str) -> str:
+    return hashlib.md5(s.encode("utf-8")).hexdigest()
+
+def build_sign(params: Dict[str, Any], key: str) -> str:
+    """
+    通用易支付 MD5 签名：
+    1) 去掉空值、去掉 sign/sign_type
+    2) key 排序
+    3) k=v&k2=v2... + key
+    4) md5
+    """
+    filtered = {k: str(v) for k, v in params.items()
+                if v is not None and str(v) != "" and k not in ("sign", "sign_type")}
+    pieces = [f"{k}={filtered[k]}" for k in sorted(filtered.keys())]
+    base = "&".join(pieces) + key
+    return md5(base)
+
+def verify_sign(params: Dict[str, Any], key: str) -> bool:
+    sign = str(params.get("sign", "")).lower()
+    expect = build_sign(params, key).lower()
+    return sign == expect
+
+
+# ========== API ==========
+class PayReq(BaseModel):
+    payment_type: str = "alipay"  # 前端传 { payment_type: 'alipay' } :contentReference[oaicite:9]{index=9}
+    param: Optional[str] = None   # 你想带回来的附加参数（会原样回传） :contentReference[oaicite:10]{index=10}
 
 @app.post("/api/pay")
-def create_payment(req: PaymentRequest):
-    PID = '2026020316192039'
-    KEY = '34ecGidqcWlTTOfp9p1QC0zi6s2OWUum'
-    API_URL = 'https://zpayz.cn/submit.php'
+async def create_order(req: PayReq, request: Request):
+    """
+    1) 创建本地订单号
+    2) 调 zpayz mapi.php
+    3) 返回 pay_url 给前端跳转
+    """
+    if req.payment_type not in ("alipay", "wxpay"):
+        raise HTTPException(status_code=400, detail="payment_type must be alipay/wxpay")
 
-    order_id = f"ORD_{int(time.time())}_{random.randint(100, 999)}"
+    out_trade_no = uuid.uuid4().hex  # 商户订单号（不可重复） :contentReference[oaicite:11]{index=11}
+    client_ip = request.client.host if request.client else "127.0.0.1"
 
-    # ★★★ 这里修改了域名配置 ★★★
-    # return_url: 支付完跳回主页，并带上订单号
-    # notify_url: 支付平台偷偷通知你的接口
-    params = {
-        'pid': PID,
-        'type': req.payment_type,
-        'out_trade_no': order_id,
-        'notify_url': 'http://mypsytest.site/api/notify',
-        'return_url': f'http://mypsytest.site/?check_order={order_id}',
-        'name': 'MBTI核心状态解锁-早鸟价',
-        'money': '9.90',
-        'sign_type': 'MD5'
+    notify_url = f"{SITE_ORIGIN}/api/notify"
+    # 回跳到前端，并带上 check_order，前端会轮询 check_order :contentReference[oaicite:12]{index=12}
+    return_url = f"{FRONTEND_RETURN}?check_order={out_trade_no}"
+
+    # 组装 mapi 参数（文档字段） :contentReference[oaicite:13]{index=13}
+    payload = {
+        "pid": ZPAY_PID,
+        "type": req.payment_type,
+        "out_trade_no": out_trade_no,
+        "notify_url": notify_url,
+        "name": PRODUCT_NAME,
+        "money": PRICE_YUAN,
+        "clientip": client_ip,
+        "device": "pc",
+        "param": req.param or "",
+        "sign_type": "MD5",
+    }
+    payload["sign"] = build_sign(payload, ZPAY_KEY)
+
+    # 先记录订单
+    ORDERS[out_trade_no] = {
+        "paid": False,
+        "created_at": int(time.time()),
+        "zpay_trade_no": None,
+        "raw": {},
+        "unlocked_data": None,  # 你想支付后返回的完整报告，可以放这里
     }
 
-    # ... (之前的签名算法逻辑保持不变) ...
-    # 签名代码省略，和之前一样
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.post(ZPAY_MAPI, data=payload)  # 文档：POST form-data :contentReference[oaicite:14]{index=14}
+        try:
+            data = resp.json()
+        except Exception:
+            raise HTTPException(status_code=502, detail=f"gateway bad response: {resp.text[:200]}")
 
-    # 在生成链接前，先在“记账本”里记一笔，状态是 pending (未支付)
-    PAID_ORDERS[order_id] = {"status": "pending"}
+    # 文档成功返回会有 payurl/qrcode/img :contentReference[oaicite:15]{index=15}
+    if str(data.get("code")) != "1":
+        raise HTTPException(status_code=400, detail=f"create order failed: {data}")
 
-    # ... (返回 redirect_url) ...
-    # 完整代码参考上一轮，只要确保 params 里的 url 改对了就行
+    pay_url = data.get("payurl") or data.get("qrcode") or data.get("img")
+    if not pay_url:
+        raise HTTPException(status_code=502, detail=f"missing pay url fields: {data}")
 
+    ORDERS[out_trade_no]["raw"] = data
+    ORDERS[out_trade_no]["zpay_trade_no"] = data.get("trade_no")
 
-# ==========================================
-# 支付接口 2: 接收异步通知 (必须有！核心！)
-# ==========================================
-@app.post("/api/notify")  # 对应 notify_url
-@app.get("/api/notify")  # 有些支付平台用GET，两个都写上保险
-async def notify_payment(request: Request):
-    # 获取支付平台发来的所有数据
-    data = dict(request.query_params) if request.method == 'GET' else await request.form()
-    data = dict(data)  # 转成普通字典
-
-    # 1. 验证签名 (防止有人伪造支付成功)
-    if 'sign' not in data:
-        return "fail"
-
-    client_sign = data.pop('sign')  # 取出签名并从数据中删除，因为签名不参与签名计算
-    KEY = '34ecGidqcWlTTOfp9p1QC0zi6s2OWUum'
-
-    # 重新计算签名
-    sorted_keys = sorted([k for k, v in data.items() if v != ''])
-    sign_str = '&'.join([f"{k}={data[k]}" for k in sorted_keys])
-    sign_str_final = sign_str + KEY
-    my_sign = hashlib.md5(sign_str_final.encode('utf-8')).hexdigest()
-
-    if my_sign == client_sign:
-        # 签名正确，说明真的是支付平台发来的
-        out_trade_no = data.get('out_trade_no')
-        trade_status = data.get('trade_status')  # 易支付通常用 TRADE_SUCCESS
-
-        # 只要是回调，基本就是成功，或者判断 trade_status
-        if out_trade_no in PAID_ORDERS:
-            PAID_ORDERS[out_trade_no]['status'] = 'paid'
-            print(f"订单 {out_trade_no} 支付成功！")
-
-        return "success"  # 必须返回 success 给支付平台，否则它会一直发
-    else:
-        return "fail"
+    return {"code": 200, "order_id": out_trade_no, "pay_url": pay_url}
 
 
-# ==========================================
-# 支付接口 3: 前端查询结果
-# ==========================================
 @app.get("/api/check_order")
-def check_order_status(order_id: str):
-    # 前端拿着订单号来问：这个订单付了吗？
-    order = PAID_ORDERS.get(order_id)
-
-    if order and order['status'] == 'paid':
-        # 如果付了，返回解锁的文字内容
-        # ★★★ 这里你可以根据需求生成更复杂的文字 ★★★
-        return {
-            "paid": True,
-            "data": {
-                "insight": ["你内心深处渴望秩序，但又抗拒被控制...", "在压力下，你容易陷入过度分析的循环..."],
-                "advice": ["尝试每天记录三件具体的小事", "在此刻，行动比完美的计划更重要"],
-                "cp": {"guard": "ESTJ - 总理型", "owner": "ENTJ - 指挥官"},
-                "avoid": "ESFP - 表演者 (可能会让你觉得吵闹且缺乏深度)",
-                "guide_30d": "第一周：断舍离；第二周：建立微习惯..."
-            }
-        }
-    else:
+async def check_order(order_id: str):
+    """
+    前端每 2s 轮询一次，最多 10 次 :contentReference[oaicite:16]{index=16}
+    paid=true 时返回 data 给 unlockContent(data.data) 使用 :contentReference[oaicite:17]{index=17}
+    """
+    order = ORDERS.get(order_id)
+    if not order:
         return {"paid": False}
+
+    if order["paid"]:
+        # 这里的 data 字段结构，你要跟前端 unlockContent 期望一致
+        # 你目前前端最终会调用 unlockContent(data.data) :contentReference[oaicite:18]{index=18}
+        return {"paid": True, "data": order["unlocked_data"] or {"ok": True}}
+
+    return {"paid": False}
+
+
+@app.post("/api/notify", response_class=PlainTextResponse)
+async def zpay_notify(request: Request):
+    """
+    ZPAY 异步通知回调（notify_url） :contentReference[oaicite:19]{index=19}
+    通常要求返回 'success' / 'ok' 字样（以网关要求为准）
+    """
+    form = await request.form()
+    params = dict(form)
+
+    # 1) 验签
+    if not verify_sign(params, ZPAY_KEY):
+        return PlainTextResponse("sign_error", status_code=400)
+
+    out_trade_no = params.get("out_trade_no")
+    trade_status = params.get("trade_status") or params.get("status") or "SUCCESS"
+    money = params.get("money")
+
+    if not out_trade_no or out_trade_no not in ORDERS:
+        return PlainTextResponse("order_not_found", status_code=404)
+
+    # 2) 标记支付成功
+    if str(trade_status).upper() in ("SUCCESS", "TRADE_SUCCESS", "1"):
+        ORDERS[out_trade_no]["paid"] = True
+        ORDERS[out_trade_no]["paid_at"] = int(time.time())
+        ORDERS[out_trade_no]["paid_money"] = money
+        ORDERS[out_trade_no]["notify_payload"] = params
+
+        # TODO：把“完整报告数据”塞进去，供 check_order 返回
+        # 例如：根据 out_trade_no 找到用户上一次测评结果，然后组合成前端 unlockContent 需要的字段
+        ORDERS[out_trade_no]["unlocked_data"] = {
+            "paid": True,
+            "msg": "unlocked",
+            # 你可以放：insight/advice/cp_name/cp_desc/enemy_name/enemy_desc/month_title/month_text 等等
+        }
+
+        return PlainTextResponse("success")
+
+    return PlainTextResponse("ignored")
