@@ -839,7 +839,7 @@
           <button class="btn btn-buy" onclick="handlePayment()" style="width:auto; padding:14px 18px; border-radius:14px;">
             🔒 立即解锁完整报告
           </button>
-          <button class="btn" onclick="manualCheckPaid()" style="width:auto; padding:10px 14px; border-radius:10px;">
+          <button class="btn" onclick="manualCheckPaid()" style="width:auto; padding:10px 14px; border-radius:10px;margin-left: 10px;">
               我已完成支付，点击解锁
           </button>
 
@@ -1535,10 +1535,12 @@ function isMobile() {
 }
 
 
-// ✅ 1) 放这里：isOnResultPage
 function isOnResultPage() {
-  return !!document.querySelector('.btn-buy') || !!document.getElementById('paywall-overlay');
+  const el = document.getElementById('result');
+  if (!el) return false;
+  return window.getComputedStyle(el).display !== 'none';
 }
+
 
 // ✅ 2) 放这里：checkOnce
 async function checkOnce(orderId) {
@@ -1701,17 +1703,15 @@ window.manualCheckPaid = function () {
 }
 
 function resumePendingOrderCheckOnce() {
-  if (!isOnResultPage()) return;  // ✅ 首页/做题不查
-
+  if (!isOnResultPage()) return;
   const pending = localStorage.getItem('pending_order_id');
-  if (pending) checkOnce(pending); // ✅ 只查一次，不轮询
+  if (pending) checkOnce(pending);
 }
 
 window.addEventListener('pageshow', resumePendingOrderCheckOnce);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) resumePendingOrderCheckOnce();
 });
-
 
 
 function showMobilePayTip() {
