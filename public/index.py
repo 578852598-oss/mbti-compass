@@ -2618,6 +2618,7 @@ def submit_answers(req: SubmitRequest):
 # ========== 配置（建议改成环境变量）==========
 ZPAY_BASE = "https://zpayz.cn"
 ZPAY_MAPI = f"{ZPAY_BASE}/mapi.php"
+ZPAY_SUBMIT = "https://zpayz.cn/submit.php"
 
 ZPAY_PID = os.getenv("ZPAY_PID", "2026020316192039")  # 文档里的 PID :contentReference[oaicite:6]{index=6}
 ZPAY_KEY = os.getenv("ZPAY_KEY", "34ecGidqcWlTTOfp9p1QC0zi6s2OWUum")  # 文档里的 PKEY :contentReference[oaicite:7]{index=7}
@@ -2662,25 +2663,40 @@ def verify_sign(params: Dict[str, Any], key: str) -> bool:
 class PayReq(BaseModel):
     payment_type: str = "alipay"  # 前端传 { payment_type: 'alipay' } :contentReference[oaicite:9]{index=9}
     param: Optional[str] = None   # 你想带回来的附加参数（会原样回传） :contentReference[oaicite:10]{index=10}
+    device: str = "pc"
 
 @app.post("/api/pay")
 async def create_order(req: PayReq, request: Request):
-    """
-    1) 创建本地订单号
-    2) 调 zpayz mapi.php
-    3) 返回 pay_url 给前端跳转
-    """
-    if req.payment_type not in ("alipay", "wxpay"):
-        raise HTTPException(status_code=400, detail="payment_type must be alipay/wxpay")
-
-    out_trade_no = uuid.uuid4().hex  # 商户订单号（不可重复） :contentReference[oaicite:11]{index=11}
+    out_trade_no = uuid.uuid4().hex
     client_ip = request.client.host if request.client else "127.0.0.1"
-
     notify_url = f"{SITE_ORIGIN}/api/notify"
-    # 回跳到前端，并带上 check_order，前端会轮询 check_order :contentReference[oaicite:12]{index=12}
-    return_url = f"{FRONTEND_RETURN}?check_order={out_trade_no}"
 
-    # 组装 mapi 参数（文档字段） :contentReference[oaicite:13]{index=13}
+    # ⚠️ 文档说 return_url 不支持带参数 :contentReference[oaicite:7]{index=7}
+    # 所以这里用“纯页面地址”，回到页面后靠 localStorage 的 pending_order_id 自动解锁
+    return_url = FRONTEND_RETURN
+
+    # 先记录订单
+    ORDERS[out_trade_no] = {"paid": False, "created_at": int(time.time()), "raw": {}}
+
+    # ✅ 手机：走 submit.php 收银台（图2体验）
+    if req.device == "mobile":
+        payload = {
+            "pid": ZPAY_PID,
+            "type": req.payment_type,
+            "out_trade_no": out_trade_no,
+            "notify_url": notify_url,
+            "return_url": return_url,
+            "name": PRODUCT_NAME,
+            "money": PRICE_YUAN,
+            "clientip": client_ip,
+            "param": req.param or "",
+            "sign_type": "MD5",
+        }
+        payload["sign"] = build_sign(payload, ZPAY_KEY)
+
+        checkout_url = ZPAY_SUBMIT + "?" + urlencode(payload)
+        return {"code": 200, "order_id": out_trade_no, "checkout_url": checkout_url}
+
     payload = {
         "pid": ZPAY_PID,
         "type": req.payment_type,
@@ -2690,21 +2706,12 @@ async def create_order(req: PayReq, request: Request):
         "name": PRODUCT_NAME,
         "money": PRICE_YUAN,
         "clientip": client_ip,
-        "device": "pc",
+        "device": "pc",   # PC 就写死 pc
         "param": req.param or "",
         "sign_type": "MD5",
     }
     payload["sign"] = build_sign(payload, ZPAY_KEY)
-
-    # 先记录订单
-    ORDERS[out_trade_no] = {
-        "paid": False,
-        "created_at": int(time.time()),
-        "zpay_trade_no": None,
-        "raw": {},
-        "unlocked_data": None,  # 你想支付后返回的完整报告，可以放这里
-    }
-
+    
     async with httpx.AsyncClient(timeout=15) as client:
         resp = await client.post(ZPAY_MAPI, data=payload)  # 文档：POST form-data :contentReference[oaicite:14]{index=14}
         try:
