@@ -1464,6 +1464,35 @@ $('quiz-form').addEventListener('submit', (e) => {
   });
 });
 
+function isMobile() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function showQrModal(data, channel) {
+  const title = channel === 'alipay' ? '请使用支付宝扫码支付' : '请使用微信扫码支付';
+  const qrSrc = data.img || data.qrcode;
+  if (!qrSrc) {
+    alert('支付网关未返回二维码，请稍后重试或改用手机支付。');
+    return;
+  }
+
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position:fixed; inset:0; background:rgba(0,0,0,.5);
+    display:flex; align-items:center; justify-content:center; z-index:9999;
+  `;
+  modal.innerHTML = `
+    <div style="background:#fff; padding:18px; border-radius:16px; width:320px; text-align:center;">
+      <div style="font-weight:700; margin-bottom:10px;">${title}</div>
+      <img src="${qrSrc}" style="width:240px; height:240px; object-fit:contain;" />
+      <div style="margin-top:10px; font-size:12px; color:#64748b;">扫码完成后会自动解锁报告</div>
+      <button style="margin-top:12px; padding:10px 14px; border-radius:12px; border:0; background:#111827; color:#fff; cursor:pointer;">关闭</button>
+    </div>
+  `;
+  modal.querySelector('button').onclick = () => modal.remove();
+  document.body.appendChild(modal);
+}
+
 window.handlePayment = async function () {
   const btn = document.querySelector('.btn-buy');
   if (btn) { btn.innerText = "正在创建订单..."; btn.disabled = true; }
@@ -1481,17 +1510,28 @@ window.handlePayment = async function () {
 
     if (!res.ok) {
       console.error("pay api error:", res.status, text);
-      alert("订单创建失败：" + (data?.detail || text.slice(0, 120)));
+      alert("订单创建失败：" + (data?.detail || text.slice(0, 160)));
       return;
     }
 
-    // ✅ 后端返回的是 pay_url
-    if (data && data.pay_url) {
-      window.location.href = data.pay_url;
-      return;
+    // ✅【就在这里加】保存订单号，防止手机支付回来页面被杀
+    if (data && data.order_id) {
+      localStorage.setItem('pending_order_id', data.order_id);
     }
 
-    alert(data?.msg || '订单创建失败：缺少 pay_url');
+    const channel = data.payment_type || 'alipay';
+
+    // 手机：优先跳转 payurl；电脑：优先二维码
+    if (isMobile()) {
+      if (data.payurl) {
+        window.location.href = data.payurl;
+        return;
+      }
+      showQrModal(data, channel);
+    } else {
+      showQrModal(data, channel);
+    }
+
   } catch (e) {
     console.error(e);
     alert('网络错误');
@@ -1501,12 +1541,50 @@ window.handlePayment = async function () {
 }
 
 
+
+
 window.addEventListener('load', () => {
   const paid = new URLSearchParams(location.search).get('paid');
   if (paid === '1') {
     applyPaywall(false);
     // 清理参数，避免刷新重复
     window.history.replaceState({}, document.title, window.location.pathname);
+  }
+});
+
+async function startCheckOrder(orderId) {
+  let attempts = 0;
+  const maxAttempts = 30; // 轮询 30 次（约 60 秒）
+
+  const timer = setInterval(async () => {
+    attempts += 1;
+
+    try {
+      const res = await fetch(`/api/check_order?order_id=${encodeURIComponent(orderId)}`);
+      const data = await res.json();
+
+      if (data && data.paid) {
+        clearInterval(timer);
+        localStorage.removeItem('pending_order_id');
+        applyPaywall(false); // ✅ 解锁
+        // 如果你有 unlockContent(data.data) 也可以在这里调用
+        // unlockContent(data.data);
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(timer);
+      }
+    } catch (e) {
+      // 网络错误就继续下一次
+      if (attempts >= maxAttempts) clearInterval(timer);
+    }
+  }, 2000);
+}
+
+window.addEventListener('load', () => {
+  const pending = localStorage.getItem('pending_order_id');
+  if (pending) {
+    startCheckOrder(pending);
   }
 });
 
