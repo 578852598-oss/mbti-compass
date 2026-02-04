@@ -1742,6 +1742,37 @@ function showMobilePayTip() {
   document.body.appendChild(tip);
 }
 
+function handlePayReturn() {
+  const params = new URLSearchParams(location.search);
+
+  const tradeStatus = params.get('trade_status');          // TRADE_SUCCESS
+  const orderId = params.get('out_trade_no');              // 你的订单号
+
+  if (tradeStatus === 'TRADE_SUCCESS' && orderId) {
+    // 保存订单号，供解锁用
+    localStorage.setItem('pending_order_id', orderId);
+
+    // ✅ 切到结果页：根据你页面结构做“显示 result / 隐藏首页和题目”
+    const home = document.getElementById('home');          // 如果你有 home 容器
+    const quiz = document.getElementById('quiz-form');     // 你做题的容器
+    const result = document.getElementById('result');      // 你的结果容器
+
+    if (home) home.style.display = 'none';
+    if (quiz) quiz.style.display = 'none';
+    if (result) result.style.display = 'block';
+
+    // ✅ 查一次单并解锁（你之前确认 checkOnce 可用）
+    checkOnce(orderId);
+
+    // ✅ 可选：把 URL 清爽掉，避免用户看到一堆参数
+    history.replaceState({}, document.title, '/');
+  }
+}
+
+// 页面加载完就处理回跳
+window.addEventListener('load', handlePayReturn);
+window.addEventListener('pageshow', handlePayReturn);
+
   </script>
 <footer class="site-footer">
     <div class="footer-content">
