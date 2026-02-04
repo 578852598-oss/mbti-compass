@@ -1471,22 +1471,25 @@ function isMobile() {
 function showQrModal(data, channel) {
   const title = channel === 'alipay' ? '请使用支付宝扫码支付' : '请使用微信扫码支付';
 
-  // ✅ 兼容后端 pay_url 以及网关 img/qrcode
-  const qrSrc = data.img || data.qrcode || data.pay_url || data.payurl;
+  // ✅ 全能取值：不管字段在顶层还是 raw 里
+  const raw = data?.raw || {};
+  const qrSrc =
+    data?.img || data?.qrcode || data?.pay_url || data?.payurl ||
+    raw.img || raw.qrcode || raw.payurl || raw.payurl2;
 
   if (!qrSrc) {
-    alert('支付网关未返回支付链接/二维码，请稍后重试。');
+    console.error("showQrModal missing fields, data=", data);
+    alert('支付网关未返回二维码/支付链接（请看控制台 showQrModal missing fields）');
     return;
   }
+
+  const isImg = /\.(png|jpg|jpeg|webp)(\?|$)/i.test(qrSrc) || qrSrc.includes('/qrcode/');
 
   const modal = document.createElement('div');
   modal.style.cssText = `
     position:fixed; inset:0; background:rgba(0,0,0,.5);
     display:flex; align-items:center; justify-content:center; z-index:9999;
   `;
-
-  // 如果是图片链接（jpg/png），直接展示；否则给一个“打开支付链接”的按钮
-  const isImg = /\.(png|jpg|jpeg|webp)(\?|$)/i.test(qrSrc) || qrSrc.includes('/qrcode/');
 
   modal.innerHTML = `
     <div style="background:#fff; padding:18px; border-radius:16px; width:320px; text-align:center;">
@@ -1519,6 +1522,11 @@ function showQrModal(data, channel) {
 }
 
 
+
+function isMobile() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 window.handlePayment = async function () {
   const btn = document.querySelector('.btn-buy');
   if (btn) { btn.innerText = "正在创建订单..."; btn.disabled = true; }
@@ -1527,59 +1535,35 @@ window.handlePayment = async function () {
     const res = await fetch('/api/pay', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ payment_type: 'alipay' }) // 或 'wxpay'
+      body: JSON.stringify({ payment_type: 'alipay' })
     });
 
     const text = await res.text();
     let data = null;
     try { data = JSON.parse(text); } catch {}
 
-    if (!res.ok) {
-      console.error("pay api error:", res.status, text);
-      alert("订单创建失败：" + (data?.detail || text.slice(0, 160)));
+    console.log("PAY RESPONSE RAW TEXT:", text);
+    console.log("PAY RESPONSE JSON:", data);
+
+    if (!res.ok || !data) {
+      alert("订单创建失败：" + (text?.slice(0, 160) || res.status));
       return;
     }
 
-    // ✅ 保存订单号（用于回到页面继续查单）
-    if (data?.order_id) localStorage.setItem('pending_order_id', data.order_id);
+    if (data.order_id) localStorage.setItem('pending_order_id', data.order_id);
 
-    // ✅ 关键：兼容 raw
-    const raw = data.raw || {};
     const channel = data.payment_type || 'alipay';
+    const raw = data.raw || {};
 
-    // 手机优先跳转：用 raw.payurl（https://qr.alipay.com/xxx）更可能拉起支付宝
+    // 手机：优先跳转到支付宝链接（更可能拉起支付宝）
     const mobileJumpUrl = raw.payurl || raw.payurl2 || raw.qrcode || data.payurl || data.pay_url;
-
-    // PC 优先展示二维码：用 img（jpg）
-    const qrImg = raw.img || data.pay_url || data.payurl || raw.qrcode;
-
-    if (isMobile()) {
-      if (mobileJumpUrl) {
-        window.location.href = mobileJumpUrl;
-        return;
-      }
-      // 没有跳转链接才退化成二维码弹窗
-      if (qrImg) {
-        showQrModal({ img: qrImg }, channel);
-        return;
-      }
-      alert('支付网关未返回支付链接/二维码，请稍后重试。');
+    if (isMobile() && mobileJumpUrl) {
+      window.location.href = mobileJumpUrl;
       return;
     }
 
-    // 电脑：弹窗显示二维码（不要跳转到 jpg 页面）
-    if (qrImg) {
-      showQrModal({ img: qrImg }, channel);
-      return;
-    }
-
-    // 兜底：如果没 img 就给链接按钮
-    if (mobileJumpUrl) {
-      showQrModal({ qrcode: mobileJumpUrl }, channel);
-      return;
-    }
-
-    alert('支付网关未返回支付链接/二维码，请稍后重试。');
+    // 电脑或手机无跳转链接：弹窗显示二维码/链接（showQrModal 会自动找 raw.img 等）
+    showQrModal(data, channel);
 
   } catch (e) {
     console.error(e);
