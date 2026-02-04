@@ -2697,6 +2697,21 @@ async def create_order(req: PayReq, request: Request):
         checkout_url = ZPAY_SUBMIT + "?" + urlencode(payload)
         return {"code": 200, "order_id": out_trade_no, "checkout_url": checkout_url}
 
+    payload = {
+        "pid": ZPAY_PID,
+        "type": req.payment_type,
+        "out_trade_no": out_trade_no,
+        "notify_url": notify_url,
+        "return_url": return_url,
+        "name": PRODUCT_NAME,
+        "money": PRICE_YUAN,
+        "clientip": client_ip,
+        "device": "pc",   # PC 就写死 pc
+        "param": req.param or "",
+        "sign_type": "MD5",
+    }
+    payload["sign"] = build_sign(payload, ZPAY_KEY)
+    
     async with httpx.AsyncClient(timeout=15) as client:
         resp = await client.post(ZPAY_MAPI, data=payload)  # 文档：POST form-data :contentReference[oaicite:14]{index=14}
         try:
