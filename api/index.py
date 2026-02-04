@@ -2618,6 +2618,7 @@ def submit_answers(req: SubmitRequest):
 # ========== 配置（建议改成环境变量）==========
 ZPAY_BASE = "https://zpayz.cn"
 ZPAY_MAPI = f"{ZPAY_BASE}/mapi.php"
+ZPAY_SUBMIT = "https://zpayz.cn/submit.php"
 
 ZPAY_PID = os.getenv("ZPAY_PID", "2026020316192039")  # 文档里的 PID :contentReference[oaicite:6]{index=6}
 ZPAY_KEY = os.getenv("ZPAY_KEY", "34ecGidqcWlTTOfp9p1QC0zi6s2OWUum")  # 文档里的 PKEY :contentReference[oaicite:7]{index=7}
@@ -2729,7 +2730,6 @@ from fastapi import HTTPException
 import httpx
 
 ZPAY_API = "https://zpayz.cn/api.php"
-ZPAY_SUBMIT = "https://zpayz.cn/submit.php"
 
 @app.get("/api/check_order")
 async def check_order(order_id: str):
