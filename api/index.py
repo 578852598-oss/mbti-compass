@@ -2729,6 +2729,7 @@ from fastapi import HTTPException
 import httpx
 
 ZPAY_API = "https://zpayz.cn/api.php"
+ZPAY_SUBMIT = "https://zpayz.cn/submit.php"
 
 @app.get("/api/check_order")
 async def check_order(order_id: str):
