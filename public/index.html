@@ -1470,9 +1470,12 @@ function isMobile() {
 
 function showQrModal(data, channel) {
   const title = channel === 'alipay' ? '请使用支付宝扫码支付' : '请使用微信扫码支付';
-  const qrSrc = data.img || data.qrcode;
+
+  // ✅ 兼容后端 pay_url 以及网关 img/qrcode
+  const qrSrc = data.img || data.qrcode || data.pay_url || data.payurl;
+
   if (!qrSrc) {
-    alert('支付网关未返回二维码，请稍后重试或改用手机支付。');
+    alert('支付网关未返回支付链接/二维码，请稍后重试。');
     return;
   }
 
@@ -1481,17 +1484,40 @@ function showQrModal(data, channel) {
     position:fixed; inset:0; background:rgba(0,0,0,.5);
     display:flex; align-items:center; justify-content:center; z-index:9999;
   `;
+
+  // 如果是图片链接（jpg/png），直接展示；否则给一个“打开支付链接”的按钮
+  const isImg = /\.(png|jpg|jpeg|webp)(\?|$)/i.test(qrSrc) || qrSrc.includes('/qrcode/');
+
   modal.innerHTML = `
     <div style="background:#fff; padding:18px; border-radius:16px; width:320px; text-align:center;">
       <div style="font-weight:700; margin-bottom:10px;">${title}</div>
-      <img src="${qrSrc}" style="width:240px; height:240px; object-fit:contain;" />
-      <div style="margin-top:10px; font-size:12px; color:#64748b;">扫码完成后会自动解锁报告</div>
-      <button style="margin-top:12px; padding:10px 14px; border-radius:12px; border:0; background:#111827; color:#fff; cursor:pointer;">关闭</button>
+
+      ${
+        isImg
+          ? `<img src="${qrSrc}" style="width:240px; height:240px; object-fit:contain;" />`
+          : `<div style="font-size:12px;color:#64748b;line-height:1.4;margin:8px 0 14px;">
+               未返回二维码图片，将以链接方式支付
+             </div>
+             <button id="openPayLink" style="padding:10px 14px; border-radius:12px; border:0; background:#1677ff; color:#fff; cursor:pointer;">
+               打开支付链接
+             </button>`
+      }
+
+      <div style="margin-top:10px; font-size:12px; color:#64748b;">支付完成后会自动解锁报告</div>
+
+      <button id="closePayModal" style="margin-top:12px; padding:10px 14px; border-radius:12px; border:0; background:#111827; color:#fff; cursor:pointer;">
+        关闭
+      </button>
     </div>
   `;
-  modal.querySelector('button').onclick = () => modal.remove();
+
+  modal.querySelector('#closePayModal').onclick = () => modal.remove();
+  const openBtn = modal.querySelector('#openPayLink');
+  if (openBtn) openBtn.onclick = () => window.open(qrSrc, '_blank');
+
   document.body.appendChild(modal);
 }
+
 
 window.handlePayment = async function () {
   const btn = document.querySelector('.btn-buy');
@@ -1514,23 +1540,46 @@ window.handlePayment = async function () {
       return;
     }
 
-    // ✅【就在这里加】保存订单号，防止手机支付回来页面被杀
-    if (data && data.order_id) {
-      localStorage.setItem('pending_order_id', data.order_id);
-    }
+    // ✅ 保存订单号（用于回到页面继续查单）
+    if (data?.order_id) localStorage.setItem('pending_order_id', data.order_id);
 
+    // ✅ 关键：兼容 raw
+    const raw = data.raw || {};
     const channel = data.payment_type || 'alipay';
 
-    // 手机：优先跳转 payurl；电脑：优先二维码
+    // 手机优先跳转：用 raw.payurl（https://qr.alipay.com/xxx）更可能拉起支付宝
+    const mobileJumpUrl = raw.payurl || raw.payurl2 || raw.qrcode || data.payurl || data.pay_url;
+
+    // PC 优先展示二维码：用 img（jpg）
+    const qrImg = raw.img || data.pay_url || data.payurl || raw.qrcode;
+
     if (isMobile()) {
-      if (data.payurl) {
-        window.location.href = data.payurl;
+      if (mobileJumpUrl) {
+        window.location.href = mobileJumpUrl;
         return;
       }
-      showQrModal(data, channel);
-    } else {
-      showQrModal(data, channel);
+      // 没有跳转链接才退化成二维码弹窗
+      if (qrImg) {
+        showQrModal({ img: qrImg }, channel);
+        return;
+      }
+      alert('支付网关未返回支付链接/二维码，请稍后重试。');
+      return;
     }
+
+    // 电脑：弹窗显示二维码（不要跳转到 jpg 页面）
+    if (qrImg) {
+      showQrModal({ img: qrImg }, channel);
+      return;
+    }
+
+    // 兜底：如果没 img 就给链接按钮
+    if (mobileJumpUrl) {
+      showQrModal({ qrcode: mobileJumpUrl }, channel);
+      return;
+    }
+
+    alert('支付网关未返回支付链接/二维码，请稍后重试。');
 
   } catch (e) {
     console.error(e);
@@ -1539,7 +1588,6 @@ window.handlePayment = async function () {
     if (btn) { btn.innerText = "🔒 立即解锁完整报告"; btn.disabled = false; }
   }
 }
-
 
 
 
