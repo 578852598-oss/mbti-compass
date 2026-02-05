@@ -1535,9 +1535,6 @@ $('quiz-form').addEventListener('submit', (e) => {
             
             record.set('status_tag', statusTag);
             record.set('result_text', fullResultText);
-
-            await record.save();
-            localStorage.setItem("last_test_record_id", saved.id);
             
             record.save().then((saved) => {
                 localStorage.setItem('last_test_record_id', saved.id); // ✅ 关联支付用
