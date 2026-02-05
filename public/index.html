@@ -1612,7 +1612,7 @@ window.handlePayment = async function () {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         payment_type: 'alipay',
-        device: isMobile() ? 'mobile' : 'pc'
+        device: isMobile() ? 'mobile' : 'pc',
         record_id: localStorage.getItem('last_test_record_id'),
         mbti_type: localStorage.getItem('last_mbti_type') || currentType
       })
