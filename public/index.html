@@ -1535,8 +1535,7 @@ $('quiz-form').addEventListener('submit', (e) => {
             
             record.set('status_tag', statusTag);
             record.set('result_text', fullResultText);
-
-            const saved = await record.save();
+            
             localStorage.setItem("last_test_record_id", saved.id);
             
             record.save().then((saved) => {
