@@ -682,14 +682,14 @@
 
   <div id="loading" class="loading-overlay">
     <div class="spinner"></div>
-    <div style="font-size:14px; font-weight:600; color:#64748b; letter-spacing: 1px;">正在连接罗盘...</div>
+    <div style="font-size:14px; font-weight:600; color:#64748b; letter-spacing: 1px;">正在连接...</div>
   </div>
 
   <div class="container">
     
     <div id="landing-page">
       <div class="hero">
-        <h1>你最近感觉还好吗？</h1>
+        <h1>你最近状态如何？</h1>
         <p>基于荣格八维认知功能模型，精准探测你当下的内耗程度、压力反应与心理效能。</p>
       </div>
 
@@ -781,7 +781,7 @@
           <div class="stat"><div class="k">认知成熟度</div><div class="v" id="v-maturity">-</div><div class="d" id="d-maturity">-</div></div>
           <div class="stat"><div class="k">内耗倾向 Loop</div><div class="v" id="v-loop">-</div><div class="d" id="d-loop">-</div></div>
           <div class="stat"><div class="k">压力反应 Grip</div><div class="v" id="v-grip">-</div><div class="d" id="d-grip">-</div></div>
-          <div class="stat"><div class="k">压力负荷 Load</div><div class="v" id="v-load">-</div><div class="d" id="d-load">-</div></div>
+          <div class="stat"><div class="k">压力负荷 Crisis</div><div class="v" id="v-load">-</div><div class="d" id="d-load">-</div></div>
           <div class="stat"><div class="k">自洽度</div><div class="v" id="v-coherence">-</div><div class="d" id="d-coherence">-</div></div>
           <div class="stat"><div class="k">状态指数</div><div class="v" id="v-overall">-</div><div class="d" id="d-overall">-</div></div>
         </div>
@@ -792,8 +792,34 @@
           </div>
         </div>
 
-        <div class="section"><h3>核心洞察</h3><p id="res-insight">...</p></div>
+        <div class="section"><h3>状态解析</h3><p id="res-insight">...</p></div>
         <div class="section"><h3>调整建议</h3><p id="res-advice">...</p></div>
+
+                        <!-- Paywall Overlay：覆盖层（不新增内容区块，只是遮罩） -->
+        <div id="pay-overlay" class="pay-overlay" style="display:none;">
+          <div class="price-box">
+            <div class="price-original">原价 ¥29.9</div>
+            <div>
+              <span class="price-current">限时早鸟价 ¥9.9</span>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 15px 0;">
+              
+              <button class="btn btn-buy" onclick="handlePayment()" style="width: 80%; padding:14px 18px; border-radius:14px; font-weight: bold;">
+                  🔒 立即解锁完整报告
+              </button>
+              
+              <button class="btn" onclick="manualCheckPaid()" style="width: 80%; padding:10px 14px; border-radius:10px; background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;">
+                  我已完成支付，点击解锁
+              </button>
+
+          </div>
+
+          <div style="margin-top:10px; font-size:12px; color:#64748b;">
+            支付成功后将自动解锁
+          </div>
+        </div>
 
         <div class="relation-box">
           <div class="rel-card rel-cp" data-bg="❤️">
@@ -817,7 +843,7 @@
           </div>
         </div>
 
-        <div class="section month-card">
+        <div class="month-card">
         <div class="guide-card" id="guide-card-container" style="display:none">
           <div class="guide-header">
             <div class="guide-tag">📅 未来30天指南</div>
@@ -826,33 +852,6 @@
           <div class="guide-body" id="res-month-body">
             </div>
         </div>
-
-                <!-- Paywall Overlay：覆盖层（不新增内容区块，只是遮罩） -->
-        <div id="pay-overlay" class="pay-overlay" style="display:none;">
-          <div class="price-box">
-            <div class="price-original">原价 ¥39.9</div>
-            <div>
-              <span class="price-current">限时 ¥19.9</span>
-            </div>
-          </div>
-
-          <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 15px 0;">
-              
-              <button class="btn btn-buy" onclick="handlePayment()" style="width: 80%; padding:14px 18px; border-radius:14px; font-weight: bold;">
-                  🔒 立即解锁完整报告
-              </button>
-              
-              <button class="btn" onclick="manualCheckPaid()" style="width: 80%; padding:10px 14px; border-radius:10px; background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;">
-                  我已完成支付，点击解锁
-              </button>
-
-          </div>
-
-          <div style="margin-top:10px; font-size:12px; color:#64748b;">
-            支付成功后将自动解锁
-          </div>
-        </div>
-
 
         <button class="btn btn-ghost" onclick="resetApp()" style="margin-top:30px; background:#f1f5f9; color:#475569;">重新测试</button>
       </div>
@@ -1312,33 +1311,33 @@ function renderResult(data) {
 // --- A. 填充六维数据 ---
   
   // 1. 认知成熟度
-  let mClass = data.maturity >= 67 ? "color-high" : (data.maturity >= 34 ? "color-mid" : "color-low");
-  let mTxt = data.maturity >= 67 ? "高阶 · 整合者" : (data.maturity >= 34 ? "中阶 · 探索者" : "低阶 · 固守者");
-  let mDesc = data.maturity >= 67 ? "思维与现实整合度高" : (data.maturity >= 34 ? "思路成形，持续迭代" : "易被旧模式牵引");
+  let mClass = data.maturity >= 60 ? "color-high" : (data.maturity >= 34 ? "color-mid" : "color-low");
+  let mTxt = data.maturity >= 60 ? "繁盛期" : (data.maturity >= 34 ? "成长期" : "蛰伏期");
+  let mDesc = data.maturity >= 60 ? "思维与现实整合度高" : (data.maturity >= 34 ? "思路成形，持续迭代探索中" : "积蓄能量，先稳住节奏");
   updateField('v-maturity', mTxt, mDesc, mClass);
 
   // 2. Loop
-  let lClass = data.loop < 35 ? "color-healthy" : (data.loop < 65 ? "color-warn" : "color-bad");
-  let lTxt = data.loop < 35 ? "低" : (data.loop < 65 ? "中" : "高");
-  let lDesc = data.loop < 35 ? "启动成本低" : (data.loop < 65 ? "偶有精神反刍" : "自我攻击严重");
+  let lClass = data.loop < 35 ? "color-healthy" : (data.loop < 60 ? "color-warn" : "color-bad");
+  let lTxt = data.loop < 35 ? "低" : (data.loop < 60 ? "中" : "高");
+  let lDesc = data.loop < 35 ? "与自己和解，无明显内耗" : (data.loop < 60 ? "偶有精神反刍" : "自我攻击严重");
   updateField('v-loop', lTxt, lDesc, lClass);
 
   // 3. Grip
-  let gClass = data.grip < 35 ? "color-healthy" : (data.grip < 65 ? "color-warn" : "color-bad");
-  let gTxt = data.grip < 35 ? "低" : (data.grip < 65 ? "中" : "高");
-  let gDesc = data.grip < 35 ? "情绪稳定" : (data.grip < 65 ? "压力下偶有爆发" : "处在高压边缘");
+  let gClass = data.grip < 35 ? "color-healthy" : (data.grip < 60 ? "color-warn" : "color-bad");
+  let gTxt = data.grip < 35 ? "低" : (data.grip < 60 ? "中" : "高");
+  let gDesc = data.grip < 35 ? "情绪稳定" : (data.grip < 60 ? "压力下偶有爆发" : "处在高压边缘");
   updateField('v-grip', gTxt, gDesc, gClass);
 
   // 4. Load
-  let ldClass = data.load < 35 ? "color-healthy" : (data.load < 65 ? "color-warn" : "color-bad");
-  let ldTxt = data.load < 35 ? "轻" : (data.load < 65 ? "中" : "重");
-  let ldDesc = data.load < 35 ? "余量充足" : (data.load < 65 ? "强度适中" : "急需减负恢复");
+  let ldClass = data.load < 35 ? "color-healthy" : (data.load < 60 ? "color-warn" : "color-bad");
+  let ldTxt = data.load < 35 ? "轻" : (data.load < 60 ? "中" : "重");
+  let ldDesc = data.load < 35 ? "余量充足" : (data.load < 60 ? "强度适中" : "急需减负恢复");
   updateField('v-load', ldTxt, ldDesc, ldClass);
 
   // 5. 自洽度
-  let cClass = data.coherence >= 70 ? "color-high" : (data.coherence >= 55 ? "color-mid" : "color-warn");
-  let cTxt = data.coherence >= 70 ? "高" : (data.coherence >= 55 ? "中" : "低");
-  let cDesc = data.coherence >= 70 ? "内在逻辑清晰" : (data.coherence >= 55 ? "可自我校准" : "近期摇摆较多");
+  let cClass = data.coherence >= 60 ? "color-high" : (data.coherence >= 35 ? "color-mid" : "color-warn");
+  let cTxt = data.coherence >= 60 ? "高" : (data.coherence >= 35 ? "中" : "低");
+  let cDesc = data.coherence >= 60 ? "内在逻辑清晰" : (data.coherence >= 35 ? "可自我校准" : "近期摇摆较多");
   updateField('v-coherence', cTxt, cDesc, cClass);
 
   // 6. 状态指数 (这里恢复你要的格式！)
@@ -1385,7 +1384,7 @@ function renderResult(data) {
   myChart = new Chart(ctx, {
     type: 'radar',
     data: {
-      labels: ['认知成熟度', '自洽度', '内耗弹性', '压力弹性', '负荷余量', '状态指数'],
+      labels: ['认知成熟度', '自洽度', '执行力', '抗压能力', '精力余量', '状态指数'],
       datasets: [{
         label: '当前状态',
         data: data.chart_data,
@@ -1493,7 +1492,7 @@ $('quiz-form').addEventListener('submit', (e) => {
             record.set('score_load', res.load);
             record.set('score_overall', res.overall);
             record.set('score_coherence', res.coherence);
-
+            record.set('is_paid', false);
             // D. 文本字段 (🔥这里直接用数据生成，不再抓取 DOM，防止抓空)
             // status_tag: "高压"
             // result_text: "高压 · 26/100"
@@ -1504,7 +1503,8 @@ $('quiz-form').addEventListener('submit', (e) => {
             record.set('result_text', fullResultText);
 
             record.save().then((saved) => {
-                console.log('✅ 保存成功 ID:', saved.id);
+                localStorage.setItem('last_test_record_id', saved.id); // ✅ 关联支付用
+                localStorage.setItem('last_mbti_type', res.mbti_type || currentType); // 可选
                 Analytics.trackCompletion();
             });
         } catch (error) {
@@ -1613,6 +1613,8 @@ window.handlePayment = async function () {
       body: JSON.stringify({
         payment_type: 'alipay',
         device: isMobile() ? 'mobile' : 'pc'
+        record_id: localStorage.getItem('last_test_record_id'),
+        mbti_type: localStorage.getItem('last_mbti_type') || currentType
       })
     });
 
@@ -1767,6 +1769,7 @@ async function verifyPaidAndUnlock(orderId) {
   const data = await res.json();
 
   if (data && data.paid) {
+    await markRecordPaid(orderId);
     applyPaywall(false);
     localStorage.removeItem('pending_order_id');
 
@@ -1776,6 +1779,34 @@ async function verifyPaidAndUnlock(orderId) {
   }
   return false;
 }
+
+async function markRecordPaid(orderId) {
+  const recordId = localStorage.getItem('last_test_record_id');
+  if (!recordId) return;
+
+  // 确保 LeanCloud SDK 可用
+  if (typeof AV === 'undefined') {
+    console.warn('LeanCloud AV SDK not found, cannot mark paid');
+    return;
+  }
+
+  try {
+    const TestRecord = AV.Object.extend('TestRecord');
+
+    // 不需要重新查询整条记录，用 createWithoutData 直接更新指定 id
+    const rec = TestRecord.createWithoutData(recordId);
+
+    rec.set('is_paid', true);
+    rec.set('paid_at', new Date());
+    if (orderId) rec.set('order_id', String(orderId));
+
+    await rec.save();
+    console.log('✅ marked record paid:', recordId);
+  } catch (e) {
+    console.warn('markRecordPaid failed:', e);
+  }
+}
+
 
 async function handlePayReturn() {
   const params = new URLSearchParams(location.search);
