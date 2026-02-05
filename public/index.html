@@ -888,6 +888,38 @@
       serverURL: "/lc-api" // 如果后台没有ServerURL，这行可以删掉
     });
 
+
+function restoreResultIfAny() {
+  try {
+    const raw = localStorage.getItem('mbti_last_result');
+    if (!raw) return false;
+
+    const data = JSON.parse(raw);
+    const t = localStorage.getItem('mbti_last_type');
+    if (t) currentType = t;
+
+    // 切 UI 到结果页
+    showResultUI();
+
+    // 重新渲染结果
+    renderResult(data);
+
+    return true;
+  } catch (e) {
+    console.warn('restoreResultIfAny failed', e);
+    return false;
+  }
+}
+
+window.addEventListener('load', restoreResultIfAny);
+window.addEventListener('pageshow', restoreResultIfAny);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) restoreResultIfAny();
+});
+
+
+
+
 // ==========================================
 // 流量监控模块 (修复 ACL 权限版)
 // ==========================================
@@ -966,6 +998,9 @@ const Analytics = {
         }); // 这里不需要 else，因为 trackVisit 肯定先执行了
     }
 };
+
+
+
 
 // 启动监控
 Analytics.trackVisit();
@@ -1371,6 +1406,18 @@ function renderResult(data) {
     }
   });
 applyPaywall(true);
+cacheResult(data);
+}
+
+function cacheResult(data) {
+  try {
+    // 1) 结果数据
+    localStorage.setItem('mbti_last_result', JSON.stringify(data));
+    // 2) 当前类型（方便 UI 恢复状态栏）
+    if (currentType) localStorage.setItem('mbti_last_type', currentType);
+  } catch (e) {
+    console.warn('cacheResult failed', e);
+  }
 }
 
 
@@ -1535,9 +1582,6 @@ function closePayModal() {
   if (m) m.remove();
 }
 
-function isMobile() {
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
 
 
 function isOnResultPage() {
@@ -1620,7 +1664,7 @@ window.addEventListener('load', () => {
   if (paid === '1') {
     applyPaywall(false);
     // 清理参数，避免刷新重复
-    window.history.replaceState({}, document.title, window.location.pathname);
+    history.replaceState({}, document.title, window.location.pathname);
   }
 });
 
@@ -1733,15 +1777,13 @@ async function verifyPaidAndUnlock(orderId) {
   return false;
 }
 
-// ✅ 支付回跳：同时兼容 check_order 和 out_trade_no + trade_status
 async function handlePayReturn() {
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(location.search);
 
   const checkOrder = params.get('check_order');
   const tradeStatus = params.get('trade_status');
   const outTradeNo = params.get('out_trade_no');
 
-  // 订单号优先级：check_order > out_trade_no > localStorage
   const orderId =
     checkOrder ||
     (tradeStatus === 'TRADE_SUCCESS' ? outTradeNo : null) ||
@@ -1749,15 +1791,18 @@ async function handlePayReturn() {
 
   if (!orderId) return;
 
-  // 保存，方便用户之后再回来也能解锁
   localStorage.setItem('pending_order_id', orderId);
 
-  // ✅ 关键：先切到结果 UI（否则你永远看到首页）
-  showResultUI();
+  // ✅ 先恢复结果（用户立刻能看到）
+  restoreResultIfAny();
 
-  // 查单解锁（查一次就行）
+  // ✅ 再查单解锁
   await verifyPaidAndUnlock(orderId);
+
+  // ✅ 清理参数（保留 pathname）
+  history.replaceState({}, document.title, window.location.pathname);
 }
+
 
 // load + pageshow 都挂上，手机从支付宝回来经常走 pageshow
 window.addEventListener('load', handlePayReturn);
@@ -1810,36 +1855,7 @@ function showMobilePayTip() {
   document.body.appendChild(tip);
 }
 
-function handlePayReturn() {
-  const params = new URLSearchParams(location.search);
 
-  const tradeStatus = params.get('trade_status');          // TRADE_SUCCESS
-  const orderId = params.get('out_trade_no');              // 你的订单号
-
-  if (tradeStatus === 'TRADE_SUCCESS' && orderId) {
-    // 保存订单号，供解锁用
-    localStorage.setItem('pending_order_id', orderId);
-
-    // ✅ 切到结果页：根据你页面结构做“显示 result / 隐藏首页和题目”
-    const home = document.getElementById('home');          // 如果你有 home 容器
-    const quiz = document.getElementById('quiz-form');     // 你做题的容器
-    const result = document.getElementById('result');      // 你的结果容器
-
-    if (home) home.style.display = 'none';
-    if (quiz) quiz.style.display = 'none';
-    if (result) result.style.display = 'block';
-
-    // ✅ 查一次单并解锁（你之前确认 checkOnce 可用）
-    checkOnce(orderId);
-
-    // ✅ 可选：把 URL 清爽掉，避免用户看到一堆参数
-    history.replaceState({}, document.title, '/');
-  }
-}
-
-// 页面加载完就处理回跳
-window.addEventListener('load', handlePayReturn);
-window.addEventListener('pageshow', handlePayReturn);
 
   </script>
 <footer class="site-footer">
