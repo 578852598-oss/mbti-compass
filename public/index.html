@@ -854,8 +854,8 @@
             </div>
         </div>
 
-        <button class="btn btn-ghost" onclick="resetApp()"
-          style="margin-top:30px; background:#f1f5f9; color:#475569; position:relative; z-index: 999;">
+        <button class="btn" onclick="resetApp()"
+          style="margin-top:30px; position:relative; z-index: 999;">
           重新测试
         </button>
 
@@ -1501,6 +1501,7 @@ $('quiz-form').addEventListener('submit', (e) => {
             record.set('score_overall', res.overall);
             record.set('score_coherence', res.coherence);
             record.set('is_paid', false);
+            record.set('id_paid', false); 
             // D. 文本字段 (🔥这里直接用数据生成，不再抓取 DOM，防止抓空)
             // status_tag: "高压"
             // result_text: "高压 · 26/100"
@@ -1721,7 +1722,9 @@ async function startCheckOrder(orderId) {
         __checkTimer = null;
         __checkingOrderId = null;
 
+        
         closePayModal();
+        await markRecordPaid(orderId);
         applyPaywall(false);
         localStorage.removeItem('pending_order_id');
         return;
@@ -1807,10 +1810,13 @@ async function markRecordPaid(orderId) {
 
     // ✅ 用新字段 paid(Boolean)
     rec.set('paid', true);
+    rec.set('is_paid', true);
+    rec.set('id_paid', true);
+
 
     rec.set('paid_at', new Date());
     if (orderId) rec.set('order_id', String(orderId));
-
+    localStorage.setItem('paid_record_' + recordId, '1');
     const saved = await rec.save();
     console.log('[markRecordPaid] ✅ saved ok:', saved.id, saved.updatedAt);
   } catch (e) {
