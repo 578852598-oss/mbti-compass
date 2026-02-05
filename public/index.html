@@ -854,7 +854,11 @@
             </div>
         </div>
 
-        <button class="btn btn-ghost" onclick="resetApp()" style="margin-top:30px; background:#f1f5f9; color:#475569;">重新测试</button>
+        <button class="btn btn-ghost" onclick="resetApp()"
+          style="margin-top:30px; background:#f1f5f9; color:#475569; position:relative; z-index: 999;">
+          重新测试
+        </button>
+
       </div>
     </div>
 
@@ -1312,9 +1316,9 @@ function renderResult(data) {
 // --- A. 填充六维数据 ---
   
   // 1. 认知成熟度
-  let mClass = data.maturity >= 60 ? "color-high" : (data.maturity >= 34 ? "color-mid" : "color-low");
-  let mTxt = data.maturity >= 60 ? "繁盛期" : (data.maturity >= 34 ? "成长期" : "蛰伏期");
-  let mDesc = data.maturity >= 60 ? "思维与现实整合度高" : (data.maturity >= 34 ? "思路成形，持续迭代探索中" : "积蓄能量，先稳住节奏");
+  let mClass = data.maturity >= 66 ? "color-high" : (data.maturity >= 34 ? "color-mid" : "color-low");
+  let mTxt = data.maturity >= 66 ? "繁盛期" : (data.maturity >= 34 ? "成长期" : "蛰伏期");
+  let mDesc = data.maturity >= 66 ? "思维与现实整合度高" : (data.maturity >= 34 ? "思路成形，持续迭代探索中" : "积蓄能量，先稳住节奏");
   updateField('v-maturity', mTxt, mDesc, mClass);
 
   // 2. Loop
@@ -1783,28 +1787,31 @@ async function verifyPaidAndUnlock(orderId) {
 
 async function markRecordPaid(orderId) {
   const recordId = localStorage.getItem('last_test_record_id');
-  if (!recordId) return;
+  console.log('[markRecordPaid] recordId=', recordId, 'orderId=', orderId);
 
-  // 确保 LeanCloud SDK 可用
+  if (!recordId) {
+    console.warn('[markRecordPaid] no recordId, skip');
+    return;
+  }
   if (typeof AV === 'undefined') {
-    console.warn('LeanCloud AV SDK not found, cannot mark paid');
+    console.warn('[markRecordPaid] AV undefined');
     return;
   }
 
   try {
     const TestRecord = AV.Object.extend('TestRecord');
-
-    // 不需要重新查询整条记录，用 createWithoutData 直接更新指定 id
     const rec = TestRecord.createWithoutData(recordId);
 
-    rec.set('is_paid', true);
+    // ✅ 用新字段 paid(Boolean)
+    rec.set('paid', true);
+
     rec.set('paid_at', new Date());
     if (orderId) rec.set('order_id', String(orderId));
 
-    await rec.save();
-    console.log('✅ marked record paid:', recordId);
+    const saved = await rec.save();
+    console.log('[markRecordPaid] ✅ saved ok:', saved.id, saved.updatedAt);
   } catch (e) {
-    console.warn('markRecordPaid failed:', e);
+    console.error('[markRecordPaid] ❌ save failed:', e);
   }
 }
 
