@@ -1472,14 +1472,13 @@ function renderResult(data) {
   //   }
   // });
 
-// --- D. 绘制雷达图 (无 Emoji 纯净版) ---
+// --- D. 绘制雷达图 (5圈网格 + 深色字体版) ---
 const ctx = document.getElementById('radarChart').getContext('2d');
 if (typeof myChart !== 'undefined' && myChart) myChart.destroy();
 
 const style = getComputedStyle(document.body);
 const brandColor = style.getPropertyValue('--brand').trim() || '#3b82f6'; 
 
-// 渐变背景
 const gradient = ctx.createRadialGradient(
   ctx.canvas.width / 2, ctx.canvas.height / 2, 0,
   ctx.canvas.width / 2, ctx.canvas.height / 2, ctx.canvas.height / 2
@@ -1499,7 +1498,6 @@ myChart = new Chart(ctx, {
       borderWidth: 2,
       pointBackgroundColor: '#fff',
       pointBorderColor: brandColor,
-      pointHoverBackgroundColor: brandColor,
       pointRadius: 4, 
       pointHoverRadius: 6,
       tension: 0.3 
@@ -1508,35 +1506,32 @@ myChart = new Chart(ctx, {
   options: {
     responsive: true,
     maintainAspectRatio: false,
-    layout: {
-      padding: 10 
-    },
+    layout: { padding: 10 },
     scales: {
       r: {
         min: 0,
         max: 100,
         beginAtZero: true,
+        // --- 修改点 1: 调整圈数 ---
         ticks: { 
           display: false, 
-          stepSize: 33,   // 保持稀疏的网格（只显示3圈）
-          maxTicksLimit: 4
+          stepSize: 20,   // 100除以20等于5，所以这里会显示5个圈
         },
         grid: { 
           color: '#e2e8f0', 
           circular: true, 
           lineWidth: 1
         },
+        // --- 修改点 2: 调整字体颜色和粗细 ---
         pointLabels: { 
           display: true,
-          font: { size: 12, family: "'Inter', sans-serif" },
-          color: '#64748b',
+          // 加粗 (bold) 并稍微调大一点字体 (13px)
+          font: { size: 13, family: "'Inter', sans-serif", weight: 'bold' },
+          // 颜色改成了深色 (之前是浅灰 #64748b)
+          color: '#0f172a', 
           
-          // --- 修改重点：只返回数值，不要 Emoji ---
           callback: function(label, index) {
             const value = data.chart_data[index];
-            // 返回数组格式，Chart.js 会自动换行显示
-            // 第一行：标签名 (如：自洽度)
-            // 第二行：纯数字 (如：93)
             return [label, value]; 
           }
         }
@@ -1547,7 +1542,7 @@ myChart = new Chart(ctx, {
       tooltip: {
         enabled: true,
         displayColors: false,
-        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
         callbacks: {
            title: () => '',
            label: (context) => ` ${context.label}: ${context.raw}`
