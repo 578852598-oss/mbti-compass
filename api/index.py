@@ -92,8 +92,8 @@ MBTI_BANK = {
         {"id": 24, "text": "你会突然“发疯”，做一些平时绝对不敢做的冲动、冒险的事。", "type": "grip", "reversed": False},
         {"id": 25, "text": "你感觉身体特别难受，衣服上的标签、一点点疼痛都会让你抓狂。", "type": "grip","reversed": False},
         {"id": 26, "text": "你会因为找不到钥匙、或者电脑死机这种小事，瞬间崩溃大哭。", "type": "grip", "reversed": False},
-        {"id": 27, "text": "你会把自己像僵尸一样扔在沙发上，无脑刷剧、打游戏，麻痹自己。", "type": "grip", "reversed": False},
-        {"id": 28, "text": "你觉得桌子角在撞你，耳机线在缠你，好像全世界的死物都在故意针对你。", "type": "grip", "reversed": False},
+        {"id": 27, "text": "你只会在沙发上葛优瘫，无脑刷剧、打游戏，麻痹自己。", "type": "grip", "reversed": False},
+        {"id": 28, "text": "你感觉周围的东西都在故意给你找茬，看哪儿都不顺眼，在那儿碍你的事。", "type": "grip", "reversed": False},
         {"id": 29, "text": "你会突然变得很堕落，觉得“今朝有酒今朝醉”，不管以后咋样了。", "type": "grip","reversed": False},
         {"id": 30, "text": "你心里有一股无名火，特别想摔杯子、砸东西，或者把手头的事全毁了。", "type": "grip","reversed": False}
     ],
