@@ -661,7 +661,13 @@
   font-weight: 800;
   margin-left: 8px;
 }
-
+.pay-note{
+  margin-top: 10px;
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.4;
+}
   </style>
 </head>
 
@@ -816,7 +822,7 @@
               </button>
 
           </div>
-
+          <div class="pay-note">付费后，如有需要请截图保存</div>
           <div style="margin-top:10px; font-size:12px; color:#64748b;">
             支付成功后将自动解锁
           </div>
@@ -1717,40 +1723,64 @@ window.addEventListener('load', () => {
 let __checkTimer = null;
 let __checkingOrderId = null;
 
-function startCheckOrder(orderId) {
-  if (!orderId) return;
+async function startCheckOrder(orderId) {
+  if (typeof isOnResultPage === 'function' && !isOnResultPage()) return;
 
-  if (__checkTimer) clearInterval(__checkTimer);
+  if (__checkTimer && __checkingOrderId === orderId) return;
+
+  if (__checkTimer) {
+    clearInterval(__checkTimer);
+    __checkTimer = null;
+  }
+
   __checkingOrderId = orderId;
 
-  __checkTimer = setInterval(async () => {
-    try {
-      const r = await fetch("/api/order_status?order_id=" + encodeURIComponent(orderId), {
-        cache: "no-store",
-      });
-      const data = await r.json();
+  let attempts = 0;
+  const maxAttempts = 120;
+  const intervalMs = 2000;
 
-      if (data?.paid) {
+  __checkTimer = setInterval(async () => {
+    attempts++;
+
+    try {
+      const res = await fetch(`/api/check_order?order_id=${encodeURIComponent(orderId)}`, {
+        cache: 'no-store'
+      });
+
+      const text = await res.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch {}
+
+      if (!res.ok || !data) {
+        console.error("check_order failed:", res.status, text);
+      } else if (data.paid) {
         console.log("✅ paid detected, unlocking...", data);
 
         clearInterval(__checkTimer);
         __checkTimer = null;
         __checkingOrderId = null;
 
-        // ✅ 关键：写本地 + 写LeanCloud
-        await markRecordPaid(orderId);
+        // 如果你有 markRecordPaid，就调用它同步写 LeanCloud（可选）
+        if (typeof markRecordPaid === 'function') {
+          await markRecordPaid(orderId);
+        }
 
-        // ✅ 解除遮罩
         applyPaywall(false);
-
-        localStorage.removeItem("pending_order_id");
-        closePayModal?.();
+        localStorage.removeItem('pending_order_id');
+        if (typeof closePayModal === 'function') closePayModal();
+        return;
       }
     } catch (e) {
-      // 轮询失败不致命，继续
-      console.warn("[startCheckOrder] poll failed:", e);
+      console.error("check_order exception:", e);
     }
-  }, 2500);
+
+    if (attempts >= maxAttempts) {
+      clearInterval(__checkTimer);
+      __checkTimer = null;
+      __checkingOrderId = null;
+      console.warn("check_order timeout");
+    }
+  }, intervalMs);
 }
 
 
