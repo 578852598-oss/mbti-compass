@@ -1472,21 +1472,20 @@ function renderResult(data) {
   //   }
   // });
 
-// --- D. 绘制雷达图 (优化版) ---
+// --- D. 绘制雷达图 (无 Emoji 纯净版) ---
 const ctx = document.getElementById('radarChart').getContext('2d');
 if (typeof myChart !== 'undefined' && myChart) myChart.destroy();
 
 const style = getComputedStyle(document.body);
-// 获取品牌色，如果没有则使用默认的高级蓝
 const brandColor = style.getPropertyValue('--brand').trim() || '#3b82f6'; 
 
-// 1. 创建渐变背景
+// 渐变背景
 const gradient = ctx.createRadialGradient(
   ctx.canvas.width / 2, ctx.canvas.height / 2, 0,
   ctx.canvas.width / 2, ctx.canvas.height / 2, ctx.canvas.height / 2
 );
-gradient.addColorStop(0, 'rgba(59, 130, 246, 0.1)'); // 中心淡色
-gradient.addColorStop(1, 'rgba(59, 130, 246, 0.4)'); // 边缘深色
+gradient.addColorStop(0, 'rgba(59, 130, 246, 0.05)'); 
+gradient.addColorStop(1, 'rgba(59, 130, 246, 0.3)'); 
 
 myChart = new Chart(ctx, {
   type: 'radar',
@@ -1495,23 +1494,22 @@ myChart = new Chart(ctx, {
     datasets: [{
       label: '当前状态',
       data: data.chart_data,
-      backgroundColor: gradient, // 使用渐变
+      backgroundColor: gradient,
       borderColor: brandColor,
       borderWidth: 2,
       pointBackgroundColor: '#fff',
       pointBorderColor: brandColor,
       pointHoverBackgroundColor: brandColor,
-      pointHoverBorderColor: '#fff',
-      pointRadius: 4,        //稍微大一点的点
+      pointRadius: 4, 
       pointHoverRadius: 6,
-      tension: 0.4           // 曲线平滑度
+      tension: 0.3 
     }]
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
     layout: {
-      padding: 20 // 防止标签被切断
+      padding: 10 
     },
     scales: {
       r: {
@@ -1519,23 +1517,28 @@ myChart = new Chart(ctx, {
         max: 100,
         beginAtZero: true,
         ticks: { 
-          display: false, // 隐藏刻度数字 (0, 20, 40...)
-          stepSize: 20 
+          display: false, 
+          stepSize: 33,   // 保持稀疏的网格（只显示3圈）
+          maxTicksLimit: 4
         },
         grid: { 
-          color: '#e2e8f0', // 网格颜色更淡雅
-          circular: true,   // 圆形网格通常比多边形更好看
+          color: '#e2e8f0', 
+          circular: true, 
           lineWidth: 1
         },
         pointLabels: { 
-          display: true,    // 维度的文字标签 (认知成熟度等)
-          font: { size: 12, family: "'Inter', sans-serif", weight: '600' },
-          color: '#475569',
-          padding: 10
-        },
-        angleLines: {
           display: true,
-          color: '#e2e8f0'
+          font: { size: 12, family: "'Inter', sans-serif" },
+          color: '#64748b',
+          
+          // --- 修改重点：只返回数值，不要 Emoji ---
+          callback: function(label, index) {
+            const value = data.chart_data[index];
+            // 返回数组格式，Chart.js 会自动换行显示
+            // 第一行：标签名 (如：自洽度)
+            // 第二行：纯数字 (如：93)
+            return [label, value]; 
+          }
         }
       }
     },
@@ -1543,52 +1546,15 @@ myChart = new Chart(ctx, {
       legend: { display: false },
       tooltip: {
         enabled: true,
-        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-        padding: 12,
-        cornerRadius: 8,
         displayColors: false,
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
         callbacks: {
-          label: function(context) {
-             return ' ' + context.label + ': ' + context.raw + ' 分';
-          }
+           title: () => '',
+           label: (context) => ` ${context.label}: ${context.raw}`
         }
       }
     }
-  },
-  // 核心优化：自定义插件，用于绘制“数值+表情”
-  plugins: [{
-    id: 'customDataLabels',
-    afterDatasetsDraw(chart, args, options) {
-      const { ctx, data } = chart;
-      const dataset = data.datasets[0];
-      
-      ctx.save();
-      chart.getDatasetMeta(0).data.forEach((point, index) => {
-        const value = dataset.data[index];
-        
-        // 根据数值决定表情
-        let emoji = '';
-        if (value >= 90) emoji = '🔥';
-        else if (value >= 75) emoji = '✨';
-        else if (value >= 60) emoji = '👌';
-        else emoji = '💪';
-
-        // 绘制位置调整 (在点上方)
-        const x = point.x;
-        const y = point.y - 10; 
-
-        // 设置文字样式
-        ctx.font = 'bold 12px Inter';
-        ctx.fillStyle = brandColor; //文字颜色跟随品牌色
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        
-        // 绘制 数值 + 表情
-        ctx.fillText(`${value}${emoji}`, x, y);
-      });
-      ctx.restore();
-    }
-  }]
+  }
 });
 
   
