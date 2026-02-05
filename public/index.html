@@ -635,13 +635,14 @@
 /* 购买遮罩层 */
 .pay-overlay{
   /* 关键：统一遮罩，不要渐变 */
-  background: rgba(255,255,255,0.92) !important;
+  background: rgba(255,255,255,0.75) !important;
   /* 建议保留这些 */
   display: none;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex-direction: column;
   z-index: 10;
+  padding-top: 24px;     
 }
 
 /* 价格标签 */
