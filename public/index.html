@@ -1410,7 +1410,7 @@ function renderResult(data) {
     if (inMid(data.loop) && inMid(data.grip)) {
       tipEl.style.display = 'block';
       tipEl.textContent =
-        '当前状态：压力可控（中等波动）。这表示你在正常负荷区间，适度紧张有助于效率；若持续升高到 60+，再优先处理压力/内耗即可。';
+        '当前状态：内耗/压力可控（中等波动）。这表示你在正常负荷区间，适度紧张有助于效率；若某一项达到高，再优先处理压力/内耗即可。';
     } else {
       tipEl.style.display = 'none';
       tipEl.textContent = '';
