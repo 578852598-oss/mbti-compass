@@ -1409,7 +1409,10 @@ function renderResult(data) {
       plugins: { legend: { display: false } }
     }
   });
-applyPaywall(true);
+const rid = localStorage.getItem('last_test_record_id');
+const paidLocal = rid && localStorage.getItem('paid_record_' + rid) === '1';
+applyPaywall(paidLocal ? false : true);
+
 cacheResult(data);
 }
 
