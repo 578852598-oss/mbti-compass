@@ -62,36 +62,40 @@ MBTI_BANK = {
     ],
 
     "INFJ": [
-        {"id": 1, "text": "当现实情况与你的直觉预判不符时，你能灵活调整而不固执己见。", "type": "maturity", "reversed": False},
-        {"id": 2, "text": "你经常活在未来的愿景里，而忽略了当下的生活琐事和身体照顾。", "type": "maturity", "reversed": True},
-        {"id": 3, "text": "你能在坚持自我价值观的同时，用他人能接受的方式温和地表达。", "type": "maturity", "reversed": False},
-        {"id": 4, "text": "你总觉得自己的洞察力“高人一等”，很难真正听取他人的建议。", "type": "maturity", "reversed": True},
-        {"id": 5, "text": "因为过度追求完美的时机或方案，你的很多理想从未开始执行。", "type": "maturity", "reversed": True},
-        {"id": 6, "text": "你能将复杂的抽象直觉，转化为具体可行的步骤去帮助他人。", "type": "maturity", "reversed": False},
-        {"id": 7, "text": "一旦认定了某件事的意义，你就会忽略客观现实的阻碍强行推进。", "type": "maturity", "reversed": True},
-        {"id": 8, "text": "你不仅能共情他人的痛苦，还能设立健康的边界保护自己的能量。", "type": "maturity", "reversed": False},
-        {"id": 9, "text": "你习惯甚至享受一种“曲高和寡”的孤独感，而拒绝融入群体。", "type": "maturity", "reversed": True},
-        {"id": 10, "text": "你会主动通过实际行动来验证你的直觉，而不仅仅是在脑中推演。", "type": "maturity", "reversed": False},
-        {"id": 11, "text": "最近你把自己封闭起来，觉得社交纯粹是在浪费时间。", "type": "loop", "reversed": False},
-        {"id": 12, "text": "你会像手术刀一样冷酷地剖析身边人的动机，觉得他们都很虚伪。", "type": "loop", "reversed": False},
-        {"id": 13, "text": "你陷入一种逻辑死循环，试图在脑中构建一个无懈可击的真理。", "type": "loop", "reversed": False},
-        {"id": 14, "text": "你变得非常批判和挑剔，对他人的情感表达感到不耐烦。", "type": "loop", "reversed": False},
-        {"id": 15, "text": "你觉得自己彻底“看透”了某些事情的悲剧结局，因此拒绝任何尝试。", "type": "loop", "reversed": False},
-        {"id": 16, "text": "你拒绝向外求助，坚信只有自己才能解决自己的问题。", "type": "loop", "reversed": False},
-        {"id": 17, "text": "你脑中有大量的分析和批判，但在外人看来你只是在发呆或沉默。", "type": "loop", "reversed": False},
-        {"id": 18, "text": "你对外部世界感到一种虚无感，觉得一切都没有意义。", "type": "loop", "reversed": False},
-        {"id": 19, "text": "你会为了证明自己的逻辑正确，而忽略在这个过程中对他人的伤害。", "type": "loop", "reversed": False},
-        {"id": 20, "text": "你固执地坚持自己的主观判断，即使客观事实摆在眼前也不愿承认。", "type": "loop", "reversed": False},
-        {"id": 21, "text": "压力极大时，你会突然沉迷于暴饮暴食、酗酒或疯狂购物。", "type": "grip", "reversed": False},
-        {"id": 22, "text": "你会对环境中的噪音、强光或混乱感到前所未有的暴躁。", "type": "grip", "reversed": False},
-        {"id": 23, "text": "你会突然痴迷于整理房间、打扫卫生或纠结外表细节。", "type": "grip", "reversed": False},
-        {"id": 24, "text": "你会做出一些平时绝对不会做的冲动、冒险或鲁莽的行为。", "type": "grip", "reversed": False},
-        {"id": 25, "text": "你感觉身体感官被无限放大，一点点不适都会让你抓狂。", "type": "grip", "reversed": False},
-        {"id": 26, "text": "你会因为找不到某样东西或电器故障而瞬间情绪崩溃。", "type": "grip", "reversed": False},
-        {"id": 27, "text": "你会用机械性的感官刺激（如无脑刷剧、打游戏）来麻痹大脑。", "type": "grip", "reversed": False},
-        {"id": 28, "text": "你会觉得自己正在与物理世界“为敌”，觉得万物都在针对你。", "type": "grip", "reversed": False},
-        {"id": 29, "text": "你会突然过度关注当下的享乐，完全抛弃了长远的计划。", "type": "grip", "reversed": False},
-        {"id": 30, "text": "你有一种强烈的破坏欲，想要摔东西或毁掉正在做的事。", "type": "grip", "reversed": False}
+        {"id": 1, "text": "当现实情况和你想的不一样时，你能承认自己错了，而不是死鸭子嘴硬。", "type": "maturity","reversed": False},
+        {"id": 2, "text": "你总是活在脑子里的未来图景里，结果连饭都忘了吃，或者把日子过得一团糟。", "type": "maturity","reversed": True},
+        {"id": 3, "text": "你有自己的原则，但说话很好听，能用别人听得进去的方式表达出来。", "type": "maturity","reversed": False},
+        {"id": 4, "text": "你总觉得自己看人特别准，觉得别人的建议都很浅薄，根本听不进去。", "type": "maturity","reversed": True},
+        {"id": 5, "text": "你总想等一个“完美的时机”再动手，结果想了半天，最后什么都没干。", "type": "maturity","reversed": True},
+        {"id": 6, "text": "你能把脑子里那些玄乎的直觉，变成一步步具体的计划，真的帮到别人。", "type": "maturity","reversed": False},
+        {"id": 7, "text": "一旦你认定这事儿“有意义”，哪怕现实条件根本不允许，你也要硬着头皮干。", "type": "maturity","reversed": True},
+        {"id": 8, "text": "你心很软，能理解别人的痛苦，但也会保护自己，不会让自己被情绪垃圾淹没。", "type": "maturity","reversed": False},
+        {"id": 9, "text": "你其实挺享受“没人懂我”的感觉，故意把自己边缘化，不合群。", "type": "maturity","reversed": True},
+        {"id": 10, "text": "你会真的动手去试错，来验证你的猜想，而不是光在脑子里瞎推演。", "type": "maturity","reversed": False},
+
+        # Loop (Ni-Ti 循环)：变得冷漠、封闭、自以为是
+        {"id": 11, "text": "最近你有一些自闭了，觉得出去社交纯粹是浪费生命，谁都不想理。", "type": "loop","reversed": False},
+        {"id": 12, "text": "你变得很冷血，像看显微镜一样分析身边的人，觉得他们都很虚伪、都有目的。", "type": "loop","reversed": False},
+        {"id": 13, "text": "你陷入了死脑筋，非要在脑子里想出一套完美的逻辑，觉得只有自己是对的。", "type": "loop","reversed": False},
+        {"id": 14, "text": "你变得特别刻薄挑剔，看到别人哭哭啼啼或者情绪化，你只会觉得烦。", "type": "loop","reversed": False},
+        {"id": 15, "text": "你觉得这事儿肯定没戏（虽然没发生），所以干脆一开始就放弃了。", "type": "loop","reversed": False},
+        {"id": 16, "text": "你死都不肯求助，坚信只有自己才能救自己，觉得别人都帮不上忙。", "type": "loop","reversed": False},
+        {"id": 17, "text": "表面上你在发呆，其实脑子里在进行激烈的辩论，谁也插不进嘴。", "type": "loop","reversed": False},
+        {"id": 18, "text": "你觉得干什么都没劲，整个世界看起来都很空虚，毫无意义。", "type": "loop", "reversed": False},
+        {"id": 19, "text": "为了证明你的逻辑是对的，你说话变得很伤人，完全不在乎会不会刺痛别人。", "type": "loop","reversed": False},
+        {"id": 20, "text": "哪怕事实摆在眼前，你也觉得是事实错了，还是坚持你脑子里的那套判断。", "type": "loop","reversed": False},
+
+        # Grip (Se 爆发)：感官失控、暴躁、想毁东西
+        {"id": 21, "text": "压力大到极点时，你会突然开始暴饮暴食、疯狂买没用的东西，或者沉迷酒精。", "type": "grip","reversed": False},
+        {"id": 22, "text": "你对周围的声音、光线特别敏感，稍微吵一点你就会甚至想打人。", "type": "grip","reversed": False},
+        {"id": 23, "text": "你会突然像得了强迫症一样，疯狂打扫卫生，或者死抠某个细节不放。", "type": "grip","reversed": False},
+        {"id": 24, "text": "你会突然“发疯”，做一些平时绝对不敢做的冲动、冒险的事。", "type": "grip", "reversed": False},
+        {"id": 25, "text": "你感觉身体特别难受，衣服上的标签、一点点疼痛都会让你抓狂。", "type": "grip","reversed": False},
+        {"id": 26, "text": "你会因为找不到钥匙、或者电脑死机这种小事，瞬间崩溃大哭。", "type": "grip", "reversed": False},
+        {"id": 27, "text": "你会把自己像僵尸一样扔在沙发上，无脑刷剧、打游戏，麻痹自己。", "type": "grip", "reversed": False},
+        {"id": 28, "text": "你觉得桌子角在撞你，耳机线在缠你，好像全世界的死物都在故意针对你。", "type": "grip", "reversed": False},
+        {"id": 29, "text": "你会突然变得很堕落，觉得“今朝有酒今朝醉”，不管以后咋样了。", "type": "grip","reversed": False},
+        {"id": 30, "text": "你心里有一股无名火，特别想摔杯子、砸东西，或者把手头的事全毁了。", "type": "grip","reversed": False}
     ],
 
     "INFP": [
@@ -210,7 +214,7 @@ MBTI_BANK = {
         {"id": 12, "text": "你变得过度在意自己的外表、形象或排场，花费大量精力在“面子工程”上。", "type": "loop", "reversed": False},
         {"id": 13, "text": "你为了融入群体或活跃气氛，会不假思索地做出一些冲动、浮夸的行为。", "type": "loop", "reversed": False},
         {"id": 14, "text": "你发现自己开始热衷于肤浅的八卦或是非，而不再进行有深度的对话。", "type": "loop", "reversed": False},
-        {"id": 15, "text": "你对“错过”（FOMO）感到极度焦虑，看到别人聚会没叫你就会很难受。", "type": "loop", "reversed": False},
+        {"id": 15, "text": "你生怕被大家落下，只要看到别人聚会没喊你，心里就特别难受。", "type": "loop", "reversed": False},
         {"id": 16, "text": "你根本无法独处，一旦安静下来就会感到莫名的恐慌和空虚。", "type": "loop", "reversed": False},
         {"id": 17, "text": "你变得非常急躁，只追求当下的快乐和反馈，完全不想未来的后果。", "type": "loop", "reversed": False},
         {"id": 18, "text": "你对他人的评价反应过度，为了博取关注而做出戏剧化的举动。", "type": "loop", "reversed": False},
@@ -359,7 +363,7 @@ MBTI_BANK = {
 
         # Grip (Ne): 恐慌、灾难化、不知所措
         {"id": 21, "text": "最近你总是莫名其妙地心慌，感觉有什么坏事要发生了。", "type": "grip", "reversed": False},
-        {"id": 22, "text": "你会把一点点身体不舒服（如头痛），联想到自己得了绝症。", "type": "grip", "reversed": False},
+        {"id": 22, "text": "你会把一点点身体不舒服（如头痛），就觉得自己很严重，甚至觉得自己得了绝症。", "type": "grip", "reversed": False},
         {"id": 23, "text": "你面对任何变化（如搬家、换工作）都感到极度恐惧，只想躲起来。", "type": "grip", "reversed": False},
         {"id": 24, "text": "你会突然说出一些非常悲观、消极的话，把身边人吓一跳。", "type": "grip", "reversed": False},
         {"id": 25, "text": "你感觉脑子里有无数个声音在吵架，完全没法集中注意力。", "type": "grip", "reversed": False},
@@ -367,7 +371,7 @@ MBTI_BANK = {
         {"id": 27, "text": "你可能会因为压力大而暴饮暴食，或者彻底吃不下饭。", "type": "grip", "reversed": False},
         {"id": 28, "text": "你觉得现实世界变得很不真实，像是在做噩梦一样。", "type": "grip", "reversed": False},
         {"id": 29, "text": "你会突然冲动地想要逃离现在的生活，去一个没人认识的地方。", "type": "grip", "reversed": False},
-        {"id": 30, "text": "你觉得自己彻底失去了对生活的控制，像风中的叶子一样无助。", "type": "grip", "reversed": False}
+        {"id": 30, "text": "你感觉现在啥都乱了套，平时能搞定的事现在怎么都搞不定，心里特别没底。", "type": "grip", "reversed": False}
     ],
 
     "ESTJ": [
@@ -386,7 +390,7 @@ MBTI_BANK = {
         # Loop (Te-Ne): 瞎忙、多疑、控制狂
         {"id": 11, "text": "最近你总是觉得如果不盯着，底下的人肯定会出乱子。", "type": "loop", "reversed": False},
         {"id": 12, "text": "你脑子里冒出很多“防患于未然”的念头，搞得自己和周围人都很累。", "type": "loop", "reversed": False},
-        {"id": 13, "text": "你甚至开始微管理（Micro-manage），连怎么发邮件这种小事都要管。", "type": "loop", "reversed": False},
+        {"id": 13, "text": "你现在什么都不放心，连怎么发邮件这种芝麻小事，都要盯着别人做。", "type": "loop", "reversed": False},
         {"id": 14, "text": "你根本停不下来，觉得一旦停下来思考，事情就会失控。", "type": "loop", "reversed": False},
         {"id": 15, "text": "你对新的可能性变得过度敏感，总觉得有什么隐患没被发现。", "type": "loop", "reversed": False},
         {"id": 16, "text": "你为了效率而牺牲了质量，急匆匆地把事情做完，结果全是漏洞。", "type": "loop", "reversed": False},
