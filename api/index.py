@@ -2630,7 +2630,7 @@ ZPAY_KEY = os.getenv("ZPAY_KEY", "34ecGidqcWlTTOfp9p1QC0zi6s2OWUum")  # 文档�
 # 你自己的域名（用于拼 notify_url / return_url）
 FRONTEND_RETURN = os.getenv("FRONTEND_RETURN", "http://127.0.0.1:5500/index.html")  # 你的前端页面地址
 
-PRICE_YUAN = os.getenv("PRICE_YUAN", "0.01")
+PRICE_YUAN = os.getenv("PRICE_YUAN", "9.90")
 PRODUCT_NAME = os.getenv("PRODUCT_NAME", "舒木罗盘-完整报告解锁")  # 文档要求：商品名要具体 :contentReference[oaicite:8]{index=8}
 
 
@@ -2835,3 +2835,4 @@ async def zpay_notify(request: Request):
         return PlainTextResponse("success")
 
     return PlainTextResponse("ignored")
+
