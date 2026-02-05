@@ -1442,11 +1442,11 @@ function renderResult(data) {
       if($('res-month-body')) $('res-month-body').innerHTML = formattedHtml;
   }
 
-  // --- D. 绘制雷达图 ---
-  const ctx = $('radarChart').getContext('2d');
-  if(myChart) myChart.destroy();
-  const style = getComputedStyle(document.body);
-  const brandColor = style.getPropertyValue('--brand').trim() || '#2563eb';
+  // // --- D. 绘制雷达图 ---
+  // const ctx = $('radarChart').getContext('2d');
+  // if(myChart) myChart.destroy();
+  // const style = getComputedStyle(document.body);
+  // const brandColor = style.getPropertyValue('--brand').trim() || '#2563eb';
 
   // myChart = new Chart(ctx, {
   //   type: 'radar',
@@ -1472,61 +1472,21 @@ function renderResult(data) {
   //   }
   // });
 
-  // ✅ 只加“点位数值标签”的轻量插件（不改你原来的坐标/刻度样式）
-const valueLabelPlugin = {
-  id: 'valueLabelPlugin',
-  afterDatasetsDraw(chart) {
-    const { ctx } = chart;
-    const meta = chart.getDatasetMeta(0);
-    const dataset = chart.data.datasets[0];
-    if (!meta || !dataset) return;
+// --- D. 绘制雷达图 (优化版) ---
+const ctx = document.getElementById('radarChart').getContext('2d');
+if (typeof myChart !== 'undefined' && myChart) myChart.destroy();
 
-    ctx.save();
-    ctx.font = '12px Inter, system-ui, -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+const style = getComputedStyle(document.body);
+// 获取品牌色，如果没有则使用默认的高级蓝
+const brandColor = style.getPropertyValue('--brand').trim() || '#3b82f6'; 
 
-    meta.data.forEach((pt, i) => {
-      const v = dataset.data[i];
-      if (v == null) return;
-
-      const p = pt.getCenterPoint();
-
-      // 让标签向外偏移一点（避免压在点上）
-      const cx = chart.chartArea.left + chart.chartArea.width / 2;
-      const cy = chart.chartArea.top + chart.chartArea.height / 2;
-      const dx = p.x - cx;
-      const dy = p.y - cy;
-      const len = Math.sqrt(dx * dx + dy * dy) || 1;
-      const x = p.x + (dx / len) * 12;
-      const y = p.y + (dy / len) * 12;
-
-      const text = String(Math.round(v));
-
-      // 白底小气泡，提高可读性（很淡，不会破坏原风格）
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      const padX = 6, padY = 4;
-      const w = ctx.measureText(text).width + padX * 2;
-      const h = 12 + padY * 2;
-      const r = 10;
-
-      ctx.beginPath();
-      ctx.moveTo(x - w/2 + r, y - h/2);
-      ctx.arcTo(x + w/2, y - h/2, x + w/2, y + h/2, r);
-      ctx.arcTo(x + w/2, y + h/2, x - w/2, y + h/2, r);
-      ctx.arcTo(x - w/2, y + h/2, x - w/2, y - h/2, r);
-      ctx.arcTo(x - w/2, y - h/2, x + w/2, y - h/2, r);
-      ctx.closePath();
-      ctx.fill();
-
-      // 数字颜色
-      ctx.fillStyle = '#0f172a';
-      ctx.fillText(text, x, y);
-    });
-
-    ctx.restore();
-  }
-};
+// 1. 创建渐变背景
+const gradient = ctx.createRadialGradient(
+  ctx.canvas.width / 2, ctx.canvas.height / 2, 0,
+  ctx.canvas.width / 2, ctx.canvas.height / 2, ctx.canvas.height / 2
+);
+gradient.addColorStop(0, 'rgba(59, 130, 246, 0.1)'); // 中心淡色
+gradient.addColorStop(1, 'rgba(59, 130, 246, 0.4)'); // 边缘深色
 
 myChart = new Chart(ctx, {
   type: 'radar',
@@ -1535,32 +1495,103 @@ myChart = new Chart(ctx, {
     datasets: [{
       label: '当前状态',
       data: data.chart_data,
-      backgroundColor: 'rgba(37, 99, 235, 0.2)',
+      backgroundColor: gradient, // 使用渐变
       borderColor: brandColor,
       borderWidth: 2,
       pointBackgroundColor: '#fff',
       pointBorderColor: brandColor,
+      pointHoverBackgroundColor: brandColor,
+      pointHoverBorderColor: '#fff',
+      pointRadius: 4,        //稍微大一点的点
+      pointHoverRadius: 6,
+      tension: 0.4           // 曲线平滑度
     }]
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: 20 // 防止标签被切断
+    },
     scales: {
       r: {
         min: 0,
         max: 100,
-        ticks: { display: false }, // ✅ 保持你原来不显示坐标刻度
-        grid: { color: '#f1f5f9', circular: true },
-        pointLabels: { font: { size: 12, family:'Inter' }, color: '#64748b' }
+        beginAtZero: true,
+        ticks: { 
+          display: false, // 隐藏刻度数字 (0, 20, 40...)
+          stepSize: 20 
+        },
+        grid: { 
+          color: '#e2e8f0', // 网格颜色更淡雅
+          circular: true,   // 圆形网格通常比多边形更好看
+          lineWidth: 1
+        },
+        pointLabels: { 
+          display: true,    // 维度的文字标签 (认知成熟度等)
+          font: { size: 12, family: "'Inter', sans-serif", weight: '600' },
+          color: '#475569',
+          padding: 10
+        },
+        angleLines: {
+          display: true,
+          color: '#e2e8f0'
+        }
       }
     },
-    plugins: { legend: { display: false } }
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        enabled: true,
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        padding: 12,
+        cornerRadius: 8,
+        displayColors: false,
+        callbacks: {
+          label: function(context) {
+             return ' ' + context.label + ': ' + context.raw + ' 分';
+          }
+        }
+      }
+    }
   },
-  plugins: [valueLabelPlugin] // ✅ 只新增这一句
+  // 核心优化：自定义插件，用于绘制“数值+表情”
+  plugins: [{
+    id: 'customDataLabels',
+    afterDatasetsDraw(chart, args, options) {
+      const { ctx, data } = chart;
+      const dataset = data.datasets[0];
+      
+      ctx.save();
+      chart.getDatasetMeta(0).data.forEach((point, index) => {
+        const value = dataset.data[index];
+        
+        // 根据数值决定表情
+        let emoji = '';
+        if (value >= 90) emoji = '🔥';
+        else if (value >= 75) emoji = '✨';
+        else if (value >= 60) emoji = '👌';
+        else emoji = '💪';
+
+        // 绘制位置调整 (在点上方)
+        const x = point.x;
+        const y = point.y - 10; 
+
+        // 设置文字样式
+        ctx.font = 'bold 12px Inter';
+        ctx.fillStyle = brandColor; //文字颜色跟随品牌色
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        
+        // 绘制 数值 + 表情
+        ctx.fillText(`${value}${emoji}`, x, y);
+      });
+      ctx.restore();
+    }
+  }]
 });
 
-
-
+  
 const rid = localStorage.getItem('last_test_record_id');
 const paidLocal = rid && localStorage.getItem('paid_record_' + rid) === '1';
 applyPaywall(paidLocal ? false : true);
