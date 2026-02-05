@@ -1220,6 +1220,12 @@ function renderQuestions() {
         }
 
 
+ function markPaidLocal() {
+  const rid = localStorage.getItem('last_test_record_id');
+  if (rid) localStorage.setItem('paid_record_' + rid, '1');
+}
+       
+
 // ===============================
 // Paywall：对现有内容做模糊/取消模糊
 // ===============================
@@ -1605,6 +1611,7 @@ async function checkOnce(orderId) {
   const res = await fetch(`/api/check_order?order_id=${encodeURIComponent(orderId)}`);
   const data = await res.json();
   if (data?.paid) {
+    markPaidLocal(); 
     applyPaywall(false);
     localStorage.removeItem('pending_order_id');
   }
@@ -1613,6 +1620,11 @@ async function checkOnce(orderId) {
 
 window.handlePayment = async function () {
   const btn = document.querySelector('.btn-buy');
+  const rid = localStorage.getItem('last_test_record_id');
+  if (!rid) {
+    alert('报告记录正在生成，请等待 1 秒后再支付（record_id 还没生成）');
+    return;
+  }
   if (btn) { btn.innerText = "正在创建订单..."; btn.disabled = true; }
 
   try {
@@ -1673,6 +1685,7 @@ window.handlePayment = async function () {
 window.addEventListener('load', () => {
   const paid = new URLSearchParams(location.search).get('paid');
   if (paid === '1') {
+    markPaidLocal();
     applyPaywall(false);
     // 清理参数，避免刷新重复
     history.replaceState({}, document.title, window.location.pathname);
@@ -1725,6 +1738,7 @@ async function startCheckOrder(orderId) {
         
         closePayModal();
         await markRecordPaid(orderId);
+        markPaidLocal(); 
         applyPaywall(false);
         localStorage.removeItem('pending_order_id');
         return;
@@ -1781,6 +1795,7 @@ async function verifyPaidAndUnlock(orderId) {
 
   if (data && data.paid) {
     await markRecordPaid(orderId);
+    markPaidLocal(); 
     applyPaywall(false);
     localStorage.removeItem('pending_order_id');
 
