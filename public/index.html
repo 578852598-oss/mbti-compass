@@ -893,6 +893,17 @@
     });
 
 
+function markPaidLocalByRecordId(recordId) {
+  if (!recordId || recordId === "null" || recordId === "undefined") return;
+  localStorage.setItem("paid_record_" + recordId, "1");
+}
+
+function getCurrentRecordId() {
+  const rid = localStorage.getItem("last_test_record_id");
+  if (!rid || rid === "null" || rid === "undefined") return null;
+  return rid;
+}
+
 function restoreResultIfAny() {
   try {
     const raw = localStorage.getItem('mbti_last_result');
@@ -1102,17 +1113,25 @@ Analytics.trackVisit();
     }
 
     // 重置回首页
-    function resetApp() {
-      $('quiz-interface').style.display = 'none';
-      $('landing-page').style.display = 'block';
-      $('landing-page').style.animation = 'fadeIn 0.5s ease';
-      $('status-bar').style.display = 'none';
-      $('result').style.display = 'none';
-      $('quiz-form').style.display = 'block';
-      currentQuestions = [];
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+function resetApp() {
+  // 你原来的 UI 切换逻辑如果有，建议保留；这里给你最安全的“清缓存”
+  try {
+    // ✅ 清理上一次结果缓存（否则会恢复旧的已解锁结果）
+    localStorage.removeItem("mbti_last_result");
+    localStorage.removeItem("mbti_last_type");
 
+    // ✅ 清理上一次 recordId/订单
+    localStorage.removeItem("last_test_record_id");
+    localStorage.removeItem("pending_order_id");
+
+    // ✅ 如果你还存过别的状态，也可以清
+    // localStorage.removeItem("xxx");
+
+  } catch (e) {}
+
+  // ✅ 下面是你原本的页面重置（如果你有自己的 UI 逻辑，把这段替换成你的也行）
+  location.href = location.pathname; // 回到初始状态（最稳）
+}
 
 function renderQuestions() {
       window.testStartTime = Date.now();
@@ -1517,6 +1536,9 @@ $('quiz-form').addEventListener('submit', (e) => {
             record.set('status_tag', statusTag);
             record.set('result_text', fullResultText);
 
+            const saved = await record.save();
+            localStorage.setItem("last_test_record_id", saved.id);
+            
             record.save().then((saved) => {
                 localStorage.setItem('last_test_record_id', saved.id); // ✅ 关联支付用
                 localStorage.setItem('last_mbti_type', res.mbti_type || currentType); // 可选
@@ -1695,67 +1717,44 @@ window.addEventListener('load', () => {
 
 
 
-let __checkTimer = null;      // ✅ 防止重复开启
-let __checkingOrderId = null; // ✅ 记录当前查哪个单
+let __checkTimer = null;
+let __checkingOrderId = null;
 
-async function startCheckOrder(orderId) {
-  // ✅ 不在结果页就不查（避免首页/做题误触发）
-  if (typeof isOnResultPage === 'function' && !isOnResultPage()) return;
+function startCheckOrder(orderId) {
+  if (!orderId) return;
 
-  // ✅ 已经在查同一个订单，就不要重复开定时器
-  if (__checkTimer && __checkingOrderId === orderId) return;
-
-  // ✅ 如果之前在查别的订单，先停掉
-  if (__checkTimer) {
-    clearInterval(__checkTimer);
-    __checkTimer = null;
-  }
-
+  if (__checkTimer) clearInterval(__checkTimer);
   __checkingOrderId = orderId;
 
-  let attempts = 0;
-  const maxAttempts = 120; // 约 4 分钟
-  const intervalMs = 2000;
-
   __checkTimer = setInterval(async () => {
-    attempts++;
-
     try {
-      const res = await fetch(`/api/check_order?order_id=${encodeURIComponent(orderId)}`);
-      const text = await res.text();
-      let data = null;
-      try { data = JSON.parse(text); } catch {}
+      const r = await fetch("/api/order_status?order_id=" + encodeURIComponent(orderId), {
+        cache: "no-store",
+      });
+      const data = await r.json();
 
-      if (!res.ok || !data) {
-        console.error("check_order failed:", res.status, text);
-      } else if (data.paid) {
+      if (data?.paid) {
         console.log("✅ paid detected, unlocking...", data);
 
         clearInterval(__checkTimer);
         __checkTimer = null;
         __checkingOrderId = null;
 
-        
-        closePayModal();
+        // ✅ 关键：写本地 + 写LeanCloud
         await markRecordPaid(orderId);
-        markPaidLocal(); 
+
+        // ✅ 解除遮罩
         applyPaywall(false);
-        localStorage.removeItem('pending_order_id');
-        return;
+
+        localStorage.removeItem("pending_order_id");
+        closePayModal?.();
       }
     } catch (e) {
-      console.error("check_order exception:", e);
+      // 轮询失败不致命，继续
+      console.warn("[startCheckOrder] poll failed:", e);
     }
-
-    if (attempts >= maxAttempts) {
-      clearInterval(__checkTimer);
-      __checkTimer = null;
-      __checkingOrderId = null;
-      console.warn("check_order timeout");
-    }
-  }, intervalMs);
+  }, 2500);
 }
-
 
 
 // window.addEventListener('load', () => {
@@ -1807,37 +1806,37 @@ async function verifyPaidAndUnlock(orderId) {
 }
 
 async function markRecordPaid(orderId) {
-  const recordId = localStorage.getItem('last_test_record_id');
-  console.log('[markRecordPaid] recordId=', recordId, 'orderId=', orderId);
-
-  if (!recordId) {
-    console.warn('[markRecordPaid] no recordId, skip');
-    return;
-  }
-  if (typeof AV === 'undefined') {
-    console.warn('[markRecordPaid] AV undefined');
-    return;
-  }
-
   try {
-    const TestRecord = AV.Object.extend('TestRecord');
-    const rec = TestRecord.createWithoutData(recordId);
+    const recordId = getCurrentRecordId();
+    console.log("[markRecordPaid] recordId=", recordId, "orderId=", orderId);
 
-    // ✅ 用新字段 paid(Boolean)
-    rec.set('paid', true);
-    rec.set('is_paid', true);
-    rec.set('id_paid', true);
+    if (!recordId) {
+      console.warn("[markRecordPaid] ❌ invalid recordId");
+      return false;
+    }
 
+    // ✅ 先写本地，保证立刻不复锁
+    markPaidLocalByRecordId(recordId);
 
-    rec.set('paid_at', new Date());
-    if (orderId) rec.set('order_id', String(orderId));
-    localStorage.setItem('paid_record_' + recordId, '1');
-    const saved = await rec.save();
-    console.log('[markRecordPaid] ✅ saved ok:', saved.id, saved.updatedAt);
+    // ✅ 再写 LeanCloud：同时写 paid + is_paid（你关心的字段）
+    const rec = AV.Object.createWithoutData("TestRecord", recordId);
+    rec.set("paid", true);
+    rec.set("is_paid", true);     // ✅ 你要看的字段
+    // 如果你库里字段叫 id_paid，也一起写上（不冲突）
+    rec.set("id_paid", true);
+
+    rec.set("paid_at", new Date());
+    if (orderId) rec.set("order_id", String(orderId));
+
+    await rec.save();
+    console.log("[markRecordPaid] ✅ saved to LeanCloud");
+    return true;
   } catch (e) {
-    console.error('[markRecordPaid] ❌ save failed:', e);
+    console.error("[markRecordPaid] ❌ save failed:", e);
+    return false;
   }
 }
+
 
 
 async function handlePayReturn() {
