@@ -664,9 +664,18 @@
 .pay-note{
   margin-top: 10px;
   font-size: 13px;
-  color: #64748b;
+  color: #ef4444;
   text-align: center;
   line-height: 1.4;
+}
+.sub-tip{
+  margin: 10px 0 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.5;
 }
   </style>
 </head>
@@ -798,6 +807,8 @@
             <canvas id="radarChart"></canvas>
           </div>
         </div>
+
+        <div id="mid-tip" class="sub-tip" style="display:none;"></div>
 
         <div class="section"><h3>状态解析</h3><p id="res-insight">...</p></div>
         <div class="section"><h3>调整建议</h3><p id="res-advice">...</p></div>
@@ -1386,6 +1397,26 @@ function renderResult(data) {
 
   // --- B. 填充文字内容 ---
   $('res-insight').textContent = data.insight;
+
+  // ✅ 雷达图下方：压力可控提示（所有人可见）
+  const tipEl = document.getElementById('mid-tip');
+  if (tipEl) {
+    const MID_LOW = 35;
+    const MID_HIGH = 60;
+    const inMid = (v) => typeof v === 'number' && v >= MID_LOW && v < MID_HIGH;
+
+    // 这里用你的两项：Loop(内耗) 和 Grip(压力反应)
+    // 你页面里就是这两个指标在展示：v-loop / v-grip :contentReference[oaicite:4]{index=4}
+    if (inMid(data.loop) && inMid(data.grip)) {
+      tipEl.style.display = 'block';
+      tipEl.textContent =
+        '当前状态：压力可控（中等波动）。这表示你在正常负荷区间，适度紧张有助于效率；若持续升高到 60+，再优先处理压力/内耗即可。';
+    } else {
+      tipEl.style.display = 'none';
+      tipEl.textContent = '';
+    }
+  }
+
   $('res-advice').textContent = data.advice;
 
   if($('cp-name')) $('cp-name').textContent = data.cp_name;
@@ -1411,35 +1442,175 @@ function renderResult(data) {
       if($('res-month-body')) $('res-month-body').innerHTML = formattedHtml;
   }
 
-  // --- D. 绘制雷达图 ---
-  const ctx = $('radarChart').getContext('2d');
-  if(myChart) myChart.destroy();
-  const style = getComputedStyle(document.body);
-  const brandColor = style.getPropertyValue('--brand').trim() || '#2563eb';
+  // // --- D. 绘制雷达图 ---
+  // const ctx = $('radarChart').getContext('2d');
+  // if(myChart) myChart.destroy();
+  // const style = getComputedStyle(document.body);
+  // const brandColor = style.getPropertyValue('--brand').trim() || '#2563eb';
 
-  myChart = new Chart(ctx, {
-    type: 'radar',
-    data: {
-      labels: ['认知成熟度', '自洽度', '执行力', '抗压能力', '精力余量', '状态指数'],
-      datasets: [{
-        label: '当前状态',
-        data: data.chart_data,
-        backgroundColor: 'rgba(37, 99, 235, 0.2)',
-        borderColor: brandColor,
-        borderWidth: 2,
-        pointBackgroundColor: '#fff',
-        pointBorderColor: brandColor,
-      }]
+  // myChart = new Chart(ctx, {
+  //   type: 'radar',
+  //   data: {
+  //     labels: ['认知成熟度', '自洽度', '执行力', '抗压能力', '精力余量', '状态指数'],
+  //     datasets: [{
+  //       label: '当前状态',
+  //       data: data.chart_data,
+  //       backgroundColor: 'rgba(37, 99, 235, 0.2)',
+  //       borderColor: brandColor,
+  //       borderWidth: 2,
+  //       pointBackgroundColor: '#fff',
+  //       pointBorderColor: brandColor,
+  //     }]
+  //   },
+  //   options: {
+  //     responsive: true,
+  //     maintainAspectRatio: false,
+  //     scales: {
+  //       r: { min: 0, max: 100, ticks: { display: false }, grid: { color: '#f1f5f9', circular: true }, pointLabels: { font: { size: 12, family:'Inter' }, color: '#64748b' } }
+  //     },
+  //     plugins: { legend: { display: false } }
+  //   }
+  // });
+
+// --- D. 绘制雷达图 ---
+const ctx = $('radarChart').getContext('2d');
+if (myChart) myChart.destroy();
+
+const style = getComputedStyle(document.body);
+const brandColor = style.getPropertyValue('--brand').trim() || '#2563eb';
+
+// ✅ 自定义插件：在每个点旁边画数值标签（不依赖额外库）
+const valueLabelPlugin = {
+  id: 'valueLabelPlugin',
+  afterDatasetsDraw(chart, args, pluginOptions) {
+    const { ctx } = chart;
+    const meta = chart.getDatasetMeta(0);
+    const dataset = chart.data.datasets[0];
+    if (!meta || !dataset) return;
+
+    const fontSize = (pluginOptions && pluginOptions.fontSize) || 12;
+    const offset = (pluginOptions && pluginOptions.offset) || 10;
+
+    ctx.save();
+    ctx.font = `${fontSize}px Inter, system-ui, -apple-system, sans-serif`;
+    ctx.fillStyle = (pluginOptions && pluginOptions.color) || '#0f172a';
+
+    meta.data.forEach((pt, i) => {
+      const v = dataset.data[i];
+      if (v == null) return;
+
+      const pos = pt.getCenterPoint();
+
+      // 让数字稍微“向外”偏移：从图中心指向点位方向
+      const cx = chart.chartArea.left + chart.chartArea.width / 2;
+      const cy = chart.chartArea.top + chart.chartArea.height / 2;
+      const dx = pos.x - cx;
+      const dy = pos.y - cy;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const ux = dx / len;
+      const uy = dy / len;
+
+      const x = pos.x + ux * offset;
+      const y = pos.y + uy * offset;
+
+      // 画一个浅色“底”，提高可读性
+      const text = String(Math.round(v));
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      if ((pluginOptions && pluginOptions.background) !== false) {
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        const padX = 6, padY = 4;
+        const w = ctx.measureText(text).width + padX * 2;
+        const h = fontSize + padY * 2;
+        ctx.beginPath();
+        const r = 10;
+        // 圆角矩形
+        ctx.moveTo(x - w/2 + r, y - h/2);
+        ctx.arcTo(x + w/2, y - h/2, x + w/2, y + h/2, r);
+        ctx.arcTo(x + w/2, y + h/2, x - w/2, y + h/2, r);
+        ctx.arcTo(x - w/2, y + h/2, x - w/2, y - h/2, r);
+        ctx.arcTo(x - w/2, y - h/2, x + w/2, y - h/2, r);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.fillStyle = (pluginOptions && pluginOptions.color) || '#0f172a';
+      ctx.fillText(text, x, y);
+    });
+
+    ctx.restore();
+  }
+};
+
+myChart = new Chart(ctx, {
+  type: 'radar',
+  data: {
+    labels: ['认知成熟度', '自洽度', '执行力', '抗压能力', '精力余量', '状态指数'],
+    datasets: [{
+      label: '当前状态',
+      data: data.chart_data,
+      backgroundColor: 'rgba(37, 99, 235, 0.12)',
+      borderColor: brandColor,
+      borderWidth: 2,
+      pointBackgroundColor: '#fff',
+      pointBorderColor: brandColor,
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      tension: 0.2, // 线条稍柔和（Chart.js 3 radar 支持）
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 10, right: 16, bottom: 10, left: 16 } },
+    scales: {
+      r: {
+        min: 0,
+        max: 100,
+        beginAtZero: true,
+
+        // ✅ 显示刻度（你现在隐藏了，所以难读）
+        ticks: {
+          display: true,
+          stepSize: 20,
+          color: '#94a3b8',
+          backdropColor: 'rgba(255,255,255,0.7)',
+          z: 1,
+          font: { size: 11, family: 'Inter' }
+        },
+
+        grid: { color: '#e2e8f0', circular: true },
+        angleLines: { color: '#e2e8f0' },
+
+        pointLabels: {
+          font: { size: 12, family: 'Inter' },
+          color: '#64748b',
+          padding: 6
+        }
+      }
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        r: { min: 0, max: 100, ticks: { display: false }, grid: { color: '#f1f5f9', circular: true }, pointLabels: { font: { size: 12, family:'Inter' }, color: '#64748b' } }
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        enabled: true,
+        callbacks: {
+          label: (ctx) => `${ctx.label}: ${Math.round(ctx.parsed.r)}`
+        }
       },
-      plugins: { legend: { display: false } }
+
+      // ✅ 传给自定义插件的参数
+      valueLabelPlugin: {
+        fontSize: 12,
+        offset: 12,
+        color: '#0f172a',
+        background: true
+      }
     }
-  });
+  },
+  plugins: [valueLabelPlugin] // ✅ 挂载插件
+});
 const rid = localStorage.getItem('last_test_record_id');
 const paidLocal = rid && localStorage.getItem('paid_record_' + rid) === '1';
 applyPaywall(paidLocal ? false : true);
