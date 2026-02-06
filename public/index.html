@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" 
-  <meta name="baidu-site-verification" content="codeva-K0IrhoiHP0" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>MBTI 心理状态罗盘</title>
 
@@ -954,89 +953,122 @@ document.addEventListener('visibilitychange', () => {
 
 
 // ==========================================
-// 流量监控模块 (修复 ACL 权限版)
-// ==========================================
-const Analytics = {
-    getDateStr: function() {
-        const d = new Date();
-        const year = d.getFullYear();
-        const month = ('0' + (d.getMonth() + 1)).slice(-2);
-        const day = ('0' + d.getDate()).slice(-2);
-        return `${year}-${month}-${day}`;
-    },
+    // 流量监控模块 (完整升级版)
+    // ==========================================
+    const Analytics = {
+        // 获取今天的日期字符串，例如 "2024-05-20"
+        getDateStr: function() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = ('0' + (d.getMonth() + 1)).slice(-2);
+            const day = ('0' + d.getDate()).slice(-2);
+            return `${year}-${month}-${day}`;
+        },
 
-    trackVisit: function() {
-        const dateStr = this.getDateStr();
-        const storageKey = 'visited_' + dateStr;
-        
-        // 🚨 调试期间：建议先注释掉下面这行，方便你反复刷新测试
-        // if (localStorage.getItem(storageKey)) return; 
+        // 1. 基础全站统计 (存 DailyStats 表)
+        trackVisit: function() {
+            const dateStr = this.getDateStr();
+            const storageKey = 'visited_' + dateStr;
+            const isUniqueVisitor = !localStorage.getItem(storageKey);
 
-        // 标记：是否是纯新访客（用于UV计算）
-        const isUniqueVisitor = !localStorage.getItem(storageKey);
-
-        const query = new AV.Query('DailyStats');
-        query.equalTo('dateStr', dateStr);
-        
-        query.first().then((stat) => {
-            if (stat) {
-                console.log('🔄 找到记录，正在更新...');
-                stat.increment('pv', 1);
-                if (isUniqueVisitor) {
-                    stat.increment('uv', 1);
+            const query = new AV.Query('DailyStats');
+            query.equalTo('dateStr', dateStr);
+            
+            query.first().then((stat) => {
+                if (stat) {
+                    stat.increment('pv', 1);
+                    if (isUniqueVisitor) stat.increment('uv', 1);
+                    stat.save().then(() => {
+                        if (isUniqueVisitor) localStorage.setItem(storageKey, '1');
+                    });
+                } else {
+                    const DailyStats = AV.Object.extend('DailyStats');
+                    const newStat = new DailyStats();
+                    // 设置公开读写权限
+                    const acl = new AV.ACL();
+                    acl.setPublicReadAccess(true);
+                    acl.setPublicWriteAccess(true);
+                    newStat.setACL(acl);
+                    
+                    newStat.set('dateStr', dateStr);
+                    newStat.set('pv', 1);
+                    newStat.set('uv', 1);
+                    newStat.set('completed', 0); // 总完成数
+                    newStat.save().then(() => {
+                        localStorage.setItem(storageKey, '1');
+                    });
                 }
-                stat.save().then(() => {
-                    console.log('✅ PV/UV 更新成功');
-                    // 只有成功更新后，才写入本地缓存
-                    if (isUniqueVisitor) localStorage.setItem(storageKey, '1');
-                }).catch(e => console.error('❌ 更新失败:', e));
+            });
+        },
 
-            } else {
-                console.log('🆕 今日无记录，正在初始化...');
-                const DailyStats = AV.Object.extend('DailyStats');
-                const newStat = new DailyStats();
-                
-                // =================================================
-                // 🔥 核心修复：设置 ACL 为“完全公开”
-                // =================================================
-                const acl = new AV.ACL();
-                acl.setPublicReadAccess(true);  // 所有人可读
-                acl.setPublicWriteAccess(true); // 所有人可写 (解决 403 关键!)
-                newStat.setACL(acl);
-                // =================================================
+        // 2. 核心功能：分 MBTI 类型统计 (存 DailyTypeStats 表)
+        // 参数 type: "INTJ", "ESFP" 等
+        // 参数 action: "start" (开始) 或 "complete" (完成)
+        trackTypeFlow: function(type, action) {
+            if (!type) return; // 如果没有类型就不记
+            console.log(`📊 正在记录: ${type} - ${action}`);
 
-                newStat.set('dateStr', dateStr);
-                newStat.set('pv', 1);
-                newStat.set('uv', 1);
-                newStat.set('completed', 0); // 别忘了初始化这个字段
-                
-                newStat.save().then(() => {
-                    console.log('✅ 初始化并设置 ACL 成功');
-                    localStorage.setItem(storageKey, '1');
-                }).catch(e => console.error('❌ 初始化失败:', e));
-            }
-        });
-    },
+            const dateStr = this.getDateStr();
+            
+            // 组合查询：找 今天 + 这个类型 的记录
+            const query = new AV.Query('DailyTypeStats');
+            query.equalTo('dateStr', dateStr);
+            query.equalTo('type', type);
 
-    trackCompletion: function() {
-        const dateStr = this.getDateStr();
-        const query = new AV.Query('DailyStats');
-        query.equalTo('dateStr', dateStr);
+            query.first().then((stat) => {
+                if (stat) {
+                    // A. 如果记录已存在，直接加 1
+                    if (action === 'start') {
+                        stat.increment('starts', 1);
+                    } else if (action === 'complete') {
+                        stat.increment('completes', 1);
+                    }
+                    stat.save();
+                } else {
+                    // B. 如果今天这个类型还没人测过，新建一条
+                    const TypeStat = AV.Object.extend('DailyTypeStats');
+                    const newStat = new TypeStat();
+                    
+                    // 必须设置权限，否则第一次创建会失败
+                    const acl = new AV.ACL();
+                    acl.setPublicReadAccess(true);
+                    acl.setPublicWriteAccess(true);
+                    newStat.setACL(acl);
 
-        query.first().then((stat) => {
-            if (stat) {
-                stat.increment('completed', 1);
-                stat.save().then(() => console.log('✅ 转化数据记录成功'));
-            }
-        }); // 这里不需要 else，因为 trackVisit 肯定先执行了
-    }
-};
+                    newStat.set('dateStr', dateStr);
+                    newStat.set('type', type);
+                    
+                    if (action === 'start') {
+                        newStat.set('starts', 1);
+                        newStat.set('completes', 0);
+                    } else {
+                        newStat.set('starts', 0);
+                        newStat.set('completes', 1);
+                    }
+                    
+                    newStat.save().catch(e => console.error("统计保存失败:", e));
+                }
+            });
+        },
 
-
-
+        // 3. 全站完成数统计 (这是你原来的逻辑，保留它用于 DailyStats)
+        trackGlobalCompletion: function() {
+            const dateStr = this.getDateStr();
+            const query = new AV.Query('DailyStats');
+            query.equalTo('dateStr', dateStr);
+            query.first().then((stat) => {
+                if (stat) {
+                    stat.increment('completed', 1);
+                    stat.save();
+                }
+            });
+        }
+    };
 
 // 启动监控
 Analytics.trackVisit();
+
+
       // === 智能后端地址配置 ===
   const getApiUrl = () => {
       const hostname = window.location.hostname;
@@ -1060,9 +1092,12 @@ Analytics.trackVisit();
     // 选择类型入口
 // ==========================================
 
-    function selectType(type) {
+function selectType(type) {
       currentType = type;
       $('current-type-label').textContent = type;
+
+      // 🔥 新增：记录这个类型“开始答题”了 (DailyTypeStats 表 starts +1)
+      Analytics.trackTypeFlow(type, 'start');
       
       // UI 切换
       $('landing-page').style.display = 'none';
@@ -1411,7 +1446,7 @@ function renderResult(data) {
     if (inMid(data.loop) && inMid(data.grip)) {
       tipEl.style.display = 'block';
       tipEl.textContent =
-        '当前状态：内耗/压力可控（中等波动）。这表示你在正常负荷区间，适度紧张有助于效率；若某一项达到高，再优先处理压力/内耗即可。';
+        '当前状态：压力可控（中等波动）。这表示你在正常负荷区间，适度紧张有助于效率；若持续升高到 60+，再优先处理压力/内耗即可。';
     } else {
       tipEl.style.display = 'none';
       tipEl.textContent = '';
@@ -1576,106 +1611,115 @@ function cacheResult(data) {
     // 绑定提交事件
 // === 找到你的 form 提交监听部分，用这段完全替换 ===
 $('quiz-form').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const answers = {};
-  let firstUnanswered = null;
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const answers = {};
+      let firstUnanswered = null;
 
-  if (typeof currentQuestions !== 'undefined') {
-    for (let q of currentQuestions) {
-      const val = formData.get(`q${q.id}`);
-      if (!val) {
-        if (!firstUnanswered) firstUnanswered = q.id;
-      } else {
-        answers[q.id] = parseInt(val);
-      }
-    }
-  }
-
-  if (firstUnanswered) {
-    if(typeof toast === 'function') toast("请完成所有题目");
-    const card = document.querySelector(`.card[data-qid="${firstUnanswered}"]`);
-    if(card) card.scrollIntoView({block:'center',behavior:'smooth'});
-    return;
-  }
-
-  if(typeof setLoading === 'function') setLoading(true);
-
-  // 1. 发送请求给 Python
-  const payload = { mbti: currentType, answers: answers };
-
-  fetch(API_BASE ? `${API_BASE}/api/submit` : '/api/submit', { 
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  })
-  .then(response => {
-    if (!response.ok) return response.json().then(err => { throw new Error(err.detail || '后端验证失败') });
-    return response.json();
-  })
-  .then(res => { 
-    // 2. 拿到数据，先渲染界面 (Render)
-    renderResult(res); 
-
-    // 3. 保存到 LeanCloud 数据库 (Database)
-    setTimeout(() => {
-        if(typeof setLoading === 'function') setLoading(false);
-        try {
-            console.log("正在保存数据...");
-            const TestRecord = AV.Object.extend('TestRecord');
-            const record = new TestRecord();
-
-            // A. 时长
-            const endTime = Date.now();
-            const startTime = window.testStartTime || endTime; 
-            const duration = Math.round((endTime - startTime) / 1000);
-            record.set('duration_seconds', duration);
-
-            // B. 用户选项 (Q1: 5, Q2: 3 ...)
-            const choicesForDb = {};
-            Object.keys(answers).forEach(key => { choicesForDb['Q' + key] = answers[key]; });
-            record.set('user_choices', choicesForDb);
-
-            // C. 基础分
-            record.set('mbti_type', res.mbti_type || currentType);
-            record.set('device', navigator.userAgent);
-            record.set('score_maturity', res.maturity); 
-            record.set('score_loop', res.loop);
-            record.set('score_grip', res.grip);
-            record.set('score_load', res.load);
-            record.set('score_overall', res.overall);
-            record.set('score_coherence', res.coherence);
-            record.set('is_paid', false);
-            record.set('id_paid', false); 
-            // D. 文本字段 (🔥这里直接用数据生成，不再抓取 DOM，防止抓空)
-            // status_tag: "高压"
-            // result_text: "高压 · 26/100"
-            const statusTag = res.pill_text; // Python返回的短语
-            const fullResultText = `${res.pill_text} · ${res.overall}/100`;
-            
-            record.set('status_tag', statusTag);
-            record.set('result_text', fullResultText);
-            
-            record.save().then((saved) => {
-                localStorage.setItem('last_test_record_id', saved.id); // ✅ 关联支付用
-                localStorage.setItem('last_mbti_type', res.mbti_type || currentType); // 可选
-                Analytics.trackCompletion();
-            });
-        } catch (error) {
-            console.error('数据库保存出错:', error);
+      if (typeof currentQuestions !== 'undefined') {
+        for (let q of currentQuestions) {
+          const val = formData.get(`q${q.id}`);
+          if (!val) {
+            if (!firstUnanswered) firstUnanswered = q.id;
+          } else {
+            answers[q.id] = parseInt(val);
+          }
         }
-    }, 500);
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    if(typeof setLoading === 'function') setLoading(false);
-    alert("提交失败: " + error.message);
-  });
-});
+      }
+
+      if (firstUnanswered) {
+        if(typeof toast === 'function') toast("请完成所有题目");
+        const card = document.querySelector(`.card[data-qid="${firstUnanswered}"]`);
+        if(card) card.scrollIntoView({block:'center',behavior:'smooth'});
+        return;
+      }
+
+      if(typeof setLoading === 'function') setLoading(true);
+
+      // 1. 发送请求给 Python
+      const payload = { mbti: currentType, answers: answers };
+
+      fetch(API_BASE ? `${API_BASE}/api/submit` : '/api/submit', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(response => {
+        if (!response.ok) return response.json().then(err => { throw new Error(err.detail || '后端验证失败') });
+        return response.json();
+      })
+      .then(res => { 
+        // 2. 拿到数据，先渲染界面 (Render)
+        renderResult(res); 
+
+        // 🔥 新增：记录统计数据
+        // 2.1 记录该类型“完成了” (DailyTypeStats 表 completes +1)
+        Analytics.trackTypeFlow(currentType, 'complete');
+        // 2.2 记录全站“完成了” (DailyStats 表 completed +1)
+        Analytics.trackGlobalCompletion();
+
+        // 3. 保存详细结果到 TestRecord 表
+        setTimeout(() => {
+            if(typeof setLoading === 'function') setLoading(false);
+            try {
+                console.log("正在保存数据...");
+                const TestRecord = AV.Object.extend('TestRecord');
+                const record = new TestRecord();
+
+                // A. 时长
+                const endTime = Date.now();
+                const startTime = window.testStartTime || endTime; 
+                const duration = Math.round((endTime - startTime) / 1000);
+                record.set('duration_seconds', duration);
+
+                // B. 用户选项
+                const choicesForDb = {};
+                Object.keys(answers).forEach(key => { choicesForDb['Q' + key] = answers[key]; });
+                record.set('user_choices', choicesForDb);
+
+                // C. 基础分
+                record.set('mbti_type', res.mbti_type || currentType);
+                record.set('device', navigator.userAgent);
+                record.set('score_maturity', res.maturity); 
+                record.set('score_loop', res.loop);
+                record.set('score_grip', res.grip);
+                record.set('score_load', res.load);
+                record.set('score_overall', res.overall);
+                record.set('score_coherence', res.coherence);
+                
+                // D. 文本字段
+                const statusTag = res.pill_text; 
+                const fullResultText = `${res.pill_text} · ${res.overall}/100`;
+                
+                record.set('status_tag', statusTag);
+                record.set('result_text', fullResultText);
+                
+                record.save().then((saved) => {
+                    localStorage.setItem('last_test_record_id', saved.id); 
+                    localStorage.setItem('last_mbti_type', res.mbti_type || currentType);
+                    // 这里原本调用 trackCompletion，现在上面已经调过了，这里不需要再调
+                });
+            } catch (error) {
+                console.error('数据库保存出错:', error);
+            }
+        }, 500);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        if(typeof setLoading === 'function') setLoading(false);
+        alert("提交失败: " + error.message);
+      });
+    });
 
 function isMobile() {
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const ua = navigator.userAgent || '';
+
+  return (
+    /Android|iPhone|iPad|iPod|HarmonyOS|HUAWEI|Huawei/i.test(ua)
+    || (navigator.maxTouchPoints && navigator.maxTouchPoints > 1)
+  );
 }
+
 
 function showQrModal(data, channel) {
   const title = channel === 'alipay' ? '请使用支付宝扫码支付' : '请使用微信扫码支付';
