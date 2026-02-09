@@ -1686,7 +1686,9 @@ $('quiz-form').addEventListener('submit', (e) => {
                 record.set('score_load', res.load);
                 record.set('score_overall', res.overall);
                 record.set('score_coherence', res.coherence);
-                
+
+                record.set('is_paid', false);
+                record.set('id_paid', false);  // 你提到的另一个字段，也一起初始化
                 // D. 文本字段
                 const statusTag = res.pill_text; 
                 const fullResultText = `${res.pill_text} · ${res.overall}/100`;
