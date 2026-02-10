@@ -1400,32 +1400,32 @@ function renderResult(data) {
   updateField('v-maturity', mTxt, mDesc, mClass);
 
   // 2. Loop
-  let lClass = data.loop < 35 ? "color-healthy" : (data.loop < 60 ? "color-warn" : "color-bad");
-  let lTxt = data.loop < 35 ? "低" : (data.loop < 60 ? "中" : "高");
-  let lDesc = data.loop < 35 ? "与自己和解，无明显内耗" : (data.loop < 60 ? "偶有精神反刍" : "自我攻击严重");
+  let lClass = data.loop < 35 ? "color-healthy" : (data.loop < 55 ? "color-warn" : "color-bad");
+  let lTxt = data.loop < 35 ? "低" : (data.loop < 55 ? "中" : "高");
+  let lDesc = data.loop < 35 ? "与自己和解，无明显内耗" : (data.loop < 55 ? "偶有精神反刍" : "自我攻击严重");
   updateField('v-loop', lTxt, lDesc, lClass);
 
   // 3. Grip
-  let gClass = data.grip < 35 ? "color-healthy" : (data.grip < 60 ? "color-warn" : "color-bad");
-  let gTxt = data.grip < 35 ? "低" : (data.grip < 60 ? "中" : "高");
-  let gDesc = data.grip < 35 ? "情绪稳定" : (data.grip < 60 ? "压力下偶有爆发" : "处在高压边缘");
+  let gClass = data.grip < 35 ? "color-healthy" : (data.grip < 55 ? "color-warn" : "color-bad");
+  let gTxt = data.grip < 35 ? "低" : (data.grip < 55 ? "中" : "高");
+  let gDesc = data.grip < 35 ? "情绪稳定" : (data.grip < 55 ? "压力下偶有爆发" : "处在高压边缘");
   updateField('v-grip', gTxt, gDesc, gClass);
 
   // 4. Load
-  let ldClass = data.load < 35 ? "color-healthy" : (data.load < 60 ? "color-warn" : "color-bad");
-  let ldTxt = data.load < 35 ? "轻" : (data.load < 60 ? "中" : "重");
-  let ldDesc = data.load < 35 ? "余量充足" : (data.load < 60 ? "强度适中" : "急需减负恢复");
+  let ldClass = data.load < 35 ? "color-healthy" : (data.load < 55 ? "color-warn" : "color-bad");
+  let ldTxt = data.load < 35 ? "轻" : (data.load < 55 ? "中" : "重");
+  let ldDesc = data.load < 35 ? "余量充足" : (data.load < 55 ? "强度适中" : "急需减负恢复");
   updateField('v-load', ldTxt, ldDesc, ldClass);
 
   // 5. 自洽度
-  let cClass = data.coherence >= 60 ? "color-high" : (data.coherence >= 35 ? "color-mid" : "color-warn");
-  let cTxt = data.coherence >= 60 ? "高" : (data.coherence >= 35 ? "中" : "低");
-  let cDesc = data.coherence >= 60 ? "内在逻辑清晰" : (data.coherence >= 35 ? "可自我校准" : "近期摇摆较多");
+  let cClass = data.coherence >= 60 ? "color-high" : (data.coherence >= 34 ? "color-mid" : "color-warn");
+  let cTxt = data.coherence >= 60 ? "高" : (data.coherence >= 34 ? "中" : "低");
+  let cDesc = data.coherence >= 60 ? "内在逻辑清晰" : (data.coherence >= 34 ? "可自我校准" : "近期摇摆较多");
   updateField('v-coherence', cTxt, cDesc, cClass);
 
   // 6. 状态指数 (这里恢复你要的格式！)
   // 逻辑：只要状态词(pill_text)和分数
-  let oClass = data.overall >= 75 ? "color-high" : (data.overall >= 55 ? "color-healthy" : (data.overall >= 35 ? "color-warn" : "color-bad"));
+  let oClass = data.overall >= 80 ? "color-high" : (data.overall >= 60 ? "color-healthy" : (data.overall >= 40 ? "color-warn" : "color-bad"));
   
   // 🔥【关键修复】恢复显示格式为：高压 · 26/100
   const finalStatusText = `${data.pill_text} · ${data.overall}/100`;
@@ -1438,7 +1438,7 @@ function renderResult(data) {
   const tipEl = document.getElementById('mid-tip');
   if (tipEl) {
     const MID_LOW = 35;
-    const MID_HIGH = 60;
+    const MID_HIGH = 55;
     const inMid = (v) => typeof v === 'number' && v >= MID_LOW && v < MID_HIGH;
 
     // 这里用你的两项：Loop(内耗) 和 Grip(压力反应)
@@ -1446,7 +1446,7 @@ function renderResult(data) {
     if (inMid(data.loop) && inMid(data.grip)) {
       tipEl.style.display = 'block';
       tipEl.textContent =
-        '当前状态：压力可控（中等波动）。这表示你在正常负荷区间，适度紧张有助于效率；若持续升高到 60+，再优先处理压力/内耗即可。';
+        '当前状态：压力可控（中等波动）。这表示你在正常负荷区间，适度紧张有助于效率；若Loop/Grip达到高，再优先处理压力/内耗即可。';
     } else {
       tipEl.style.display = 'none';
       tipEl.textContent = '';
