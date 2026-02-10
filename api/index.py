@@ -2540,13 +2540,13 @@ def submit_answers(req: SubmitRequest):
     state_key = "mixed"
 
     # 对应 advice_key 的 "crisis"
-    if res_l >= 60 and res_g >= 60:
+    if res_l >= 55 and res_g >= 55:
         state_key = "crisis"
     # 对应 advice_key 的 "grip" (注意这里原本叫 overload)
-    elif res_g >= 60:
+    elif res_g >= 55:
         state_key = "overload"
     # 对应 advice_key 的 "loop" (注意这里原本叫 highLoop)
-    elif res_l >= 60:
+    elif res_l >= 55:
         state_key = "highLoop"
     else:
         state_key = "stable"
@@ -2556,8 +2556,8 @@ def submit_answers(req: SubmitRequest):
     content = narrative_pack.get(state_key, narrative_pack.get("overload", DEFAULT_NARRATIVE["overload"]))
 
     # 未来建议
-    CRISIS_THRESHOLD = 60  # 两个都高于此值算危机
-    HIGH_THRESHOLD = 60  # 单个高于此值算高
+    CRISIS_THRESHOLD = 55  # 两个都高于此值算危机
+    HIGH_THRESHOLD = 55  # 单个高于此值算高
 
     advice_key = "growth"  # 默认为成长
 
@@ -2581,12 +2581,12 @@ def submit_answers(req: SubmitRequest):
     final_advice = type_advice[advice_key]
 
     pill_text = "正常"
-    if res_overall >= 75:
+    if res_overall >= 80:
         pill_text = "充盈"
-    elif res_overall >= 55:
+    elif res_overall >= 60:
         pill_text = "平稳"
-    elif res_overall >= 35:
-        pill_text = "偏疲"
+    elif res_overall >= 40:
+        pill_text = "耗竭"
     else:
         pill_text = "高压"
 
@@ -2835,4 +2835,3 @@ async def zpay_notify(request: Request):
         return PlainTextResponse("success")
 
     return PlainTextResponse("ignored")
-
