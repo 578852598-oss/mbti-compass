@@ -3527,7 +3527,7 @@ RELATIONSHIP_DATA = {
             "enemy_desc": "在你最脆弱的时候跟你讲效率和KPI（Te），简直是火上浇油。"
         },
         "crisis": {
-            "cp_name": "ISFJ",
+            "cp_name": "INFJ/ISFJ",
             "cp_desc": "你需要无微不至的物理照顾（投喂、强制休息），别说话，照顾就好。",
             "enemy_name": "ENTJ",
             "enemy_desc": "这时候的强势压迫会让你彻底断电（Te），甚至对人类产生敌意。"
