@@ -677,6 +677,42 @@
   font-size: 13px;
   line-height: 1.5;
 }
+.g-content.blur-content::after {
+  content: '🔒';
+  font-size: 12px;
+  margin-left: 5px;
+  opacity: 0.8;
+  filter: none; /* 锁图标不要模糊 */
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* 确保模糊效果够强 */
+.g-content.blur-content {
+    filter: blur(5px); /* 高斯模糊 */
+    user-select: none; /* 禁止选中复制 */
+    pointer-events: none;
+}
+.g-content {
+  transition: all 0.3s ease;
+}
+
+/* 锁定时的样式 */
+.g-content.blur-content {
+  filter: blur(5px);
+  user-select: none;
+}
+
+/* 锁定时，在模糊文字后面加个小锁图标 */
+.g-content.blur-content::after {
+  content: '🔒';
+  font-size: 14px;
+  margin-left: 8px;
+  filter: none; /* 图标不模糊 */
+  opacity: 0.8;
+  display: inline-block;
+  vertical-align: middle;
+}
   </style>
 </head>
 
@@ -690,7 +726,7 @@
       </div>
       
       <div class="status-capsule" id="status-bar">
-        正在分析 <span id="current-type-label">INTP</span>
+        正在分析 <span id="current-type-label">----</span>
         <button class="btn-change" onclick="resetApp()">切换</button>
       </div>
     </div>
@@ -816,10 +852,14 @@
                         <!-- Paywall Overlay：覆盖层（不新增内容区块，只是遮罩） -->
         <div id="pay-overlay" class="pay-overlay" style="display:none;">
           <div class="price-box">
-            <div class="price-original">原价 ¥29.9</div>
+            <div class="price-original">原价 ¥29.9元</div>
             <div>
-              <span class="price-current">限时早鸟价 ¥9.9</span>
+              <span class="price-current">限时早鸟价 ¥9.9元</span>
             </div>
+          </div>
+
+          <div id="premium-feature-tip" style="display:none; background:#f0f9ff; border:1px solid #bae6fd; color:#0369a1; padding:8px 12px; border-radius:8px; font-size:13px; margin:10px 0; max-width:90%;">
+             完整报告4000+字，包含了你为什么会这样，具体的原因以及接下来该怎么调整。
           </div>
 
           <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 15px 0;">
@@ -1301,64 +1341,142 @@ function renderQuestions() {
 // ===============================
 // Paywall：对现有内容做模糊/取消模糊
 // ===============================
+// function applyPaywall(locked) {
+//   const result = document.getElementById('result');
+//   const overlay = document.getElementById('pay-overlay');
+
+//   // 从“核心洞察”这一块开始算遮罩位置
+//   const insightP = document.getElementById('res-insight');
+//   const anchorSection = insightP ? insightP.closest('.section') : null;
+
+//   // === 需要模糊的正文（标题不动） ===
+//   const blurTargets = [
+//     document.getElementById('res-insight'),
+//     document.getElementById('res-advice'),
+
+//     // 2）最匹配人格 & 回避人格：隐藏人格类型 + 描述（保留右侧标签标题）
+//     document.getElementById('cp-name'),
+//     document.getElementById('cp-desc'),
+//     document.getElementById('enemy-name'),
+//     document.getElementById('enemy-desc'),
+//   ].filter(Boolean);
+
+//   const guideTexts = document.querySelectorAll('#res-month-body .guide-text');
+//   const guideTitlesContent = document.querySelectorAll('#res-month-body .g-content'); //  新增：只选中标题后半段
+
+  // if (locked) {
+  //   // 1) 模糊这些正文
+  //   blurTargets.forEach(el => el.classList.add('blur-content'));
+
+  //   // 3) 未来30天指南：只模糊正文 .guide-text，保留蓝色小标题 .guide-sub-title
+  //   document.querySelectorAll('#res-month-body .guide-text').forEach(el => {
+  //     el.classList.add('blur-content');
+  //   });
+  //   document.querySelectorAll('#res-month-body .guide-sub-title').forEach(el => {
+  //     el.classList.remove('blur-content');
+  //     el.style.filter = 'none';
+  //     el.style.opacity = '1';
+  //     el.style.pointerEvents = 'auto';
+  //   });
+
+  //   // 2) 遮罩只盖住“核心洞察”往下
+  //   if (overlay && result && anchorSection) {
+  //     overlay.style.display = 'flex';
+
+  //     // 让遮罩在 #result 内绝对定位，并从 anchorSection 开始盖
+  //     const top = anchorSection.offsetTop;
+  //     overlay.style.top = top + 'px';
+  //     overlay.style.left = '0';
+  //     overlay.style.right = '0';
+  //     overlay.style.bottom = 'auto';
+  //     overlay.style.height = (result.scrollHeight - top) + 'px';
+  //     overlay.style.position = 'absolute';
+  //   }
+  // } else {
+  //   blurTargets.forEach(el => el.classList.remove('blur-content'));
+  //   document.querySelectorAll('#res-month-body .guide-text').forEach(el => {
+  //     el.classList.remove('blur-content');
+  //   });
+
+  //   if (overlay) overlay.style.display = 'none';
+  // }
+// }
+// ===============================
+// Paywall：对现有内容做模糊/取消模糊
+// ===============================
 function applyPaywall(locked) {
   const result = document.getElementById('result');
   const overlay = document.getElementById('pay-overlay');
-
-  // 从“核心洞察”这一块开始算遮罩位置
+  
+  // 1. 核心洞察定位点
   const insightP = document.getElementById('res-insight');
   const anchorSection = insightP ? insightP.closest('.section') : null;
 
-  // === 需要模糊的正文（标题不动） ===
-  const blurTargets = [
+  // 2. 定义基础模糊对象 (提前定义，防止报错)
+  const basicBlurTargets = [
     document.getElementById('res-insight'),
     document.getElementById('res-advice'),
-
-    // 2）最匹配人格 & 回避人格：隐藏人格类型 + 描述（保留右侧标签标题）
     document.getElementById('cp-name'),
     document.getElementById('cp-desc'),
     document.getElementById('enemy-name'),
     document.getElementById('enemy-desc'),
   ].filter(Boolean);
 
-  if (locked) {
-    // 1) 模糊这些正文
-    blurTargets.forEach(el => el.classList.add('blur-content'));
+  // 3. 定义指南里的模糊对象
+  const guideTexts = document.querySelectorAll('#res-month-body .guide-text');
+  const guideTitlesContent = document.querySelectorAll('#res-month-body .g-content'); // 标题冒号后的内容
 
-    // 3) 未来30天指南：只模糊正文 .guide-text，保留蓝色小标题 .guide-sub-title
-    document.querySelectorAll('#res-month-body .guide-text').forEach(el => {
-      el.classList.add('blur-content');
+  if (locked) {
+    // === 锁定状态 ===
+
+    // A. 模糊基础内容
+    basicBlurTargets.forEach(el => el.classList.add('blur-content'));
+
+    // B. 模糊指南正文
+    guideTexts.forEach(el => el.classList.add('blur-content'));
+
+    // C. 🔥 模糊标题后半段 (并加点透明度)
+    guideTitlesContent.forEach(el => {
+        el.classList.add('blur-content');
+        el.style.opacity = '0.5'; 
     });
+
+    // D. 确保小标题容器本身不模糊 (保持原逻辑)
     document.querySelectorAll('#res-month-body .guide-sub-title').forEach(el => {
       el.classList.remove('blur-content');
-      el.style.filter = 'none';
       el.style.opacity = '1';
-      el.style.pointerEvents = 'auto';
     });
 
-    // 2) 遮罩只盖住“核心洞察”往下
+    // E. 遮罩定位 (完全保留你原版的逻辑)
     if (overlay && result && anchorSection) {
       overlay.style.display = 'flex';
 
-      // 让遮罩在 #result 内绝对定位，并从 anchorSection 开始盖
       const top = anchorSection.offsetTop;
       overlay.style.top = top + 'px';
       overlay.style.left = '0';
       overlay.style.right = '0';
       overlay.style.bottom = 'auto';
-      overlay.style.height = (result.scrollHeight - top) + 'px';
+      // 稍微加高一点，确保盖住底部
+      overlay.style.height = (result.scrollHeight - top + 50) + 'px';
       overlay.style.position = 'absolute';
     }
+
   } else {
-    blurTargets.forEach(el => el.classList.remove('blur-content'));
-    document.querySelectorAll('#res-month-body .guide-text').forEach(el => {
-      el.classList.remove('blur-content');
+    // === 解锁状态 ===
+
+    // 移除所有模糊
+    basicBlurTargets.forEach(el => el.classList.remove('blur-content'));
+    guideTexts.forEach(el => el.classList.remove('blur-content'));
+    
+    // 🔥 移除标题后半段的模糊
+    guideTitlesContent.forEach(el => {
+        el.classList.remove('blur-content');
+        el.style.opacity = '1';
     });
 
     if (overlay) overlay.style.display = 'none';
   }
 }
-
 
 
 function renderResult(data) {
@@ -1466,47 +1584,59 @@ function renderResult(data) {
   if (guideContainer && data.month_text) {
       guideContainer.style.display = 'block';
       if($('res-month-title')) $('res-month-title').textContent = data.month_title;
-      let rawText = (data.month_text || "").trim();
+      // let rawText = (data.month_text || "").trim();
+      // // rawText = rawText.replace(/\n\s*【/g, '【').replace(/】\s*\n/g, '】');
+      // // let formattedHtml = rawText.replace(/【(.*?)】/g, (match, title) => {
+      // //   return `</div></div><div class="guide-block"><div class="guide-sub-title">${title}</div><div class="guide-text">`
+      // // });
+      // formattedHtml = formattedHtml.replace(/^(<\/div>)+/, '') + '</div></div>';
+      // formattedHtml = formattedHtml.replace(/(?:^|<br>|\n|\s)(\d+\.)/g, '<br><span class="guide-num">$1</span>');
+      // formattedHtml = formattedHtml.replace(/\n/g, '<br>');
+      // if (formattedHtml.startsWith('<br>')) formattedHtml = formattedHtml.substring(4);
+      // if($('res-month-body')) $('res-month-body').innerHTML = formattedHtml;
+            let rawText = (data.month_text || "").trim();
       rawText = rawText.replace(/\n\s*【/g, '【').replace(/】\s*\n/g, '】');
+
       let formattedHtml = rawText.replace(/【(.*?)】/g, (match, title) => {
-        return `</div></div><div class="guide-block"><div class="guide-sub-title">${title}</div><div class="guide-text">`;
+        // 1. 尝试用冒号分割标题
+        // 兼容中文冒号（：）和英文冒号（:）
+        let separatorIndex = -1;
+        if (title.indexOf('：') !== -1) separatorIndex = title.indexOf('：');
+        else if (title.indexOf(':') !== -1) separatorIndex = title.indexOf(':');
+
+        let label = title;      // 默认全显示
+        let content = "";       // 默认没后半段
+
+        if (separatorIndex !== -1) {
+            // 如果找到了冒号，拆分！
+            label = title.substring(0, separatorIndex + 1); // "第一阶段："
+            content = title.substring(separatorIndex + 1);  // "物理隔离..."
+        } else {
+            // 如果没冒号（比如"具体行动建议"），为了保险起见，
+            // 我们可以不拆分，或者你愿意的话，手动指定哪些字不打码
+            label = title; 
+            content = ""; 
+        }
+        
+        // 2. 生成带两个 span 的 HTML
+        // g-label 是蓝色的前缀，g-content 是要被打码的干货
+        return `</div></div><div class="guide-block">
+            <div class="guide-sub-title">
+                <span class="g-label">${label}</span>
+                <span class="g-content">${content}</span>
+            </div>
+            <div class="guide-text">`;
       });
+      
       formattedHtml = formattedHtml.replace(/^(<\/div>)+/, '') + '</div></div>';
       formattedHtml = formattedHtml.replace(/(?:^|<br>|\n|\s)(\d+\.)/g, '<br><span class="guide-num">$1</span>');
       formattedHtml = formattedHtml.replace(/\n/g, '<br>');
       if (formattedHtml.startsWith('<br>')) formattedHtml = formattedHtml.substring(4);
+      
       if($('res-month-body')) $('res-month-body').innerHTML = formattedHtml;
+
+
   }
-
-  // // --- D. 绘制雷达图 ---
-  // const ctx = $('radarChart').getContext('2d');
-  // if(myChart) myChart.destroy();
-  // const style = getComputedStyle(document.body);
-  // const brandColor = style.getPropertyValue('--brand').trim() || '#2563eb';
-
-  // myChart = new Chart(ctx, {
-  //   type: 'radar',
-  //   data: {
-  //     labels: ['认知成熟度', '自洽度', '执行力', '抗压能力', '精力余量', '状态指数'],
-  //     datasets: [{
-  //       label: '当前状态',
-  //       data: data.chart_data,
-  //       backgroundColor: 'rgba(37, 99, 235, 0.2)',
-  //       borderColor: brandColor,
-  //       borderWidth: 2,
-  //       pointBackgroundColor: '#fff',
-  //       pointBorderColor: brandColor,
-  //     }]
-  //   },
-  //   options: {
-  //     responsive: true,
-  //     maintainAspectRatio: false,
-  //     scales: {
-  //       r: { min: 0, max: 100, ticks: { display: false }, grid: { color: '#f1f5f9', circular: true }, pointLabels: { font: { size: 12, family:'Inter' }, color: '#64748b' } }
-  //     },
-  //     plugins: { legend: { display: false } }
-  //   }
-  // });
 
 // --- D. 绘制雷达图 (5圈网格 + 深色字体版) ---
 const ctx = document.getElementById('radarChart').getContext('2d');
@@ -1588,9 +1718,26 @@ myChart = new Chart(ctx, {
   }
 });
 
+const SUPPORTED_PREMIUM_TYPES = ['INTP', 'INTJ', 'ENTP', 'INFJ'];
+const userType = (data.mbti_type || currentType || "").toUpperCase();
+  const premiumTip = document.getElementById('premium-feature-tip');
+  if (premiumTip) {
+    if (SUPPORTED_PREMIUM_TYPES.includes(userType)) {
+      premiumTip.style.display = 'block'; // 是这4个类型，显示卖点
+    } else {
+      premiumTip.style.display = 'none';  // 其他类型，隐藏
+    }
+  }
   
+// === 未来全量开放时的修改方案 ===
+  // 1. 删掉上面那段 if-else 判断
+  // 2. 直接让它显示
+  // const premiumTip = document.getElementById('premium-feature-tip');
+  // if (premiumTip) premiumTip.style.display = 'block';
+
 const rid = localStorage.getItem('last_test_record_id');
 const paidLocal = rid && localStorage.getItem('paid_record_' + rid) === '1';
+// applyPaywall(false);
 applyPaywall(paidLocal ? false : true);
 
 cacheResult(data);
@@ -1608,110 +1755,276 @@ function cacheResult(data) {
 }
 
 
-    // 绑定提交事件
-// === 找到你的 form 提交监听部分，用这段完全替换 ===
+//     // 绑定提交事件
+// // === 找到你的 form 提交监听部分，用这段完全替换 ===
+// $('quiz-form').addEventListener('submit', (e) => {
+//       e.preventDefault();
+//       const formData = new FormData(e.target);
+//       const answers = {};
+//       let firstUnanswered = null;
+
+//       if (typeof currentQuestions !== 'undefined') {
+//         for (let q of currentQuestions) {
+//           const val = formData.get(`q${q.id}`);
+//           if (!val) {
+//             if (!firstUnanswered) firstUnanswered = q.id;
+//           } else {
+//             answers[q.id] = parseInt(val);
+//           }
+//         }
+//       }
+
+//       if (firstUnanswered) {
+//         if(typeof toast === 'function') toast("请完成所有题目");
+//         const card = document.querySelector(`.card[data-qid="${firstUnanswered}"]`);
+//         if(card) card.scrollIntoView({block:'center',behavior:'smooth'});
+//         return;
+//       }
+
+//       if(typeof setLoading === 'function') setLoading(true);
+
+//       // 1. 发送请求给 Python
+//       const payload = { mbti: currentType, answers: answers };
+
+//       fetch(API_BASE ? `${API_BASE}/api/submit` : '/api/submit', { 
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify(payload)
+//       })
+//       .then(response => {
+//         if (!response.ok) return response.json().then(err => { throw new Error(err.detail || '后端验证失败') });
+//         return response.json();
+//       })
+//       .then(res => { 
+//         // 2. 拿到数据，先渲染界面 (Render)
+//         renderResult(res); 
+
+//         // 🔥 新增：记录统计数据
+//         // 2.1 记录该类型“完成了” (DailyTypeStats 表 completes +1)
+//         Analytics.trackTypeFlow(currentType, 'complete');
+//         // 2.2 记录全站“完成了” (DailyStats 表 completed +1)
+//         Analytics.trackGlobalCompletion();
+
+//         // 3. 保存详细结果到 TestRecord 表
+//         setTimeout(() => {
+//             if(typeof setLoading === 'function') setLoading(false);
+//             try {
+//                 console.log("正在保存数据...");
+//                 const TestRecord = AV.Object.extend('TestRecord');
+//                 const record = new TestRecord();
+
+//                 // A. 时长
+//                 const endTime = Date.now();
+//                 const startTime = window.testStartTime || endTime; 
+//                 const duration = Math.round((endTime - startTime) / 1000);
+//                 record.set('duration_seconds', duration);
+
+//                 // B. 用户选项
+//                 const choicesForDb = {};
+//                 Object.keys(answers).forEach(key => { choicesForDb['Q' + key] = answers[key]; });
+//                 record.set('user_choices', choicesForDb);
+
+//                 // C. 基础分
+//                 record.set('mbti_type', res.mbti_type || currentType);
+//                 record.set('device', navigator.userAgent);
+//                 record.set('score_maturity', res.maturity); 
+//                 record.set('score_loop', res.loop);
+//                 record.set('score_grip', res.grip);
+//                 record.set('score_load', res.load);
+//                 record.set('score_overall', res.overall);
+//                 record.set('score_coherence', res.coherence);
+
+//                 record.set('is_paid', false);
+//                 record.set('id_paid', false);  // 你提到的另一个字段，也一起初始化
+//                 // D. 文本字段
+//                 const statusTag = res.pill_text; 
+//                 const fullResultText = `${res.pill_text} · ${res.overall}/100`;
+                
+//                 record.set('status_tag', statusTag);
+//                 record.set('result_text', fullResultText);
+                
+//                 record.save().then((saved) => {
+//                     localStorage.setItem('last_test_record_id', saved.id); 
+//                     localStorage.setItem('last_mbti_type', res.mbti_type || currentType);
+//                     // 这里原本调用 trackCompletion，现在上面已经调过了，这里不需要再调
+//                 });
+//             } catch (error) {
+//                 console.error('数据库保存出错:', error);
+//             }
+//         }, 500);
+//       })
+//       .catch(error => {
+//         console.error('Error:', error);
+//         if(typeof setLoading === 'function') setLoading(false);
+//         alert("提交失败: " + error.message);
+//       });
+//     });
+
+// ==========================================
+// 全局变量存储用户信息
+// ==========================================
+let finalGender = "";
+let finalAge = "";
+
+// 1. 性别选择辅助函数
+function selectGender(val, el) {
+  finalGender = val;
+  document.querySelectorAll('.gender-opt').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// 2. 弹窗确认按钮 -> 触发真正提交
+function confirmAndSubmit() {
+  const ageVal = document.getElementById('input-age').value.trim();
+  
+  if (!finalGender) {
+    if(typeof toast === 'function') toast("请选择性别 👉");
+    else alert("请选择性别");
+    return;
+  }
+  if (!ageVal) {
+    if(typeof toast === 'function') toast("请填写年龄 👉");
+    else alert("请填写年龄");
+    return;
+  }
+
+  // 保存数据
+  finalAge = ageVal;
+
+  // 关闭弹窗
+  document.getElementById('user-info-modal').style.display = 'none';
+
+  // 🔥 执行真正的后端提交 (把你原来的代码封装在这里)
+  executeRealSubmit();
+}
+
+// 3. 初始表单拦截 (点击提交按钮时触发)
 $('quiz-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const answers = {};
-      let firstUnanswered = null;
+  e.preventDefault();
+  
+  // --- 校验题目是否做完 (保持你原来的逻辑) ---
+  const formData = new FormData(e.target);
+  let firstUnanswered = null;
 
-      if (typeof currentQuestions !== 'undefined') {
-        for (let q of currentQuestions) {
-          const val = formData.get(`q${q.id}`);
-          if (!val) {
-            if (!firstUnanswered) firstUnanswered = q.id;
-          } else {
-            answers[q.id] = parseInt(val);
-          }
-        }
+  if (typeof currentQuestions !== 'undefined') {
+    for (let q of currentQuestions) {
+      if (!formData.get(`q${q.id}`)) {
+        firstUnanswered = q.id;
+        break; // 只要有一个没做就停
       }
+    }
+  }
 
-      if (firstUnanswered) {
-        if(typeof toast === 'function') toast("请完成所有题目");
-        const card = document.querySelector(`.card[data-qid="${firstUnanswered}"]`);
-        if(card) card.scrollIntoView({block:'center',behavior:'smooth'});
-        return;
-      }
+  if (firstUnanswered) {
+    if(typeof toast === 'function') toast("请完成所有题目");
+    const card = document.querySelector(`.card[data-qid="${firstUnanswered}"]`);
+    if(card) card.scrollIntoView({block:'center',behavior:'smooth'});
+    return;
+  }
+  
+  // ✅ 校验通过，打开弹窗，而不是直接提交
+  document.getElementById('user-info-modal').style.display = 'flex';
+});
 
-      if(typeof setLoading === 'function') setLoading(true);
 
-      // 1. 发送请求给 Python
-      const payload = { mbti: currentType, answers: answers };
+// ==========================================
+// 4. 真正的提交逻辑 (包含 Python Fetch 和 LeanCloud)
+// ==========================================
+function executeRealSubmit() {
+  if(typeof setLoading === 'function') setLoading(true);
 
-      fetch(API_BASE ? `${API_BASE}/api/submit` : '/api/submit', { 
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      .then(response => {
-        if (!response.ok) return response.json().then(err => { throw new Error(err.detail || '后端验证失败') });
-        return response.json();
-      })
-      .then(res => { 
-        // 2. 拿到数据，先渲染界面 (Render)
-        renderResult(res); 
+  // 重新获取一下答案 (因为 formData 在上面那个函数里，这里重新取一次最稳)
+  const formData = new FormData($('quiz-form'));
+  const answers = {};
+  if (typeof currentQuestions !== 'undefined') {
+    for (let q of currentQuestions) {
+      const val = formData.get(`q${q.id}`);
+      if (val) answers[q.id] = parseInt(val);
+    }
+  }
 
-        // 🔥 新增：记录统计数据
-        // 2.1 记录该类型“完成了” (DailyTypeStats 表 completes +1)
+  // 1. 发送请求给 Python
+  const payload = { mbti: currentType, answers: answers };
+
+  fetch(API_BASE ? `${API_BASE}/api/submit` : '/api/submit', { 
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(response => {
+    if (!response.ok) return response.json().then(err => { throw new Error(err.detail || '后端验证失败') });
+    return response.json();
+  })
+  .then(res => { 
+    // 2. 拿到数据，先渲染界面 (Render)
+    renderResult(res); 
+
+    // 统计埋点
+    if (typeof Analytics !== 'undefined') {
         Analytics.trackTypeFlow(currentType, 'complete');
-        // 2.2 记录全站“完成了” (DailyStats 表 completed +1)
         Analytics.trackGlobalCompletion();
+    }
 
-        // 3. 保存详细结果到 TestRecord 表
-        setTimeout(() => {
-            if(typeof setLoading === 'function') setLoading(false);
-            try {
-                console.log("正在保存数据...");
-                const TestRecord = AV.Object.extend('TestRecord');
-                const record = new TestRecord();
-
-                // A. 时长
-                const endTime = Date.now();
-                const startTime = window.testStartTime || endTime; 
-                const duration = Math.round((endTime - startTime) / 1000);
-                record.set('duration_seconds', duration);
-
-                // B. 用户选项
-                const choicesForDb = {};
-                Object.keys(answers).forEach(key => { choicesForDb['Q' + key] = answers[key]; });
-                record.set('user_choices', choicesForDb);
-
-                // C. 基础分
-                record.set('mbti_type', res.mbti_type || currentType);
-                record.set('device', navigator.userAgent);
-                record.set('score_maturity', res.maturity); 
-                record.set('score_loop', res.loop);
-                record.set('score_grip', res.grip);
-                record.set('score_load', res.load);
-                record.set('score_overall', res.overall);
-                record.set('score_coherence', res.coherence);
-
-                record.set('is_paid', false);
-                record.set('id_paid', false);  // 你提到的另一个字段，也一起初始化
-                // D. 文本字段
-                const statusTag = res.pill_text; 
-                const fullResultText = `${res.pill_text} · ${res.overall}/100`;
-                
-                record.set('status_tag', statusTag);
-                record.set('result_text', fullResultText);
-                
-                record.save().then((saved) => {
-                    localStorage.setItem('last_test_record_id', saved.id); 
-                    localStorage.setItem('last_mbti_type', res.mbti_type || currentType);
-                    // 这里原本调用 trackCompletion，现在上面已经调过了，这里不需要再调
-                });
-            } catch (error) {
-                console.error('数据库保存出错:', error);
-            }
-        }, 500);
-      })
-      .catch(error => {
-        console.error('Error:', error);
+    // 3. 保存详细结果到 TestRecord 表
+    setTimeout(() => {
         if(typeof setLoading === 'function') setLoading(false);
-        alert("提交失败: " + error.message);
-      });
-    });
+        try {
+            console.log("正在保存数据...");
+            const TestRecord = AV.Object.extend('TestRecord');
+            const record = new TestRecord();
+
+            // A. 时长
+            const endTime = Date.now();
+            const startTime = window.testStartTime || endTime; 
+            const duration = Math.round((endTime - startTime) / 1000);
+            record.set('duration_seconds', duration);
+
+            // B. 用户选项
+            const choicesForDb = {};
+            Object.keys(answers).forEach(key => { choicesForDb['Q' + key] = answers[key]; });
+            record.set('user_choices', choicesForDb);
+
+            // C. 基础分
+            record.set('mbti_type', res.mbti_type || currentType);
+            record.set('device', navigator.userAgent);
+            record.set('score_maturity', res.maturity); 
+            record.set('score_loop', res.loop);
+            record.set('score_grip', res.grip);
+            record.set('score_load', res.load);
+            record.set('score_overall', res.overall);
+            record.set('score_coherence', res.coherence);
+
+            record.set('is_paid', false);
+            record.set('id_paid', false);
+
+            // 🔥🔥 D. 新增：性别和年龄 🔥🔥
+            // 如果用户跳过了弹窗（比如点了暂不填写），这里就是空字符串
+            record.set('user_gender', finalGender || "unknown");
+            record.set('user_age', finalAge || "unknown");
+
+            // E. 文本字段
+            const statusTag = res.pill_text; 
+            const fullResultText = `${res.pill_text} · ${res.overall}/100`;
+            
+            record.set('status_tag', statusTag);
+            record.set('result_text', fullResultText);
+            
+            record.save().then((saved) => {
+                localStorage.setItem('last_test_record_id', saved.id); 
+                localStorage.setItem('last_mbti_type', res.mbti_type || currentType);
+                console.log("✅ 数据保存成功 (含用户信息)");
+            });
+        } catch (error) {
+            console.error('数据库保存出错:', error);
+        }
+    }, 500);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    if(typeof setLoading === 'function') setLoading(false);
+    alert("提交失败: " + error.message);
+  });
+}
 
 function isMobile() {
   const ua = navigator.userAgent || '';
@@ -1975,6 +2288,7 @@ function showResultUI() {
 }
 
 async function verifyPaidAndUnlock(orderId) {
+
   // ✅ 用相对路径，别再拼 http://127 或 http://mypsytest.site
   const res = await fetch(`/api/check_order?order_id=${encodeURIComponent(orderId)}`);
   const data = await res.json();
@@ -2113,5 +2427,63 @@ function showMobilePayTip() {
       <p class="footer-note">本测试基于 MBTI 心理学理论模型，结果仅供自我探索参考，不作为心理咨询或医疗诊断依据。</p>
     </div>
   </footer>
+
+<!-- ==========================================
+     新增：用户信息收集弹窗
+     ========================================== -->
+<div id="user-info-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center; backdrop-filter: blur(4px);">
+  <div style="background:#fff; width:85%; max-width:340px; padding:24px; border-radius:20px; text-align:center; box-shadow:0 20px 40px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease;">
+    
+    <h3 style="margin:0 0 6px; font-size:18px; color:#1e293b;">最后一步</h3>
+    <p style="margin:0 0 20px; font-size:13px; color:#64748b; line-height:1.5;">
+      为了生成更精准的画像，请补充基础信息<br>
+      <span style="font-size:12px; color:#10b981; background: #ecfdf5; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 6px;">
+        数据仅用于分析，严格保密
+      </span>
+    </p>
+
+    <!-- 性别选择 -->
+    <div style="text-align:left; margin-bottom:18px;">
+      <label style="font-size:13px; font-weight:700; color:#475569; display:block; margin-bottom:8px;">您的性别</label>
+      <div style="display:flex; gap:12px;">
+        <div class="gender-opt" onclick="selectGender('male', this)" style="flex:1; padding:12px; border:2px solid #f1f5f9; border-radius:12px; cursor:pointer; text-align:center; transition:all 0.2s; color:#64748b;">
+          男生
+        </div>
+        <div class="gender-opt" onclick="selectGender('female', this)" style="flex:1; padding:12px; border:2px solid #f1f5f9; border-radius:12px; cursor:pointer; text-align:center; transition:all 0.2s; color:#64748b;">
+          女生
+        </div>
+      </div>
+    </div>
+
+    <!-- 年龄输入 -->
+    <div style="text-align:left; margin-bottom:24px;">
+      <label style="font-size:13px; font-weight:700; color:#475569; display:block; margin-bottom:8px;">您的年龄</label>
+      <input type="number" id="input-age" placeholder="例如: 24" inputmode="numeric"
+        style="width:100%; padding:12px; border:2px solid #f1f5f9; border-radius:12px; font-size:16px; outline:none; transition:all 0.2s;">
+    </div>
+
+    <!-- 确认按钮 -->
+    <button onclick="confirmAndSubmit()" style="width:100%; padding:14px; background:#2563eb; color:#fff; border:none; border-radius:12px; font-weight:700; font-size:16px; cursor:pointer; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
+      生成深度报告
+    </button>
+    
+    <!-- 关闭/取消 (可选) -->
+    <div onclick="document.getElementById('user-info-modal').style.display='none'" style="margin-top:12px; font-size:13px; color:#94a3b8; cursor:pointer;">
+      暂不填写，直接查看结果
+    </div>
+  </div>
+</div>
+
+<style>
+  /* 简单的选中态样式 */
+  .gender-opt:hover { background: #f8fafc; }
+  .gender-opt.active {
+    border-color: #2563eb !important;
+    background: #eff6ff !important;
+    color: #2563eb !important;
+    font-weight: 700;
+  }
+  #input-age:focus { border-color: #2563eb !important; }
+</style>
   </body>
 </html>
