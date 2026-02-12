@@ -12,7 +12,7 @@ import os
 import uuid
 import httpx
 from fastapi.responses import PlainTextResponse
-
+from urllib.parse import quote
 app = FastAPI()
 
 app.add_middleware(
