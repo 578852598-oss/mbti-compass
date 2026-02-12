@@ -13,6 +13,7 @@ import uuid
 import httpx
 from fastapi.responses import PlainTextResponse
 from urllib.parse import quote
+import json
 app = FastAPI()
 
 app.add_middleware(
@@ -8065,10 +8066,7 @@ async def redeem_code(req: RedeemReq):
         # 构建查询条件: code == req.code AND is_used == false
         where_str = json.dumps({"code": req.code, "is_used": {"$ne": True}})
 
-        # 注意：这里需要 import json
-        import json
         # 为了保险，把 where 参数 urlencode 一下
-        from urllib.parse import quote
 
         query_url = f"{LC_API_URL}/classes/PromoCode?where={quote(where_str)}"
 
