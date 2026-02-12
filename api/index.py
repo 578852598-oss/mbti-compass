@@ -8034,7 +8034,7 @@ async def zpay_notify(request: Request):
 
     return PlainTextResponse("ignored")
 
-LC_APP_ID = "oHk4yKURFUq90Z2v66jCONZF"
+LC_APP_ID = "oHk4yKURFUq90Z2v66jCONZF-MdYXbMMI"
 LC_APP_KEY = "sxruA5kvqDApvWG5FRslFJId"
 # 建议使用 MasterKey 也就是 "主密钥"，因为它有权限修改任何数据，不受 ACL 限制
 LC_MASTER_KEY = "1iHg3fTpJqXOHuhX36gkL8Rc"
