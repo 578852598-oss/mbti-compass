@@ -877,7 +877,30 @@
           <div style="margin-top:10px; font-size:12px; color:#64748b;">
             支付成功后将自动解锁
           </div>
+
+
+
+                      <!-- 🔥 新增：兑换码入口 -->
+              <div style="margin-top: 10px; font-size: 13px; color: #2563eb; cursor: pointer; text-decoration: underline;" 
+                   onclick="toggleRedeemBox()">
+                我购买了兑换码
+              </div>
+
+              <!-- 隐藏的兑换输入框 -->
+              <div id="redeem-box" style="display:none; margin-top:10px; width:80%;">
+                <div style="display:flex; gap:8px;">
+                  <input type="text" id="promo-code-input" placeholder="请输入兑换码" 
+                         style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:8px; outline:none; font-size:13px;">
+                  <button onclick="submitRedeem()" id="btn-redeem"
+                          style="padding:8px 12px; background:#334155; color:#fff; border:none; border-radius:8px; font-size:13px; cursor:pointer;">
+                    兑换
+                  </button>
+                </div>
+              </div>
+          </div>
         </div>
+
+        
 
         <div class="relation-box">
           <div class="rel-card rel-cp" data-bg="❤️">
@@ -1718,7 +1741,8 @@ myChart = new Chart(ctx, {
   }
 });
 
-const SUPPORTED_PREMIUM_TYPES = ['INTP', 'INTJ', 'ENTP', 'INFJ','INFP','ENFP'];
+const SUPPORTED_PREMIUM_TYPES = ['INTP', 'INTJ', 'ENTP', 'INFJ','INFP','ENFP','ENFJ','ENTJ',
+'ISFJ','ISFP','ISTP','ESTP','ESFP','ESFJ','ESTJ'];
 const userType = (data.mbti_type || currentType || "").toUpperCase();
   const premiumTip = document.getElementById('premium-feature-tip');
   if (premiumTip) {
@@ -2418,7 +2442,59 @@ function showMobilePayTip() {
   document.body.appendChild(tip);
 }
 
+// 切换兑换框显示
+function toggleRedeemBox() {
+  const box = document.getElementById('redeem-box');
+  box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+}
 
+// 提交兑换码
+async function submitRedeem() {
+  const codeInput = document.getElementById('promo-code-input');
+  const code = codeInput.value.trim();
+  const btn = document.getElementById('btn-redeem');
+  
+  if (!code) {
+    alert("请输入兑换码");
+    return;
+  }
+
+  const rid = localStorage.getItem('last_test_record_id');
+  if (!rid) {
+    alert("未找到测试记录，请重新测试");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = "验证中...";
+
+  try {
+    const res = await fetch('/api/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ record_id: rid, code: code })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      alert("兑换成功！报告已解锁");
+      // 标记本地已支付
+      localStorage.setItem("paid_record_" + rid, "1");
+      // 刷新页面或直接解锁
+      applyPaywall(false);
+      toggleRedeemBox(); // 关掉框
+    } else {
+      alert("兑换失败：" + (data.msg || "无效的兑换码"));
+    }
+  } catch (e) {
+    console.error(e);
+    alert("网络错误，请稍后重试");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "兑换";
+  }
+}
 
   </script>
 <footer class="site-footer">
