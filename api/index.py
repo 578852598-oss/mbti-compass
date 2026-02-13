@@ -8257,7 +8257,7 @@ def submit_answers(req: SubmitRequest):
     load_raw_sum = 0
     load_count = 0
     # 题目ID通常是从1开始的，所以我们要找 ID 11 到 20
-    target_load_ids = range(11, 21)
+    target_load_ids = range(11, 30)
 
     for q_id in target_load_ids:
         if q_id in user_raw_answers:
