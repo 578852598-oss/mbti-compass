@@ -8307,11 +8307,11 @@ def submit_answers(req: SubmitRequest):
 
     state_key = "mixed"
     # 状态判定逻辑 (保持原样或按需微调)
-    if res_l >= 55 and res_g >= 55:
+    if res_l >= 50 and res_g >= 50:
         state_key = "crisis"
-    elif res_g >= 55:
+    elif res_g >= 50:
         state_key = "overload"  # 对应 grip
-    elif res_l >= 55:
+    elif res_l >= 50:
         state_key = "highLoop"  # 对应 loop
     else:
         state_key = "stable"
