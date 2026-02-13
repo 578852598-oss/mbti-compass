@@ -1541,21 +1541,21 @@ function renderResult(data) {
   updateField('v-maturity', mTxt, mDesc, mClass);
 
   // 2. Loop
-  let lClass = data.loop < 35 ? "color-healthy" : (data.loop < 55 ? "color-warn" : "color-bad");
-  let lTxt = data.loop < 35 ? "低" : (data.loop < 55 ? "中" : "高");
-  let lDesc = data.loop < 35 ? "与自己和解，无明显内耗" : (data.loop < 55 ? "偶有精神反刍" : "自我攻击严重");
+  let lClass = data.loop < 35 ? "color-healthy" : (data.loop < 50 ? "color-warn" : "color-bad");
+  let lTxt = data.loop < 35 ? "低" : (data.loop < 50 ? "中" : "高");
+  let lDesc = data.loop < 35 ? "与自己和解，无明显内耗" : (data.loop < 50 ? "偶有精神反刍" : "自我攻击严重");
   updateField('v-loop', lTxt, lDesc, lClass);
 
   // 3. Grip
-  let gClass = data.grip < 35 ? "color-healthy" : (data.grip < 55 ? "color-warn" : "color-bad");
-  let gTxt = data.grip < 35 ? "低" : (data.grip < 55 ? "中" : "高");
-  let gDesc = data.grip < 35 ? "情绪稳定" : (data.grip < 55 ? "压力下偶有爆发" : "处在高压边缘");
+  let gClass = data.grip < 35 ? "color-healthy" : (data.grip < 50 ? "color-warn" : "color-bad");
+  let gTxt = data.grip < 35 ? "低" : (data.grip < 50 ? "中" : "高");
+  let gDesc = data.grip < 35 ? "情绪稳定" : (data.grip < 50 ? "压力下偶有爆发" : "处在高压边缘");
   updateField('v-grip', gTxt, gDesc, gClass);
 
   // 4. Load
-  let ldClass = data.load < 35 ? "color-healthy" : (data.load < 55 ? "color-warn" : "color-bad");
-  let ldTxt = data.load < 35 ? "轻" : (data.load < 55 ? "中" : "重");
-  let ldDesc = data.load < 35 ? "余量充足" : (data.load < 55 ? "强度适中" : "急需减负恢复");
+  let ldClass = data.load < 35 ? "color-healthy" : (data.load < 50 ? "color-warn" : "color-bad");
+  let ldTxt = data.load < 35 ? "轻" : (data.load < 50 ? "中" : "重");
+  let ldDesc = data.load < 35 ? "余量充足" : (data.load < 50 ? "强度适中" : "急需减负恢复");
   updateField('v-load', ldTxt, ldDesc, ldClass);
 
   // 5. 自洽度
