@@ -305,6 +305,8 @@
     const DEFAULT_START_DATE = "2025-09-11";
     // 预产期总天数
     const PREGNANCY_DAYS = 280; 
+    // 宝宝已在 38周 + 2天 出生，孕周显示定格在这里
+    const FROZEN_GESTATIONAL_DAYS = 38 * 7 + 2; 
 
     window.onload = function() {
         // 设置日期显示
@@ -346,6 +348,7 @@
         // 1. 计算当前孕周
         const diffTime = today - lmp;
         const totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        const displayTotalDays = Math.min(totalDays, FROZEN_GESTATIONAL_DAYS);
         
         let resultText = "";
         let dayText = "";
@@ -354,15 +357,15 @@
             resultText = "尚未开始";
             dayText = `距离开始还有 ${Math.abs(totalDays)} 天`;
         } else {
-            const weeks = Math.floor(totalDays / 7);
-            const days = totalDays % 7;
+            const weeks = Math.floor(displayTotalDays / 7);
+            const days = displayTotalDays % 7;
             resultText = `${weeks}周 + ${days}天`;
-            dayText = `累计怀孕: ${totalDays}天`;
+            dayText = `累计怀孕: ${displayTotalDays}天`;
         }
         document.getElementById('currentGestational').innerText = resultText;
         document.getElementById('totalDays').innerText = dayText;
     
-        let percent = (totalDays / 280) * 100;
+        let percent = (displayTotalDays / 280) * 100;
         percent = Math.min(Math.max(percent, 0), 100); // 锁死在0-100之间
         
         document.getElementById('progressBar').style.width = percent + "%";
