@@ -309,10 +309,9 @@
     const FROZEN_GESTATIONAL_DAYS = 38 * 7 + 2; 
 
     window.onload = function() {
-        // 设置日期显示
+        // 设置日期显示（固定为宝宝出生日期）
         const today = new Date();
-        const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-        document.getElementById('todayDateStr').innerText = today.toLocaleDateString('zh-CN', options);
+        document.getElementById('todayDateStr').innerText = "2026年6月6日";
 
         // 初始化日期 A 和 B
         document.getElementById('dateA').value = DEFAULT_START_DATE;
